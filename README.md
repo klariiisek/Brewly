@@ -1,6 +1,5 @@
 # ☕ Brewly
 
-Mobilní aplikace pro komunikaci mezi zákazníkem a kavárnou, objednávání a správu rezervací. Vytvořeno ve Flutter + Firebase.
 
 ## Funkce
 
