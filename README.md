@@ -1,25 +1,17 @@
-# ☕ Brewly
+# brewly
 
+A new Flutter project.
 
-## Funkce
+## Getting Started
 
-* Přihlášení přes email/heslo nebo Google
-* Role návštěvník / zákazník / obsluha
-* Prohlížení menu a kategorií
-* Objednávání jídla a nápojů ke stolu
-* QR kód pro rozpoznání konkrétního stolu
-* Přivolání obsluhy
-* Rezervace stolů
-* Historie objednávek
-* Oblíbené produkty
-* Věrnostní systém
+This project is a starting point for a Flutter application.
 
-## Technologie
+A few resources to get you started if this is your first Flutter project:
 
-* Flutter
-* Dart
-* Firebase Authentication
-* Cloud Firestore
-* Firebase Storage
-* Google Sign-In
-* QR kódy
+- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
+- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+
+For help getting started with Flutter development, view the
+[online documentation](https://docs.flutter.dev/), which offers tutorials,
+samples, guidance on mobile development, and a full API reference.
