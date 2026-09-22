@@ -1,17 +1,25 @@
-# brewly
+# ☕ Brewly
 
-A new Flutter project.
+**Brewly** je mobilní aplikace pro kavárnu vytvořená jako maturitní závěrečný projekt ve Flutteru.
 
-## Getting Started
+Aplikace bude sloužit zákazníkům i obsluze kavárny. Zákazník si bude moci prohlížet menu, objednávat jídlo a nápoje, rezervovat stůl, ukládat oblíbené produkty, sledovat historii objednávek a využívat věrnostní systém.
 
-This project is a starting point for a Flutter application.
+Součástí aplikace bude také **QR kód umístěný na každém stole**, pomocí kterého aplikace pozná konkrétní stůl a zákazník bude moci jednoduše vytvořit objednávku nebo přivolat obsluhu, například kvůli platbě.
 
-A few resources to get you started if this is your first Flutter project:
+Aplikace bude obsahovat tři typy uživatelů:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+* 👤 návštěvník
+* ☕ zákazník
+* 👩‍🍳 obsluha
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Přihlášení bude řešeno pomocí **Firebase Authentication**, s možností registrace e-mailem a heslem nebo přihlášení přes **Google účet**.
+
+### Plánované technologie
+
+* Flutter / Dart
+* Firebase Authentication
+* Cloud Firestore
+* Firebase Storage
+* QR kódy
+
+Cílem projektu je vytvořit jednoduchou, moderní a funkční aplikaci, která propojí zákazníka s kavárnou a usnadní objednávání a komunikaci s obsluhou.

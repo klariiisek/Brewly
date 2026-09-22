@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../models/cart.dart';
+import '../models/order.dart';
+import '../models/order_history.dart';
+import 'order_history_screen.dart';
 
 class CartScreen extends StatefulWidget {
   final Cart cart;
@@ -15,7 +18,24 @@ class _CartScreenState extends State<CartScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Košík')),
+      appBar: AppBar(
+  title: const Text('Košík'),
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.history),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrderHistoryScreen(
+              orderHistory: widget.cart.orderHistory,
+            ),
+          ),
+        );
+      },
+    ),
+  ],
+),
       body: Column(
         children: [
           Expanded(
@@ -72,25 +92,24 @@ class _CartScreenState extends State<CartScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-  if (widget.cart.items.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Košík je prázdný'),
-      ),
-    );
-    return;
-  }
-
-  setState(() {
-    widget.cart.items.clear();
-  });
-
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('Objednávka byla vytvořena'),
-    ),
-  );
-},
+                  if (widget.cart.items.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Košík je prázdný')),
+                    );
+                    return;
+                  }
+                  final order = Order(
+                    items: List.from(widget.cart.items),
+                    totalPrice: widget.cart.totalPrice,
+                  );
+                  widget.cart.orderHistory.addOrder(order);
+                  setState(() {
+                    widget.cart.items.clear();
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Objednávka byla vytvořena')),
+                  );
+                },
                 child: const Text('Objednat'),
               ),
             ),
