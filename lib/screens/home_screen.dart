@@ -28,7 +28,7 @@ class HomeScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const MenuScreen()),
+                  MaterialPageRoute(builder: (context) => MenuScreen()),
                 );
               },
               child: const Text('Prohlédnout menu'),

@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../models/cart.dart';
 import '../models/product.dart';
 import 'product_detail_screen.dart';
+import 'cart_screen.dart';
 
 class MenuScreen extends StatelessWidget {
-  const MenuScreen({super.key});
+  final Cart cart;
+
+  MenuScreen({super.key}) : cart = Cart();
 
   final List<Product> products = const [
     Product(name: 'Espresso', price: 45, category: 'Káva'),
@@ -18,7 +22,20 @@ class MenuScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Menu')),
+      appBar: AppBar(
+        title: const Text('Menu'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => CartScreen(cart: cart)),
+              );
+            },
+          ),
+        ],
+      ),
       body: ListView.builder(
         itemCount: products.length,
         itemBuilder: (context, index) {
@@ -29,7 +46,8 @@ class MenuScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => ProductDetailScreen(product: product),
+                    builder: (context) =>
+                        ProductDetailScreen(product: product, cart: cart),
                   ),
                 );
               },

@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../models/product.dart';
+import '../models/cart.dart';
+import '../models/cart_item.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final Product product;
+  final Cart cart;
 
-  const ProductDetailScreen({super.key, required this.product});
+  const ProductDetailScreen({
+    super.key,
+    required this.product,
+    required this.cart,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +33,10 @@ class ProductDetailScreen extends StatelessWidget {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                // zatím nic
+                cart.addItem(CartItem(product: product));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Přidáno do košíku')),
+                );
               },
               child: const Text('Přidat do košíku'),
             ),
