@@ -15,19 +15,35 @@ class OrderDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Detail objednávky'),
       ),
-      body: ListView.builder(
-        itemCount: order.items.length,
-        itemBuilder: (context, index) {
-          final item = order.items[index];
-
-          return ListTile(
-            title: Text(item.product.name),
-            subtitle: Text('${item.quantity}×'),
-            trailing: Text(
-              '${item.product.price * item.quantity} Kč',
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Stav: ${orderStatusText(order.status)}',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          );
-        },
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: order.items.length,
+              itemBuilder: (context, index) {
+                final item = order.items[index];
+
+                return ListTile(
+                  title: Text(item.product.name),
+                  subtitle: Text('${item.quantity}×'),
+                  trailing: Text(
+                    '${item.product.price * item.quantity} Kč',
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

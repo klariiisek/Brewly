@@ -19,23 +19,23 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-  title: const Text('Košík'),
-  actions: [
-    IconButton(
-      icon: const Icon(Icons.history),
-      onPressed: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => OrderHistoryScreen(
-              orderHistory: widget.cart.orderHistory,
-            ),
+        title: const Text('Košík'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => OrderHistoryScreen(
+                    orderHistory: widget.cart.orderHistory,
+                  ),
+                ),
+              );
+            },
           ),
-        );
-      },
-    ),
-  ],
-),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(
@@ -101,6 +101,7 @@ class _CartScreenState extends State<CartScreen> {
                   final order = Order(
                     items: List.from(widget.cart.items),
                     totalPrice: widget.cart.totalPrice,
+                    status: OrderStatus.prijata,
                   );
                   widget.cart.orderHistory.addOrder(order);
                   setState(() {
