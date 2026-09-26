@@ -30,4 +30,21 @@ class Order {
     required this.totalPrice,
     required this.status,
   });
+
+  void nextStatus() {
+    switch (status) {
+      case OrderStatus.prijata:
+        status = OrderStatus.pripravujeSe;
+        break;
+      case OrderStatus.pripravujeSe:
+        status = OrderStatus.pripravena;
+        break;
+      case OrderStatus.pripravena:
+        status = OrderStatus.dokoncena;
+        break;
+      case OrderStatus.dokoncena:
+        // Dokončená objednávka už dál nepokračuje.
+        break;
+    }
+  }
 }

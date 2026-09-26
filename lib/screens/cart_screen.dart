@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/cart.dart';
 import '../models/order.dart';
 import '../models/order_history.dart';
+import '../widgets/app_message.dart';
 import 'order_history_screen.dart';
 
 class CartScreen extends StatefulWidget {
@@ -93,9 +94,7 @@ class _CartScreenState extends State<CartScreen> {
               child: ElevatedButton(
                 onPressed: () {
                   if (widget.cart.items.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Košík je prázdný')),
-                    );
+                    showAppMessage(context, 'Košík je prázdný');
                     return;
                   }
                   final order = Order(
@@ -107,9 +106,7 @@ class _CartScreenState extends State<CartScreen> {
                   setState(() {
                     widget.cart.items.clear();
                   });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Objednávka byla vytvořena')),
-                  );
+                  showAppMessage(context, 'Objednávka byla vytvořena');
                 },
                 child: const Text('Objednat'),
               ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/order.dart';
 
-class OrderDetailScreen extends StatelessWidget {
+class OrderDetailScreen extends StatefulWidget {
   final Order order;
 
   const OrderDetailScreen({
@@ -10,7 +10,14 @@ class OrderDetailScreen extends StatelessWidget {
   });
 
   @override
+  State<OrderDetailScreen> createState() => _OrderDetailScreenState();
+}
+
+class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  @override
   Widget build(BuildContext context) {
+    final order = widget.order;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detail objednávky'),
@@ -26,6 +33,16 @@ class OrderDetailScreen extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
+          ),
+          ElevatedButton(
+            onPressed: order.status == OrderStatus.dokoncena
+                ? null
+                : () {
+                    setState(() {
+                      order.nextStatus();
+                    });
+                  },
+            child: const Text('Další stav'),
           ),
           Expanded(
             child: ListView.builder(

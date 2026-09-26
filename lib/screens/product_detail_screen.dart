@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../models/cart.dart';
 import '../models/cart_item.dart';
+import '../widgets/app_message.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final Product product;
@@ -34,9 +35,7 @@ class ProductDetailScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 cart.addItem(CartItem(product: product));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Přidáno do košíku')),
-                );
+                showAppMessage(context, 'Přidáno do košíku');
               },
               child: const Text('Přidat do košíku'),
             ),
