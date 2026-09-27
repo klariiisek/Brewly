@@ -8,7 +8,7 @@ class Cart {
   void addItem(CartItem item) {
   for (final existingItem in items) {
     if (existingItem.product.name == item.product.name) {
-      existingItem.quantity++;
+      existingItem.quantity += item.quantity;
       return;
     }
   }

@@ -46,8 +46,12 @@ class _MainScreenState extends State<MainScreen> {
             cart: cart,
             onCartChanged: refresh,
             onOrderCreated: () => goToTab(2),
+            onGoToMenu: () => goToTab(0),
           ),
-          OrderHistoryScreen(orderHistory: cart.orderHistory),
+          OrderHistoryScreen(
+            orderHistory: cart.orderHistory,
+            onGoToMenu: () => goToTab(0),
+          ),
         ],
       ),
       bottomNavigationBar: NavigationBar(

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:brewly/main.dart';
 import 'package:brewly/models/cart.dart';
+import 'package:brewly/utils/format.dart';
 
 void main() {
   testWidgets('Úvodní obrazovka zobrazuje název a tlačítko menu',
@@ -13,6 +14,28 @@ void main() {
     // Ověří, že je vidět název kavárny a tlačítko pro menu.
     expect(find.text('BREWLY'), findsOneWidget);
     expect(find.text('Prohlédnout menu'), findsOneWidget);
+  });
+
+  test('Správné skloňování počtu položek', () {
+    expect(formatItemCount(1), '1 položka');
+    expect(formatItemCount(3), '3 položky');
+    expect(formatItemCount(5), '5 položek');
+  });
+
+  testWidgets('Prázdný košík ukáže tlačítko zpět do menu',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(MyApp(cart: Cart()));
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Košík').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Košík je prázdný'), findsOneWidget);
+
+    // Tlačítko vrátí zákazníka do menu.
+    await tester.tap(find.text('Přejít do menu'));
+    await tester.pumpAndSettle();
+    expect(find.text('Co si dnes dáte?'), findsOneWidget);
   });
 
   testWidgets('Kategorie v menu filtrují produkty', (WidgetTester tester) async {
@@ -26,6 +49,31 @@ void main() {
 
     expect(find.text('Tiramisu'), findsOneWidget);
     expect(find.text('Espresso'), findsNothing);
+  });
+
+  testWidgets('Detail zespodu přidá vybrané množství do košíku',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(MyApp(cart: Cart()));
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+
+    // Otevře detail Latte kliknutím na kartu.
+    await tester.tap(find.text('Latte'));
+    await tester.pumpAndSettle();
+
+    // Zvýší množství na 3.
+    await tester.tap(find.byTooltip('Zvýšit množství'));
+    await tester.tap(find.byTooltip('Zvýšit množství'));
+    await tester.pump();
+    expect(find.text('Přidat do košíku · 210 Kč'), findsOneWidget);
+
+    // Přidá do košíku, okno se zavře.
+    await tester.tap(find.text('Přidat do košíku · 210 Kč'));
+    await tester.pumpAndSettle();
+    expect(find.text('Přidáno: 3× Latte'), findsOneWidget);
+
+    // V liště je u košíku číslo 3.
+    expect(find.text('3'), findsOneWidget);
   });
 
   testWidgets('Objednávka přes spodní lištu: menu → košík → objednávky',

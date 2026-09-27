@@ -7,7 +7,7 @@ import '../models/product.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
 import '../widgets/product_card.dart';
-import 'product_detail_screen.dart';
+import '../widgets/product_sheet.dart';
 
 class MenuScreen extends StatefulWidget {
   final Cart cart;
@@ -58,22 +58,18 @@ class _MenuScreenState extends State<MenuScreen> {
     return 'Dobrý večer';
   }
 
-  void addToCart(Product product) {
-    widget.cart.addItem(CartItem(product: product));
+  void addToCart(Product product, {int quantity = 1}) {
+    widget.cart.addItem(CartItem(product: product, quantity: quantity));
     widget.onCartChanged();
-    showAppMessage(context, 'Přidáno: ${product.name}');
+    showAppMessage(context, 'Přidáno: $quantity× ${product.name}');
   }
 
+  // Otevře detail zespodu. Když zákazník vybere množství, přidá ho do košíku.
   Future<void> openDetail(Product product) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            ProductDetailScreen(product: product, cart: widget.cart),
-      ),
-    );
-    // V detailu se mohl produkt přidat do košíku.
-    widget.onCartChanged();
+    final quantity = await showProductSheet(context, product);
+    if (quantity != null && mounted) {
+      addToCart(product, quantity: quantity);
+    }
   }
 
   @override

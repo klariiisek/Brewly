@@ -7,6 +7,7 @@ class AppColors {
   static const Color caramel = Color(0xFFC8894B); // akcent
   static const Color cream = Color(0xFFFAF6F1); // pozadí obrazovek
   static const Color muted = Color(0xFF8D7B6F); // méně důležitý text
+  static const Color success = Color(0xFF5B8C5A); // zelená, např. "Připravena"
 }
 
 // Zaoblení rohů, aby všude vypadalo stejně.
@@ -81,6 +82,16 @@ class AppTheme {
       // Textová tlačítka.
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(foregroundColor: AppColors.coffee),
+      ),
+
+      // Okna vysunutá zespodu (detail produktu).
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.white,
+        showDragHandle: true,
+        dragHandleColor: AppColors.muted,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
       ),
 
       // Spodní lišta se záložkami.
