@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+
+import '../utils/format.dart';
 import '../models/order.dart';
 
-class OrderDetailScreen extends StatefulWidget {
+class OrderDetailScreen extends StatelessWidget {
   final Order order;
 
   const OrderDetailScreen({
@@ -10,14 +12,7 @@ class OrderDetailScreen extends StatefulWidget {
   });
 
   @override
-  State<OrderDetailScreen> createState() => _OrderDetailScreenState();
-}
-
-class _OrderDetailScreenState extends State<OrderDetailScreen> {
-  @override
   Widget build(BuildContext context) {
-    final order = widget.order;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detail objednávky'),
@@ -27,22 +22,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'Stav: ${orderStatusText(order.status)}',
+              'Stůl ${order.tableNumber} • Stav: ${orderStatusText(order.status)}',
               style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
-          ),
-          ElevatedButton(
-            onPressed: order.status == OrderStatus.dokoncena
-                ? null
-                : () {
-                    setState(() {
-                      order.nextStatus();
-                    });
-                  },
-            child: const Text('Další stav'),
           ),
           Expanded(
             child: ListView.builder(
@@ -54,7 +39,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   title: Text(item.product.name),
                   subtitle: Text('${item.quantity}×'),
                   trailing: Text(
-                    '${item.product.price * item.quantity} Kč',
+                    formatPrice(item.product.price * item.quantity),
                   ),
                 );
               },

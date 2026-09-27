@@ -2,41 +2,40 @@ import 'package:flutter/material.dart';
 
 import '../models/cart.dart';
 import '../models/order.dart';
-import '../models/order_history.dart';
 import '../widgets/app_message.dart';
-import 'order_history_screen.dart';
+import '../utils/format.dart';
 
 class CartScreen extends StatefulWidget {
   final Cart cart;
 
-  const CartScreen({super.key, required this.cart});
+  // Zavolá se, když se změní obsah košíku (aby se aktualizovalo číslo v liště).
+  final VoidCallback onCartChanged;
+
+  // Zavolá se po vytvoření objednávky (přepne na záložku Objednávky).
+  final VoidCallback onOrderCreated;
+
+  const CartScreen({
+    super.key,
+    required this.cart,
+    required this.onCartChanged,
+    required this.onOrderCreated,
+  });
 
   @override
   State<CartScreen> createState() => _CartScreenState();
 }
 
 class _CartScreenState extends State<CartScreen> {
+  // Počet stolů v kavárně.
+  static const int tableCount = 10;
+
+  // Vybraný stůl. Otazník (int?) znamená, že zatím nemusí být vybraný (null).
+  int? selectedTable;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Košík'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => OrderHistoryScreen(
-                    orderHistory: widget.cart.orderHistory,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Košík')),
       body: Column(
         children: [
           Expanded(
@@ -61,6 +60,7 @@ class _CartScreenState extends State<CartScreen> {
                               widget.cart.items.removeAt(index);
                             }
                           });
+                          widget.onCartChanged();
                         },
                       ),
                       Text('${item.quantity}×'),
@@ -70,10 +70,11 @@ class _CartScreenState extends State<CartScreen> {
                           setState(() {
                             item.quantity++;
                           });
+                          widget.onCartChanged();
                         },
                       ),
                       const SizedBox(width: 10),
-                      Text('${item.product.price * item.quantity} Kč'),
+                      Text(formatPrice(item.product.price * item.quantity)),
                     ],
                   ),
                 );
@@ -81,9 +82,35 @@ class _CartScreenState extends State<CartScreen> {
             ),
           ),
           Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                const Text('Stůl:', style: TextStyle(fontSize: 18)),
+                const SizedBox(width: 12),
+                DropdownButton<int>(
+                  value: selectedTable,
+                  hint: const Text('Vyberte stůl'),
+                  // Vytvoří nabídku stolů 1 až tableCount.
+                  items: List.generate(tableCount, (index) {
+                    final number = index + 1;
+                    return DropdownMenuItem(
+                      value: number,
+                      child: Text('Stůl $number'),
+                    );
+                  }),
+                  onChanged: (number) {
+                    setState(() {
+                      selectedTable = number;
+                    });
+                  },
+                ),
+              ],
+            ),
+          ),
+          Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'Celkem: ${widget.cart.totalPrice} Kč',
+              'Celkem: ${formatPrice(widget.cart.totalPrice)}',
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ),
@@ -97,9 +124,14 @@ class _CartScreenState extends State<CartScreen> {
                     showAppMessage(context, 'Košík je prázdný');
                     return;
                   }
+                  if (selectedTable == null) {
+                    showAppMessage(context, 'Vyberte prosím stůl');
+                    return;
+                  }
                   final order = Order(
                     items: List.from(widget.cart.items),
                     totalPrice: widget.cart.totalPrice,
+                    tableNumber: selectedTable!,
                     status: OrderStatus.prijata,
                   );
                   widget.cart.orderHistory.addOrder(order);
@@ -107,6 +139,7 @@ class _CartScreenState extends State<CartScreen> {
                     widget.cart.items.clear();
                   });
                   showAppMessage(context, 'Objednávka byla vytvořena');
+                  widget.onOrderCreated();
                 },
                 child: const Text('Objednat'),
               ),

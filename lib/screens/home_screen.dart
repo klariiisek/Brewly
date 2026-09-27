@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
-import 'menu_screen.dart';
+import '../models/cart.dart';
+import 'main_screen.dart';
+import 'staff_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  final Cart cart;
+
+  const HomeScreen({super.key, required this.cart});
 
   @override
   Widget build(BuildContext context) {
@@ -28,13 +32,27 @@ class HomeScreen extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => MenuScreen()),
+                  MaterialPageRoute(builder: (context) => MainScreen(cart: cart)),
                 );
               },
               child: const Text('Prohlédnout menu'),
             ),
             const SizedBox(height: 10),
             OutlinedButton(onPressed: () {}, child: const Text('Přihlásit se')),
+            const SizedBox(height: 10),
+            // Dočasný vstup pro obsluhu, dokud nebudou přihlášení a role.
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        StaffScreen(orderHistory: cart.orderHistory),
+                  ),
+                );
+              },
+              child: const Text('Obsluha'),
+            ),
           ],
         ),
       ),

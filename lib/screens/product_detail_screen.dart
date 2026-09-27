@@ -4,6 +4,7 @@ import '../models/product.dart';
 import '../models/cart.dart';
 import '../models/cart_item.dart';
 import '../widgets/app_message.dart';
+import '../utils/format.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final Product product;
@@ -30,7 +31,7 @@ class ProductDetailScreen extends StatelessWidget {
             const SizedBox(height: 10),
             Text(product.category),
             const SizedBox(height: 10),
-            Text('${product.price} Kč'),
+            Text(formatPrice(product.price)),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {

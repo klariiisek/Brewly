@@ -16,6 +16,17 @@ class Cart {
   items.add(item);
 }
 
+// Celkový počet kusů v košíku (např. 2× Espresso + 1× Latte = 3).
+int get itemCount {
+  int count = 0;
+
+  for (final item in items) {
+    count += item.quantity;
+  }
+
+  return count;
+}
+
 double get totalPrice {
   double total = 0;
 

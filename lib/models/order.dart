@@ -23,11 +23,13 @@ String orderStatusText(OrderStatus status) {
 class Order {
   final List<CartItem> items;
   final double totalPrice;
+  final int tableNumber;
   OrderStatus status;
 
   Order({
     required this.items,
     required this.totalPrice,
+    required this.tableNumber,
     required this.status,
   });
 

@@ -1,30 +1,66 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:brewly/main.dart';
+import 'package:brewly/models/cart.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Úvodní obrazovka zobrazuje název a tlačítko menu',
+      (WidgetTester tester) async {
+    // Spustí aplikaci s novým (prázdným) košíkem.
+    await tester.pumpWidget(MyApp(cart: Cart()));
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Ověří, že je vidět název kavárny a tlačítko pro menu.
+    expect(find.text('BREWLY'), findsOneWidget);
+    expect(find.text('Prohlédnout menu'), findsOneWidget);
+  });
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+  testWidgets('Kategorie v menu filtrují produkty', (WidgetTester tester) async {
+    await tester.pumpWidget(MyApp(cart: Cart()));
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+
+    // Klikne na štítek "Dezerty".
+    await tester.tap(find.text('Dezerty'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tiramisu'), findsOneWidget);
+    expect(find.text('Espresso'), findsNothing);
+  });
+
+  testWidgets('Objednávka přes spodní lištu: menu → košík → objednávky',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(MyApp(cart: Cart()));
+
+    // Otevře menu.
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+
+    // Přidá první produkt (Espresso) tlačítkem +.
+    await tester.tap(find.byTooltip('Přidat do košíku').first);
     await tester.pump();
+    // Počká, až zmizí hlášení "Přidáno: Espresso".
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Číslo 1 u košíku ve spodní liště.
+    expect(find.text('1'), findsWidgets);
+
+    // Přepne na záložku Košík.
+    await tester.tap(find.text('Košík').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Espresso'), findsWidgets);
+
+    // Vybere stůl 3.
+    await tester.tap(find.byType(DropdownButton<int>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Stůl 3').last);
+    await tester.pumpAndSettle();
+
+    // Objedná a aplikace sama přepne na objednávky.
+    await tester.tap(find.text('Objednat'));
+    await tester.pumpAndSettle();
+    expect(find.text('Moje objednávky'), findsOneWidget);
+    expect(find.textContaining('Stůl 3'), findsOneWidget);
   });
 }
