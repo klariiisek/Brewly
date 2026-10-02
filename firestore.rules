@@ -1,0 +1,88 @@
+rules_version = '2';
+
+// Bezpečnostní pravidla databáze Firestore pro Brewly.
+// Hlídá je přímo Firebase, takže se nedají obejít – ani mimo naši aplikaci.
+// Co tu není výslovně povolené, je zakázané.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Pomocné funkce ----------
+
+    // Je uživatel přihlášený?
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Má přihlášený uživatel v profilu roli "obsluha"?
+    function isStaff() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'obsluha';
+    }
+
+    // ---------- Menu ----------
+    // Menu si může prohlédnout kdokoli (i nepřihlášený návštěvník).
+    // Měnit ho z aplikace nejde – produkty se upravují ve Firebase konzoli.
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ---------- Uživatelé ----------
+    match /users/{userId} {
+      // Svůj profil vidí uživatel sám, profily všech vidí obsluha.
+      allow read: if isSignedIn() && (request.auth.uid == userId || isStaff());
+
+      // Profil si uživatel může založit jen sám sobě a jen jako zákazník.
+      // (Nikdo si tedy nemůže sám dát roli "obsluha".)
+      allow create: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == 'zakaznik';
+
+      // Svůj profil může upravit, ale roli si změnit nesmí.
+      allow update: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.role == resource.data.role;
+
+      allow delete: if false;
+    }
+
+    // ---------- Počítadlo objednávek ----------
+    // Kvůli pořadovým číslům ho čte a zvyšuje každý, kdo objednává.
+    // Zvýšit ho jde vždy jen přesně o 1.
+    match /counters/orders {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.last == 1;
+      allow update: if isSignedIn()
+        && request.resource.data.last == resource.data.last + 1;
+      allow delete: if false;
+    }
+
+    // ---------- Objednávky ----------
+    match /orders/{orderId} {
+      // Zákazník vidí jen své objednávky, obsluha vidí všechny.
+      // (get('userId', '') = když pole chybí, použije se prázdný text.)
+      allow read: if isSignedIn()
+        && (resource.data.get('userId', '') == request.auth.uid || isStaff());
+
+      // Objednávku může vytvořit jen přihlášený uživatel, a to jen sám za sebe,
+      // ve stavu "prijata" a ke stolu 1–10.
+      allow create: if isSignedIn()
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'prijata'
+        && request.resource.data.tableNumber is int
+        && request.resource.data.tableNumber >= 1
+        && request.resource.data.tableNumber <= 10
+        && request.resource.data.items is list
+        && request.resource.data.items.size() > 0
+        && request.resource.data.totalPrice is number;
+
+      // Stav objednávky může měnit jen obsluha – a nic jiného než stav.
+      allow update: if isStaff()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+
+      // Objednávky se nemažou (zůstávají jako historie).
+      allow delete: if false;
+    }
+  }
+}

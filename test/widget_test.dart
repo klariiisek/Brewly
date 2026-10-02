@@ -12,6 +12,7 @@ import 'package:brewly/services/app_services.dart';
 import 'package:brewly/services/auth_service.dart';
 import 'package:brewly/services/order_service.dart';
 import 'package:brewly/services/product_service.dart';
+import 'package:brewly/services/user_service.dart';
 import 'package:brewly/utils/format.dart';
 
 // Testovací zákaznice, která je v testech "přihlášená".
@@ -36,6 +37,7 @@ Future<Widget> buildTestApp({
     cart: Cart(),
     services: AppServices(
       auth: AuthService(MockFirebaseAuth(signedIn: signedIn, mockUser: testUser)),
+      users: UserService(database),
       products: productService,
       orders: OrderService(database),
     ),
@@ -289,13 +291,37 @@ void main() {
     expect(find.text('Přihlaste se'), findsOneWidget);
   });
 
+  testWidgets('Zákazník nevidí vstup pro obsluhu a dostane profil zákazníka',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await tester.pumpWidget(await buildTestApp(db: db));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Vstup pro obsluhu'), findsNothing);
+
+    // Při prvním přihlášení se v databázi založil profil s rolí zákazník.
+    final profile = await db.collection('users').doc(testUser.uid).get();
+    expect(profile.data()?['role'], 'zakaznik');
+  });
+
+  testWidgets('Nepřihlášený návštěvník nevidí vstup pro obsluhu',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(await buildTestApp(signedIn: false));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Vstup pro obsluhu'), findsNothing);
+  });
+
   testWidgets('Obsluha posune objednávku až do Dokončených',
       (WidgetTester tester) async {
     // Připraví databázi s jednou objednávkou ke stolu 5.
     final db = FakeFirebaseFirestore();
     await createTestOrder(OrderService(db), table: 5);
+    // Testovací uživatelka má v profilu roli obsluha.
+    await db.collection('users').doc(testUser.uid).set({'role': 'obsluha'});
 
     await tester.pumpWidget(await buildTestApp(db: db));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Vstup pro obsluhu'));
     await tester.pumpAndSettle();
 

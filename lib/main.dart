@@ -10,6 +10,7 @@ import 'services/app_services.dart';
 import 'services/auth_service.dart';
 import 'services/order_service.dart';
 import 'services/product_service.dart';
+import 'services/user_service.dart';
 import 'theme/app_theme.dart';
 
 // "async" protože před spuštěním aplikace musíme počkat na připojení k Firebase.
@@ -25,6 +26,7 @@ Future<void> main() async {
   // Služby pracují se skutečným Firebase (přihlašování a databáze).
   final services = AppServices(
     auth: AuthService(FirebaseAuth.instance),
+    users: UserService(FirebaseFirestore.instance),
     products: ProductService(FirebaseFirestore.instance),
     orders: OrderService(FirebaseFirestore.instance),
   );

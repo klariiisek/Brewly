@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../models/cart.dart';
+import '../models/user_role.dart';
 import '../services/app_services.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
@@ -28,6 +29,19 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     userStream = widget.services.auth.userChanges();
+  }
+
+  // Proud role přihlášeného uživatele. Vytvoří se znovu jen tehdy,
+  // když se přihlásí někdo jiný.
+  String? roleUserId;
+  Stream<UserRole>? roleStream;
+
+  Stream<UserRole> roleFor(User user) {
+    if (user.uid != roleUserId || roleStream == null) {
+      roleUserId = user.uid;
+      roleStream = widget.services.users.watchRole(user);
+    }
+    return roleStream!;
   }
 
   Future<void> signOut() async {
@@ -143,21 +157,36 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: const Text('Odhlásit se'),
                 ),
         ),
-        const SizedBox(height: 8),
-        // Dočasný vstup pro obsluhu, dokud nebudou role (krok 5).
-        TextButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    StaffScreen(orderService: widget.services.orders),
-              ),
-            );
-          },
-          child: const Text('Vstup pro obsluhu'),
-        ),
+        // Vstup pro obsluhu vidí jen přihlášený uživatel s rolí "obsluha".
+        if (user != null) buildStaffEntry(user),
       ],
+    );
+  }
+
+  Widget buildStaffEntry(User user) {
+    return StreamBuilder<UserRole>(
+      stream: roleFor(user),
+      builder: (context, snapshot) {
+        if (snapshot.data != UserRole.obsluha) {
+          return const SizedBox.shrink(); // nic nezobrazí
+        }
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: TextButton.icon(
+            icon: const Icon(Icons.badge_outlined, size: 18),
+            label: const Text('Vstup pro obsluhu'),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      StaffScreen(orderService: widget.services.orders),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
