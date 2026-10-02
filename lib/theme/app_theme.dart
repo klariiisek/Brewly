@@ -84,6 +84,14 @@ class AppTheme {
         style: TextButton.styleFrom(foregroundColor: AppColors.coffee),
       ),
 
+      // Záložky nahoře (např. Aktivní / Dokončené u obsluhy).
+      tabBarTheme: const TabBarThemeData(
+        labelColor: AppColors.coffee,
+        unselectedLabelColor: AppColors.muted,
+        indicatorColor: AppColors.coffee,
+        labelStyle: TextStyle(fontWeight: FontWeight.w600),
+      ),
+
       // Okna vysunutá zespodu (detail produktu).
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: Colors.white,

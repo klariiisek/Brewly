@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:brewly/main.dart';
+import 'package:brewly/data/menu_data.dart';
 import 'package:brewly/models/cart.dart';
+import 'package:brewly/models/cart_item.dart';
+import 'package:brewly/models/order.dart';
 import 'package:brewly/utils/format.dart';
 
 void main() {
@@ -12,7 +15,7 @@ void main() {
     await tester.pumpWidget(MyApp(cart: Cart()));
 
     // Ověří, že je vidět název kavárny a tlačítko pro menu.
-    expect(find.text('BREWLY'), findsOneWidget);
+    expect(find.text('Brewly'), findsOneWidget);
     expect(find.text('Prohlédnout menu'), findsOneWidget);
   });
 
@@ -110,5 +113,39 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Moje objednávky'), findsOneWidget);
     expect(find.textContaining('Stůl 3'), findsOneWidget);
+  });
+
+  testWidgets('Obsluha posune objednávku až do Dokončených',
+      (WidgetTester tester) async {
+    // Připraví košík s jednou objednávkou ke stolu 5.
+    final cart = Cart();
+    cart.orderHistory.addOrder(
+      Order(
+        items: [CartItem(product: menuProducts.first, quantity: 2)],
+        totalPrice: 90,
+        tableNumber: 5,
+        status: OrderStatus.prijata,
+      ),
+    );
+
+    await tester.pumpWidget(MyApp(cart: cart));
+    await tester.tap(find.text('Vstup pro obsluhu'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Aktivní (1)'), findsOneWidget);
+    expect(find.text('Stůl 5'), findsOneWidget);
+
+    // Projde všechny stavy pomocí tlačítka na kartě.
+    await tester.tap(find.text('Začít připravovat'));
+    await tester.pump();
+    await tester.tap(find.text('Označit jako připravenou'));
+    await tester.pump();
+    await tester.tap(find.text('Předáno zákazníkovi'));
+    await tester.pumpAndSettle();
+
+    // Objednávka se přesunula do Dokončených.
+    expect(find.text('Aktivní (0)'), findsOneWidget);
+    expect(find.text('Dokončené (1)'), findsOneWidget);
+    expect(find.text('Žádné aktivní objednávky'), findsOneWidget);
   });
 }
