@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
+import '../widgets/google_sign_in_button.dart';
 import 'register_screen.dart';
 
 // Přihlášení e-mailem a heslem.
@@ -154,6 +155,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: isLoading ? null : signIn,
                 child: Text(isLoading ? 'Přihlašuji…' : 'Přihlásit se'),
               ),
+            ),
+            const SizedBox(height: 24),
+            GoogleSignInButton(
+              authService: widget.authService,
+              onSignedIn: () => Navigator.pop(context, true),
             ),
             const SizedBox(height: 16),
             Row(

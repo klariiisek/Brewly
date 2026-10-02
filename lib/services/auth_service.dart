@@ -29,6 +29,23 @@ class AuthService {
     await credential.user?.updateDisplayName(name.trim());
   }
 
+  // Přihlášení přes Google: otevře okno Googlu, kde si uživatel vybere účet.
+  // Když se přihlašuje poprvé, Firebase mu účet sám založí.
+  // Vrátí true, když se přihlásil, a false, když okno zavřel.
+  Future<bool> signInWithGoogle() async {
+    try {
+      await auth.signInWithPopup(GoogleAuthProvider());
+      return true;
+    } on FirebaseAuthException catch (error) {
+      // Zavřené okno není chyba – uživatel si to jen rozmyslel.
+      if (error.code == 'popup-closed-by-user' ||
+          error.code == 'cancelled-popup-request') {
+        return false;
+      }
+      rethrow;
+    }
+  }
+
   Future<void> signOut() => auth.signOut();
 
   // Pošle na e-mail odkaz pro nastavení nového hesla.
@@ -62,6 +79,15 @@ String authErrorMessage(Object error) {
         return 'Chybí připojení k internetu.';
       case 'too-many-requests':
         return 'Příliš mnoho pokusů. Zkuste to prosím později.';
+      case 'popup-blocked':
+        return 'Prohlížeč zablokoval okno pro přihlášení. '
+            'Povolte vyskakovací okna a zkuste to znovu.';
+      case 'account-exists-with-different-credential':
+        return 'Účet s tímto e-mailem už používá jiný způsob přihlášení.';
+      case 'operation-not-allowed':
+        return 'Tento způsob přihlášení není ve Firebase zapnutý.';
+      case 'unauthorized-domain':
+        return 'Tato adresa není ve Firebase povolená pro přihlášení.';
     }
   }
   return 'Něco se pokazilo. Zkuste to prosím znovu.';

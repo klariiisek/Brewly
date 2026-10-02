@@ -236,11 +236,33 @@ void main() {
     expect(find.textContaining('Stůl 2'), findsOneWidget);
   });
 
+  testWidgets('Přihlášení přes Google přihlásí uživatele',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(await buildTestApp(signedIn: false));
+    await tester.tap(find.text('Přihlásit se'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Pokračovat přes Google'));
+    await tester.pumpAndSettle();
+
+    // Přihlašovací obrazovka se zavřela a úvod zdraví přihlášenou uživatelku.
+    expect(find.text('Vítejte, Klára'), findsOneWidget);
+    expect(find.text('Odhlásit se'), findsOneWidget);
+  });
+
   testWidgets('Registrace kontroluje, že se hesla shodují',
       (WidgetTester tester) async {
     await tester.pumpWidget(await buildTestApp(signedIn: false));
     await tester.tap(find.text('Přihlásit se'));
     await tester.pumpAndSettle();
+    // Odkaz na registraci je dole – stránka se musí nejdřív posunout.
+    // (Textová pole jsou uvnitř taky "posuvná", proto posouváme tu první =
+    // celou stránku.)
+    await tester.scrollUntilVisible(
+      find.text('Zaregistrujte se'),
+      100,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text('Zaregistrujte se'));
     await tester.pumpAndSettle();
 
@@ -248,6 +270,8 @@ void main() {
     await tester.enterText(find.byType(TextFormField).at(1), 'klara@test.cz');
     await tester.enterText(find.byType(TextFormField).at(2), 'heslo123');
     await tester.enterText(find.byType(TextFormField).at(3), 'jineheslo');
+    await tester.ensureVisible(find.text('Zaregistrovat se'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Zaregistrovat se'));
     await tester.pumpAndSettle();
 

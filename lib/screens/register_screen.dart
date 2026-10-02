@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
 import '../widgets/app_message.dart';
+import '../widgets/google_sign_in_button.dart';
 import 'login_screen.dart';
 
 // Registrace nového účtu. Po úspěchu se obrazovka zavře a vrátí true
@@ -127,6 +128,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 onPressed: isLoading ? null : register,
                 child: Text(isLoading ? 'Vytvářím účet…' : 'Zaregistrovat se'),
               ),
+            ),
+            const SizedBox(height: 24),
+            // Přes Google se registrace nevyplňuje – účet se založí sám.
+            GoogleSignInButton(
+              authService: widget.authService,
+              onSignedIn: () => Navigator.pop(context, true),
             ),
           ],
         ),
