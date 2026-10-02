@@ -2,6 +2,7 @@ import 'auth_service.dart';
 import 'order_service.dart';
 import 'product_service.dart';
 import 'request_service.dart';
+import 'table_service.dart';
 import 'user_service.dart';
 
 // Všechny služby aplikace pohromadě, aby se daly snadno předávat obrazovkám
@@ -12,6 +13,7 @@ class AppServices {
   final ProductService products;
   final OrderService orders;
   final RequestService requests;
+  final TableService tables;
 
   const AppServices({
     required this.auth,
@@ -19,5 +21,6 @@ class AppServices {
     required this.products,
     required this.orders,
     required this.requests,
+    required this.tables,
   });
 }

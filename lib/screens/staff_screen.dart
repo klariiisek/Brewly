@@ -8,6 +8,7 @@ import '../utils/format.dart';
 import '../widgets/app_message.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/status_badge.dart';
+import 'staff_tables_screen.dart';
 
 // Text tlačítka podle toho, co obsluha s objednávkou udělá jako další.
 String nextStatusAction(OrderStatus status) {
@@ -126,6 +127,22 @@ class _StaffScreenState extends State<StaffScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Obsluha'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.qr_code_2),
+              tooltip: 'Stoly a QR kódy',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StaffTablesScreen(
+                      tableService: widget.services.tables,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
           bottom: TabBar(
             // Tři záložky se nemusí vejít – dají se posouvat do stran.
             isScrollable: true,

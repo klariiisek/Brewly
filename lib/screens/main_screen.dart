@@ -28,6 +28,9 @@ class _MainScreenState extends State<MainScreen> {
 
   // Přepne na zvolenou záložku.
   void goToTab(int index) {
+    // Staré hlášení (např. "Přidáno: Latte") schováme, aby na nové záložce
+    // nepřekrývalo tlačítka – třeba "Objednat" v košíku.
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
     setState(() {
       selectedIndex = index;
     });

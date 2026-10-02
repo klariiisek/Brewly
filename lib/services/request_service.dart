@@ -20,12 +20,15 @@ class RequestService {
   Future<void> createRequest({
     required RequestType type,
     required int tableNumber,
+    required String tableCode,
     required String userId,
     required String customerName,
   }) {
     return _requests.doc('${userId}_${type.name}').set({
       'type': type.name,
       'tableNumber': tableNumber,
+      // Tajný kód stolu – ověří ho bezpečnostní pravidla.
+      'tableCode': tableCode,
       'userId': userId,
       'customerName': customerName,
       'status': 'cekajici',

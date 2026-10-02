@@ -20,6 +20,20 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'obsluha';
     }
 
+    // Odpovídá kód stolu v novém dokumentu tajnému kódu stolu v databázi?
+    // (Zákazník kód zná jen z QR kódu na stole, kde opravdu sedí.)
+    function hasValidTableCode() {
+      let tablePath = /databases/$(database)/documents/tables/$(string(request.resource.data.tableNumber));
+      return exists(tablePath)
+        && request.resource.data.tableCode == get(tablePath).data.code;
+    }
+
+    // ---------- Stoly ----------
+    // Tajné kódy stolů vidí a mění jen obsluha (generuje je a tiskne QR kódy).
+    match /tables/{tableId} {
+      allow read, write: if isStaff();
+    }
+
     // ---------- Menu ----------
     // Menu si může prohlédnout kdokoli (i nepřihlášený návštěvník).
     // Měnit ho z aplikace nejde – produkty se upravují ve Firebase konzoli.
@@ -66,7 +80,7 @@ service cloud.firestore {
         && (resource.data.get('userId', '') == request.auth.uid || isStaff());
 
       // Objednávku může vytvořit jen přihlášený uživatel, a to jen sám za sebe,
-      // ve stavu "prijata" a ke stolu 1–10.
+      // ve stavu "prijata", ke stolu 1–10 a se správným kódem stolu (z QR kódu).
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'prijata'
@@ -75,7 +89,8 @@ service cloud.firestore {
         && request.resource.data.tableNumber <= 10
         && request.resource.data.items is list
         && request.resource.data.items.size() > 0
-        && request.resource.data.totalPrice is number;
+        && request.resource.data.totalPrice is number
+        && hasValidTableCode();
 
       // Stav objednávky může měnit jen obsluha – a nic jiného než stav.
       allow update: if isStaff()
@@ -93,7 +108,7 @@ service cloud.firestore {
         && (resource.data.get('userId', '') == request.auth.uid || isStaff());
 
       // Je nový požadavek v pořádku? Posílá ho přihlášený zákazník sám za sebe,
-      // povoleného typu, ke stolu 1–10 a ve stavu "cekajici".
+      // povoleného typu, ke stolu 1–10 se správným kódem stolu a ve stavu "cekajici".
       function isValidNewRequest() {
         return isSignedIn()
           && request.resource.data.userId == request.auth.uid
@@ -101,7 +116,8 @@ service cloud.firestore {
           && request.resource.data.status == 'cekajici'
           && request.resource.data.tableNumber is int
           && request.resource.data.tableNumber >= 1
-          && request.resource.data.tableNumber <= 10;
+          && request.resource.data.tableNumber <= 10
+          && hasValidTableCode();
       }
 
       // Ochrana proti spamu: ID dokumentu musí být "uživatel_typ"

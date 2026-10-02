@@ -14,6 +14,7 @@ import 'package:brewly/services/auth_service.dart';
 import 'package:brewly/services/order_service.dart';
 import 'package:brewly/services/product_service.dart';
 import 'package:brewly/services/request_service.dart';
+import 'package:brewly/services/table_service.dart';
 import 'package:brewly/services/user_service.dart';
 import 'package:brewly/utils/format.dart';
 
@@ -25,10 +26,12 @@ final testUser = MockUser(uid: 'klara-123', email: 'klara@test.cz', displayName:
 // - withMenu: nahraje do databáze ukázkové menu
 // - signedIn: zákaznice je na začátku přihlášená
 // - db: vlastní databáze (aby test mohl předem vytvořit objednávky)
+// - cart: vlastní košík (např. se stolem nastaveným jako z QR kódu)
 Future<Widget> buildTestApp({
   bool withMenu = true,
   bool signedIn = true,
   FakeFirebaseFirestore? db,
+  Cart? cart,
 }) async {
   final database = db ?? FakeFirebaseFirestore();
   final productService = ProductService(database);
@@ -36,15 +39,23 @@ Future<Widget> buildTestApp({
     await productService.uploadSampleMenu();
   }
   return MyApp(
-    cart: Cart(),
+    cart: cart ?? Cart(),
     services: AppServices(
       auth: AuthService(MockFirebaseAuth(signedIn: signedIn, mockUser: testUser)),
       users: UserService(database),
       products: productService,
       orders: OrderService(database),
       requests: RequestService(database),
+      tables: TableService(database),
     ),
   );
+}
+
+// Zadá v okně ručně kód stolu (jako když zákazník opíše kód pod QR kódem).
+Future<void> enterTableCode(WidgetTester tester, String code) async {
+  await tester.enterText(find.byType(TextFormField).last, code);
+  await tester.tap(find.text('Potvrdit stůl'));
+  await tester.pumpAndSettle();
 }
 
 // Krátká pomocná funkce pro vytvoření objednávky v testech.
@@ -53,6 +64,7 @@ Future<String> createTestOrder(OrderService orderService, {int table = 1}) {
     items: [CartItem(product: sampleMenu.first, quantity: 2)],
     totalPrice: 90,
     tableNumber: table,
+    tableCode: 'ABCDEF',
     userId: testUser.uid,
     customerName: 'Klára',
   );
@@ -172,15 +184,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Cappuccino'), findsWidgets);
 
-    // Vybere stůl 3.
-    await tester.tap(find.byType(DropdownButton<int>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Stůl 3').last);
-    await tester.pumpAndSettle();
-
-    // Objedná a aplikace sama přepne na objednávky.
+    // Stůl zatím nemá (neskenoval QR kód) → "Objednat" se zeptá na kód stolu.
     await tester.tap(find.text('Objednat'));
     await tester.pumpAndSettle();
+    expect(find.text('U kterého stolu sedíte?'), findsOneWidget);
+    await enterTableCode(tester, '3-abcdef');
+
+    // Objednávka se odešle a aplikace sama přepne na objednávky.
     expect(find.text('Moje objednávky'), findsOneWidget);
     expect(find.textContaining('Stůl 3 •'), findsOneWidget);
   });
@@ -211,20 +221,19 @@ void main() {
 
   testWidgets('Nepřihlášený zákazník musí se před objednáním přihlásit',
       (WidgetTester tester) async {
-    await tester.pumpWidget(await buildTestApp(signedIn: false));
+    // Zákazník přišel z QR kódu stolu 2 (stůl je v košíku už nastavený).
+    final cart = Cart()..setTable(2, 'ABCDEF');
+    await tester.pumpWidget(await buildTestApp(signedIn: false, cart: cart));
     await tester.tap(find.text('Prohlédnout menu'));
     await tester.pumpAndSettle();
 
-    // Přidá produkt, přejde do košíku a vybere stůl.
+    // Přidá produkt a přejde do košíku – stůl je tam z QR kódu.
     await tester.tap(find.byTooltip('Přidat do košíku').first);
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Košík').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(DropdownButton<int>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Stůl 2').last);
-    await tester.pumpAndSettle();
+    expect(find.text('Stůl 2'), findsOneWidget);
 
     // "Objednat" otevře přihlášení.
     await tester.tap(find.text('Objednat'));
@@ -347,7 +356,7 @@ void main() {
     expect(find.text('Žádné aktivní objednávky'), findsOneWidget);
   });
 
-  testWidgets('Zákazník přivolá obsluhu – nejdřív vybere stůl',
+  testWidgets('Zákazník přivolá obsluhu – nejdřív zadá kód stolu',
       (WidgetTester tester) async {
     final db = FakeFirebaseFirestore();
     await tester.pumpWidget(await buildTestApp(db: db));
@@ -356,19 +365,61 @@ void main() {
     await tester.tap(find.text('Objednávky').last);
     await tester.pumpAndSettle();
 
-    // Stůl ještě není vybraný → aplikace se zeptá.
+    // Stůl ještě není → aplikace se zeptá na kód stolu.
     await tester.tap(find.text('Přivolat obsluhu'));
     await tester.pumpAndSettle();
     expect(find.text('U kterého stolu sedíte?'), findsOneWidget);
-    await tester.tap(find.text('Stůl 7'));
-    await tester.pumpAndSettle();
 
-    // Požadavek je v databázi a tlačítko ukazuje, že se čeká.
+    // Špatný tvar kódu → chyba u pole.
+    await enterTableCode(tester, '7');
+    expect(find.text('Kód má tvar číslo stolu, pomlčka a 6 znaků'),
+        findsOneWidget);
+
+    // Správný tvar → požadavek se odešle.
+    await enterTableCode(tester, '7-K7P2X9');
+
+    // Požadavek je v databázi i s kódem a tlačítko ukazuje, že se čeká.
     expect(find.text('Obsluha o vás ví…'), findsOneWidget);
     expect(find.text('Stůl 7'), findsOneWidget);
     final saved = await db.collection('requests').get();
     expect(saved.docs.single.data()['type'], 'obsluha');
     expect(saved.docs.single.data()['tableNumber'], 7);
+    expect(saved.docs.single.data()['tableCode'], 'K7P2X9');
+  });
+
+  test('Kód stolu: čtení ručně opsaného kódu a odkaz v QR kódu', () {
+    final parsed = parseShortTableCode(' 4-k7p2x9 ');
+    expect(parsed?.number, 4);
+    expect(parsed?.code, 'K7P2X9');
+    expect(parseShortTableCode('11-K7P2X9'), isNull); // stůl 11 neexistuje
+    expect(parseShortTableCode('4-K7P'), isNull); // krátký kód
+    expect(tableLink(4, 'K7P2X9'),
+        'https://brewly-9e944.web.app/?stul=4&kod=K7P2X9');
+  });
+
+  testWidgets('Obsluha vygeneruje kódy a uvidí QR kódy stolů',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set({'role': 'obsluha'});
+
+    await tester.pumpWidget(await buildTestApp(db: db));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Vstup pro obsluhu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Stoly a QR kódy'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Stoly zatím nemají kódy'), findsOneWidget);
+    await tester.tap(find.text('Vygenerovat kódy'));
+    await tester.pumpAndSettle();
+
+    // V databázi je 10 stolů, každý s jiným šestiznakovým kódem.
+    final tables = await db.collection('tables').get();
+    expect(tables.docs.length, 10);
+    final codes = tables.docs.map((doc) => doc.data()['code'] as String);
+    expect(codes.toSet().length, 10);
+    expect(codes.every((code) => code.length == 6), true);
+    expect(find.text('Stůl 1'), findsOneWidget);
   });
 
   testWidgets('Obsluha vidí požadavek a vyřídí ho', (WidgetTester tester) async {
@@ -377,6 +428,7 @@ void main() {
     await RequestService(db).createRequest(
       type: RequestType.platba,
       tableNumber: 3,
+      tableCode: 'ABCDEF',
       userId: 'host-1',
       customerName: 'Pavel',
     );

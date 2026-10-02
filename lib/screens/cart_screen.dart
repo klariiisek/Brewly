@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart' show FirebaseException;
 import 'package:flutter/material.dart';
 
 import '../models/cart.dart';
@@ -9,6 +10,7 @@ import '../utils/format.dart';
 import '../widgets/app_message.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/product_card.dart';
+import '../widgets/table_code_sheet.dart';
 import 'login_screen.dart';
 
 class CartScreen extends StatefulWidget {
@@ -61,9 +63,11 @@ class _CartScreenState extends State<CartScreen> {
   bool isSending = false;
 
   Future<void> placeOrder() async {
-    if (widget.cart.tableNumber == null) {
-      showAppMessage(context, 'Vyberte prosím stůl');
-      return;
+    // Bez stolu (z QR kódu) nelze objednat – zeptáme se na kód stolu.
+    if (!widget.cart.hasTable) {
+      final hasTable = await askForTableCode(context, widget.cart);
+      if (!hasTable || !mounted) return;
+      setState(() {});
     }
 
     // Objednávat může jen přihlášený zákazník. Když není přihlášený,
@@ -92,6 +96,7 @@ class _CartScreenState extends State<CartScreen> {
         items: widget.cart.items,
         totalPrice: widget.cart.totalPrice,
         tableNumber: widget.cart.tableNumber!,
+        tableCode: widget.cart.tableCode!,
         userId: user.uid,
         customerName: userDisplayName(user),
       );
@@ -103,6 +108,18 @@ class _CartScreenState extends State<CartScreen> {
       widget.onCartChanged();
       showAppMessage(context, 'Objednávka byla odeslána');
       widget.onOrderCreated();
+    } on FirebaseException catch (error) {
+      if (!mounted) return;
+      if (error.code == 'permission-denied') {
+        // Databáze odmítla kód stolu (špatně opsaný nebo už neplatný).
+        setState(() => widget.cart.clearTable());
+        showAppMessage(
+          context,
+          'Kód stolu neplatí. Naskenujte prosím QR kód na stole znovu.',
+        );
+      } else {
+        showAppMessage(context, 'Objednávku se nepodařilo odeslat');
+      }
     } catch (error) {
       // Např. bez internetu: košík zůstane, zákazník to může zkusit znovu.
       if (!mounted) return;
@@ -237,22 +254,17 @@ class _CartScreenState extends State<CartScreen> {
                 style: TextStyle(fontSize: 16, color: AppColors.muted),
               ),
               const Spacer(),
-              DropdownButton<int>(
-                value: widget.cart.tableNumber,
-                hint: const Text('Vyberte stůl'),
-                underline: const SizedBox(),
-                // Vytvoří nabídku stolů 1 až Cart.tableCount.
-                items: List.generate(Cart.tableCount, (index) {
-                  final number = index + 1;
-                  return DropdownMenuItem(
-                    value: number,
-                    child: Text('Stůl $number'),
-                  );
-                }),
-                onChanged: (number) {
-                  setState(() {
-                    widget.cart.tableNumber = number;
-                  });
+              // Stůl z QR kódu. Kliknutím se dá zadat kód stolu ručně.
+              TextButton.icon(
+                icon: const Icon(Icons.qr_code_2, size: 20),
+                label: Text(
+                  widget.cart.hasTable
+                      ? 'Stůl ${widget.cart.tableNumber}'
+                      : 'Zadat kód stolu',
+                ),
+                onPressed: () async {
+                  await askForTableCode(context, widget.cart);
+                  if (mounted) setState(() {});
                 },
               ),
             ],

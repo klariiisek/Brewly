@@ -6,9 +6,24 @@ class Cart {
 
   final List<CartItem> items = [];
 
-  // Stůl, u kterého zákazník sedí. Otazník (int?) = zatím nevybraný (null).
-  // Používá ho objednávka i "Přivolat obsluhu" / "Chci zaplatit".
+  // Stůl, u kterého zákazník sedí, a jeho tajný kód z QR kódu na stole.
+  // Otazník (int?, String?) = zatím nevybraný (null).
+  // Používá je objednávka i "Přivolat obsluhu" / "Chci zaplatit".
   int? tableNumber;
+  String? tableCode;
+
+  // Má zákazník stůl (z QR kódu nebo opsaného kódu)?
+  bool get hasTable => tableNumber != null && tableCode != null;
+
+  void setTable(int number, String code) {
+    tableNumber = number;
+    tableCode = code;
+  }
+
+  void clearTable() {
+    tableNumber = null;
+    tableCode = null;
+  }
 
   void addItem(CartItem item) {
     for (final existingItem in items) {

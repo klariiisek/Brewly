@@ -23,6 +23,7 @@ class OrderService {
     required List<CartItem> items,
     required double totalPrice,
     required int tableNumber,
+    required String tableCode,
     required String userId,
     required String customerName,
   }) async {
@@ -41,6 +42,9 @@ class OrderService {
         'items': items.map((item) => item.toMap()).toList(),
         'totalPrice': totalPrice,
         'tableNumber': tableNumber,
+        // Tajný kód stolu – ověří ho bezpečnostní pravidla, uložený zůstane jen
+        // jako důkaz, že zákazník u stolu opravdu byl.
+        'tableCode': tableCode,
         'status': OrderStatus.prijata.name,
         'userId': userId,
         'customerName': customerName,

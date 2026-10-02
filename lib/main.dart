@@ -11,6 +11,7 @@ import 'services/auth_service.dart';
 import 'services/order_service.dart';
 import 'services/product_service.dart';
 import 'services/request_service.dart';
+import 'services/table_service.dart';
 import 'services/user_service.dart';
 import 'theme/app_theme.dart';
 
@@ -31,10 +32,22 @@ Future<void> main() async {
     products: ProductService(FirebaseFirestore.instance),
     orders: OrderService(FirebaseFirestore.instance),
     requests: RequestService(FirebaseFirestore.instance),
+    tables: TableService(FirebaseFirestore.instance),
   );
 
   // Košík se vytvoří jen jednou při spuštění aplikace a předává se obrazovkám.
-  runApp(MyApp(cart: Cart(), services: services));
+  final cart = Cart();
+
+  // Když zákazník otevřel aplikaci z QR kódu na stole (…/?stul=4&kod=K7P2X9),
+  // rovnou si zapamatujeme jeho stůl.
+  final params = Uri.base.queryParameters;
+  final tableNumber = int.tryParse(params['stul'] ?? '');
+  final tableCode = params['kod'];
+  if (tableNumber != null && tableCode != null) {
+    cart.setTable(tableNumber, tableCode.toUpperCase());
+  }
+
+  runApp(MyApp(cart: cart, services: services));
 }
 
 class MyApp extends StatelessWidget {
