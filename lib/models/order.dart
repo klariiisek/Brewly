@@ -20,33 +20,57 @@ String orderStatusText(OrderStatus status) {
   }
 }
 
+// Vrátí stav, který následuje po zadaném stavu.
+OrderStatus nextOrderStatus(OrderStatus status) {
+  switch (status) {
+    case OrderStatus.prijata:
+      return OrderStatus.pripravujeSe;
+    case OrderStatus.pripravujeSe:
+      return OrderStatus.pripravena;
+    case OrderStatus.pripravena:
+      return OrderStatus.dokoncena;
+    case OrderStatus.dokoncena:
+      // Dokončená objednávka už dál nepokračuje.
+      return OrderStatus.dokoncena;
+  }
+}
+
 class Order {
+  // ID dokumentu v databázi (Firestore).
+  final String id;
+  // Pořadové číslo objednávky (#1, #2, ...), přiděluje ho databáze.
+  final int number;
   final List<CartItem> items;
   final double totalPrice;
   final int tableNumber;
-  OrderStatus status;
+  final OrderStatus status;
 
-  Order({
+  const Order({
+    required this.id,
+    required this.number,
     required this.items,
     required this.totalPrice,
     required this.tableNumber,
     required this.status,
   });
 
-  void nextStatus() {
-    switch (status) {
-      case OrderStatus.prijata:
-        status = OrderStatus.pripravujeSe;
-        break;
-      case OrderStatus.pripravujeSe:
-        status = OrderStatus.pripravena;
-        break;
-      case OrderStatus.pripravena:
-        status = OrderStatus.dokoncena;
-        break;
-      case OrderStatus.dokoncena:
-        // Dokončená objednávka už dál nepokračuje.
-        break;
-    }
+  // Vytvoří objednávku z dat načtených z databáze.
+  factory Order.fromMap(String id, Map<String, dynamic> data) {
+    final itemsData = data['items'] as List<dynamic>? ?? [];
+
+    return Order(
+      id: id,
+      number: data['number'] as int? ?? 0,
+      items: itemsData
+          .map((item) => CartItem.fromMap(item as Map<String, dynamic>))
+          .toList(),
+      totalPrice: (data['totalPrice'] as num? ?? 0).toDouble(),
+      tableNumber: data['tableNumber'] as int? ?? 0,
+      // V databázi je stav uložený jako text, např. "pripravujeSe".
+      status: OrderStatus.values.firstWhere(
+        (status) => status.name == data['status'],
+        orElse: () => OrderStatus.prijata,
+      ),
+    );
   }
 }

@@ -7,17 +7,27 @@ import 'package:brewly/data/menu_data.dart';
 import 'package:brewly/models/cart.dart';
 import 'package:brewly/models/cart_item.dart';
 import 'package:brewly/models/order.dart';
+import 'package:brewly/services/order_service.dart';
 import 'package:brewly/services/product_service.dart';
 import 'package:brewly/utils/format.dart';
 
 // Připraví aplikaci pro test s falešnou databází v paměti (místo skutečného Firebase).
 // Když withMenu = true, nahraje do ní ukázkové menu.
-Future<Widget> buildTestApp({Cart? cart, bool withMenu = true}) async {
-  final productService = ProductService(FakeFirebaseFirestore());
+// Když je zadaná db, použije se (aby test mohl předem vytvořit objednávky).
+Future<Widget> buildTestApp({
+  bool withMenu = true,
+  FakeFirebaseFirestore? db,
+}) async {
+  final database = db ?? FakeFirebaseFirestore();
+  final productService = ProductService(database);
   if (withMenu) {
     await productService.uploadSampleMenu();
   }
-  return MyApp(cart: cart ?? Cart(), productService: productService);
+  return MyApp(
+    cart: Cart(),
+    productService: productService,
+    orderService: OrderService(database),
+  );
 }
 
 void main() {
@@ -147,20 +157,37 @@ void main() {
     expect(find.textContaining('Stůl 3'), findsOneWidget);
   });
 
+  test('Objednávky dostanou pořadová čísla a jde měnit jejich stav', () async {
+    final orderService = OrderService(FakeFirebaseFirestore());
+    final items = [CartItem(product: sampleMenu.first, quantity: 2)];
+
+    await orderService.createOrder(
+        items: items, totalPrice: 90, tableNumber: 1);
+    await orderService.createOrder(
+        items: items, totalPrice: 90, tableNumber: 2);
+
+    final orders = await orderService.watchAllOrders().first;
+    expect(orders.map((order) => order.number), [1, 2]);
+    expect(orders.first.status, OrderStatus.prijata);
+    expect(orders.first.items.first.quantity, 2);
+
+    // Posune první objednávku na další stav.
+    await orderService.moveToNextStatus(orders.first);
+    final updated = await orderService.watchOrder(orders.first.id).first;
+    expect(updated!.status, OrderStatus.pripravujeSe);
+  });
+
   testWidgets('Obsluha posune objednávku až do Dokončených',
       (WidgetTester tester) async {
-    // Připraví košík s jednou objednávkou ke stolu 5.
-    final cart = Cart();
-    cart.orderHistory.addOrder(
-      Order(
-        items: [CartItem(product: sampleMenu.first, quantity: 2)],
-        totalPrice: 90,
-        tableNumber: 5,
-        status: OrderStatus.prijata,
-      ),
+    // Připraví databázi s jednou objednávkou ke stolu 5.
+    final db = FakeFirebaseFirestore();
+    await OrderService(db).createOrder(
+      items: [CartItem(product: sampleMenu.first, quantity: 2)],
+      totalPrice: 90,
+      tableNumber: 5,
     );
 
-    await tester.pumpWidget(await buildTestApp(cart: cart));
+    await tester.pumpWidget(await buildTestApp(db: db));
     await tester.tap(find.text('Vstup pro obsluhu'));
     await tester.pumpAndSettle();
 

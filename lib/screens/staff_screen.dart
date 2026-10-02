@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/order.dart';
-import '../models/order_history.dart';
+import '../services/order_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../widgets/app_message.dart';
@@ -24,29 +24,68 @@ String nextStatusAction(OrderStatus status) {
 
 // Obrazovka pro obsluhu: aktivní a dokončené objednávky, změna stavu.
 class StaffScreen extends StatefulWidget {
-  final OrderHistory orderHistory;
+  final OrderService orderService;
 
-  const StaffScreen({super.key, required this.orderHistory});
+  const StaffScreen({super.key, required this.orderService});
 
   @override
   State<StaffScreen> createState() => _StaffScreenState();
 }
 
 class _StaffScreenState extends State<StaffScreen> {
-  void moveToNextStatus(Order order, int orderNumber) {
-    setState(() {
-      order.nextStatus();
-    });
-    showAppMessage(
-      context,
-      'Objednávka #$orderNumber: ${orderStatusText(order.status)}',
-    );
+  // Živý proud všech objednávek z databáze (vytvoří se jen jednou).
+  late final Stream<List<Order>> ordersStream;
+
+  @override
+  void initState() {
+    super.initState();
+    ordersStream = widget.orderService.watchAllOrders();
+  }
+
+  // Uloží do databáze další stav objednávky. Obrazovka se pak překreslí
+  // sama, protože databáze pošle změnu přes stream.
+  Future<void> moveToNextStatus(Order order) async {
+    try {
+      await widget.orderService.moveToNextStatus(order);
+      if (!mounted) return;
+      showAppMessage(
+        context,
+        'Objednávka #${order.number}: '
+        '${orderStatusText(nextOrderStatus(order.status))}',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      showAppMessage(context, 'Stav se nepodařilo změnit');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final orders = widget.orderHistory.orders;
+    return StreamBuilder<List<Order>>(
+      stream: ordersStream,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Obsluha')),
+            body: const EmptyState(
+              icon: Icons.cloud_off,
+              title: 'Objednávky se nepodařilo načíst',
+              message: 'Zkontrolujte připojení k internetu.',
+            ),
+          );
+        }
+        if (!snapshot.hasData) {
+          return Scaffold(
+            appBar: AppBar(title: const Text('Obsluha')),
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+        return buildTabs(snapshot.data!);
+      },
+    );
+  }
 
+  Widget buildTabs(List<Order> orders) {
     // Rozdělení objednávek na aktivní a dokončené.
     // Aktivní: nejstarší nahoře, aby obsluha vyřizovala objednávky popořadě.
     final activeOrders =
@@ -108,8 +147,7 @@ class _StaffScreenState extends State<StaffScreen> {
 
   // Karta jedné objednávky pro obsluhu.
   Widget buildOrderCard(Order order) {
-    // Číslo objednávky podle pořadí v celé historii (#1 = první objednávka).
-    final orderNumber = widget.orderHistory.orders.indexOf(order) + 1;
+    final orderNumber = order.number;
     final isDone = order.status == OrderStatus.dokoncena;
 
     return Card(
@@ -180,7 +218,7 @@ class _StaffScreenState extends State<StaffScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => moveToNextStatus(order, orderNumber),
+                  onPressed: () => moveToNextStatus(order),
                   child: Text(nextStatusAction(order.status)),
                 ),
               ),

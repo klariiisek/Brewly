@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/cart.dart';
 import '../models/cart_item.dart';
-import '../models/order.dart';
+import '../services/order_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../widgets/app_message.dart';
@@ -11,6 +11,7 @@ import '../widgets/product_card.dart';
 
 class CartScreen extends StatefulWidget {
   final Cart cart;
+  final OrderService orderService;
 
   // Zavolá se, když se změní obsah košíku (aby se aktualizovalo číslo v liště).
   final VoidCallback onCartChanged;
@@ -24,6 +25,7 @@ class CartScreen extends StatefulWidget {
   const CartScreen({
     super.key,
     required this.cart,
+    required this.orderService,
     required this.onCartChanged,
     required this.onOrderCreated,
     required this.onGoToMenu,
@@ -59,23 +61,46 @@ class _CartScreenState extends State<CartScreen> {
     widget.onCartChanged();
   }
 
-  void placeOrder() {
+  // Odesílá se právě objednávka? (Tlačítko se mezitím zablokuje.)
+  bool isSending = false;
+
+  Future<void> placeOrder() async {
     if (selectedTable == null) {
       showAppMessage(context, 'Vyberte prosím stůl');
       return;
     }
-    final order = Order(
-      items: List.from(widget.cart.items),
-      totalPrice: widget.cart.totalPrice,
-      tableNumber: selectedTable!,
-      status: OrderStatus.prijata,
-    );
-    widget.cart.orderHistory.addOrder(order);
+
     setState(() {
-      widget.cart.items.clear();
+      isSending = true;
     });
-    showAppMessage(context, 'Objednávka byla vytvořena');
-    widget.onOrderCreated();
+
+    try {
+      // Uloží objednávku do databáze a vrátí její ID.
+      final orderId = await widget.orderService.createOrder(
+        items: widget.cart.items,
+        totalPrice: widget.cart.totalPrice,
+        tableNumber: selectedTable!,
+      );
+      if (!mounted) return;
+
+      widget.cart.orderHistory.addOrderId(orderId);
+      setState(() {
+        widget.cart.items.clear();
+      });
+      widget.onCartChanged();
+      showAppMessage(context, 'Objednávka byla odeslána');
+      widget.onOrderCreated();
+    } catch (error) {
+      // Např. bez internetu: košík zůstane, zákazník to může zkusit znovu.
+      if (!mounted) return;
+      showAppMessage(context, 'Objednávku se nepodařilo odeslat');
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSending = false;
+        });
+      }
+    }
   }
 
   @override
@@ -241,8 +266,10 @@ class _CartScreenState extends State<CartScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: placeOrder,
-              child: const Text('Objednat'),
+              // Během odesílání je tlačítko neaktivní (null), aby se
+              // objednávka neodeslala dvakrát.
+              onPressed: isSending ? null : placeOrder,
+              child: Text(isSending ? 'Odesílám…' : 'Objednat'),
             ),
           ),
         ],
