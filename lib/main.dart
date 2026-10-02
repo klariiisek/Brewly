@@ -1,9 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
 import 'models/cart.dart';
 import 'screens/home_screen.dart';
+import 'services/product_service.dart';
 import 'theme/app_theme.dart';
 
 // "async" protože před spuštěním aplikace musíme počkat na připojení k Firebase.
@@ -19,13 +21,18 @@ Future<void> main() async {
   // Košík (a s ním historie objednávek) se vytvoří jen jednou
   // při spuštění aplikace a pak se předává obrazovkám.
   final cart = Cart();
-  runApp(MyApp(cart: cart));
+
+  // Služba pro produkty pracuje se skutečnou databází Firestore.
+  final productService = ProductService(FirebaseFirestore.instance);
+
+  runApp(MyApp(cart: cart, productService: productService));
 }
 
 class MyApp extends StatelessWidget {
   final Cart cart;
+  final ProductService productService;
 
-  const MyApp({super.key, required this.cart});
+  const MyApp({super.key, required this.cart, required this.productService});
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +40,7 @@ class MyApp extends StatelessWidget {
       title: 'Brewly',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      home: HomeScreen(cart: cart),
+      home: HomeScreen(cart: cart, productService: productService),
     );
   }
 }

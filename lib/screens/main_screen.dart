@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/cart.dart';
+import '../services/product_service.dart';
 import 'cart_screen.dart';
 import 'menu_screen.dart';
 import 'order_history_screen.dart';
@@ -8,8 +9,13 @@ import 'order_history_screen.dart';
 // Hlavní obrazovka zákazníka se spodní lištou: Menu | Košík | Objednávky.
 class MainScreen extends StatefulWidget {
   final Cart cart;
+  final ProductService productService;
 
-  const MainScreen({super.key, required this.cart});
+  const MainScreen({
+    super.key,
+    required this.cart,
+    required this.productService,
+  });
 
   @override
   State<MainScreen> createState() => _MainScreenState();
@@ -41,7 +47,11 @@ class _MainScreenState extends State<MainScreen> {
       body: IndexedStack(
         index: selectedIndex,
         children: [
-          MenuScreen(cart: cart, onCartChanged: refresh),
+          MenuScreen(
+            cart: cart,
+            productService: widget.productService,
+            onCartChanged: refresh,
+          ),
           CartScreen(
             cart: cart,
             onCartChanged: refresh,

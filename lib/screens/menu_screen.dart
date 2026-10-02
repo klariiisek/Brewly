@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 
-import '../data/menu_data.dart';
 import '../models/cart.dart';
 import '../models/cart_item.dart';
 import '../models/product.dart';
+import '../services/product_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_sheet.dart';
 
 class MenuScreen extends StatefulWidget {
   final Cart cart;
+  final ProductService productService;
 
   // Zavolá se, když se změní obsah košíku (aby se aktualizovalo číslo v liště).
   final VoidCallback onCartChanged;
@@ -18,6 +20,7 @@ class MenuScreen extends StatefulWidget {
   const MenuScreen({
     super.key,
     required this.cart,
+    required this.productService,
     required this.onCartChanged,
   });
 
@@ -31,21 +34,31 @@ class _MenuScreenState extends State<MenuScreen> {
   // Právě vybraná kategorie.
   String selectedCategory = allCategories;
 
+  // Proud produktů z databáze. Vytvoří se jen jednou (v initState),
+  // aby se aplikace nepřipojovala k databázi znovu při každém překreslení.
+  late final Stream<List<Product>> productsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    productsStream = widget.productService.watchProducts();
+  }
+
   // Seznam kategorií: "Vše" + každá kategorie z menu jen jednou.
   // toSet() odstraní duplicity (Káva je v menu třikrát, ale štítek chceme jeden).
-  List<String> get categories {
+  List<String> categoriesOf(List<Product> products) {
     return [
       allCategories,
-      ...menuProducts.map((product) => product.category).toSet(),
+      ...products.map((product) => product.category).toSet(),
     ];
   }
 
   // Produkty podle vybrané kategorie.
-  List<Product> get visibleProducts {
+  List<Product> filterProducts(List<Product> products) {
     if (selectedCategory == allCategories) {
-      return menuProducts;
+      return products;
     }
-    return menuProducts
+    return products
         .where((product) => product.category == selectedCategory)
         .toList();
   }
@@ -74,29 +87,67 @@ class _MenuScreenState extends State<MenuScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final products = visibleProducts;
-
     return Scaffold(
       body: Column(
         children: [
           buildHeader(),
-          buildCategoryChips(),
+          // StreamBuilder se překreslí pokaždé, když z databáze přijdou nová data.
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.only(bottom: 16),
-              itemCount: products.length,
-              itemBuilder: (context, index) {
-                final product = products[index];
-                return ProductCard(
-                  product: product,
-                  onTap: () => openDetail(product),
-                  onAdd: () => addToCart(product),
-                );
+            child: StreamBuilder<List<Product>>(
+              stream: productsStream,
+              builder: (context, snapshot) {
+                // 1) Chyba, např. bez internetu.
+                if (snapshot.hasError) {
+                  return const EmptyState(
+                    icon: Icons.cloud_off,
+                    title: 'Menu se nepodařilo načíst',
+                    message: 'Zkontrolujte připojení k internetu.',
+                  );
+                }
+                // 2) Data ještě nedorazila: točící se kolečko.
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                // 3) Databáze je prázdná.
+                final allProducts = snapshot.data!;
+                if (allProducts.isEmpty) {
+                  return const EmptyState(
+                    icon: Icons.menu_book,
+                    title: 'Menu je zatím prázdné',
+                    message: 'Obsluha ho brzy doplní.',
+                  );
+                }
+                // 4) Máme produkty: štítky kategorií a seznam.
+                return buildMenu(allProducts);
               },
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget buildMenu(List<Product> allProducts) {
+    final products = filterProducts(allProducts);
+
+    return Column(
+      children: [
+        buildCategoryChips(categoriesOf(allProducts)),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.only(bottom: 16),
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final product = products[index];
+              return ProductCard(
+                product: product,
+                onTap: () => openDetail(product),
+                onAdd: () => addToCart(product),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -155,7 +206,7 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   // Vodorovná řada štítků s kategoriemi.
-  Widget buildCategoryChips() {
+  Widget buildCategoryChips(List<String> categories) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),

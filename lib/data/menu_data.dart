@@ -1,7 +1,8 @@
 import '../models/product.dart';
 
-// Nabídka kavárny. Později se bude načítat z databáze (Firestore).
-const List<Product> menuProducts = [
+// Ukázkové menu kavárny. Používá se v testech a pro první nahrání menu
+// do databáze (ProductService.uploadSampleMenu). Aplikace čte menu z databáze.
+const List<Product> sampleMenu = [
   Product(
     name: 'Espresso',
     price: 45,

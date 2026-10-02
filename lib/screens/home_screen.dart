@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../models/cart.dart';
+import '../services/product_service.dart';
 import '../theme/app_theme.dart';
 import 'main_screen.dart';
 import 'staff_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   final Cart cart;
+  final ProductService productService;
 
-  const HomeScreen({super.key, required this.cart});
+  const HomeScreen({
+    super.key,
+    required this.cart,
+    required this.productService,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +80,10 @@ class HomeScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => MainScreen(cart: cart),
+                  builder: (context) => MainScreen(
+                    cart: cart,
+                    productService: productService,
+                  ),
                 ),
               );
             },

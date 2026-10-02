@@ -1,3 +1,4 @@
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -6,13 +7,23 @@ import 'package:brewly/data/menu_data.dart';
 import 'package:brewly/models/cart.dart';
 import 'package:brewly/models/cart_item.dart';
 import 'package:brewly/models/order.dart';
+import 'package:brewly/services/product_service.dart';
 import 'package:brewly/utils/format.dart';
+
+// Připraví aplikaci pro test s falešnou databází v paměti (místo skutečného Firebase).
+// Když withMenu = true, nahraje do ní ukázkové menu.
+Future<Widget> buildTestApp({Cart? cart, bool withMenu = true}) async {
+  final productService = ProductService(FakeFirebaseFirestore());
+  if (withMenu) {
+    await productService.uploadSampleMenu();
+  }
+  return MyApp(cart: cart ?? Cart(), productService: productService);
+}
 
 void main() {
   testWidgets('Úvodní obrazovka zobrazuje název a tlačítko menu',
       (WidgetTester tester) async {
-    // Spustí aplikaci s novým (prázdným) košíkem.
-    await tester.pumpWidget(MyApp(cart: Cart()));
+    await tester.pumpWidget(await buildTestApp());
 
     // Ověří, že je vidět název kavárny a tlačítko pro menu.
     expect(find.text('Brewly'), findsOneWidget);
@@ -25,9 +36,30 @@ void main() {
     expect(formatItemCount(5), '5 položek');
   });
 
+  test('Ukázkové menu se nahraje do databáze jen jednou', () async {
+    final db = FakeFirebaseFirestore();
+    final productService = ProductService(db);
+
+    expect(await productService.uploadSampleMenu(), true);
+    // Podruhé už se nic nenahraje, protože menu v databázi je.
+    expect(await productService.uploadSampleMenu(), false);
+
+    final saved = await db.collection('products').get();
+    expect(saved.docs.length, sampleMenu.length);
+  });
+
+  testWidgets('Prázdná databáze ukáže prázdné menu',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(await buildTestApp(withMenu: false));
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Menu je zatím prázdné'), findsOneWidget);
+  });
+
   testWidgets('Prázdný košík ukáže tlačítko zpět do menu',
       (WidgetTester tester) async {
-    await tester.pumpWidget(MyApp(cart: Cart()));
+    await tester.pumpWidget(await buildTestApp());
     await tester.tap(find.text('Prohlédnout menu'));
     await tester.pumpAndSettle();
 
@@ -42,7 +74,7 @@ void main() {
   });
 
   testWidgets('Kategorie v menu filtrují produkty', (WidgetTester tester) async {
-    await tester.pumpWidget(MyApp(cart: Cart()));
+    await tester.pumpWidget(await buildTestApp());
     await tester.tap(find.text('Prohlédnout menu'));
     await tester.pumpAndSettle();
 
@@ -56,7 +88,7 @@ void main() {
 
   testWidgets('Detail zespodu přidá vybrané množství do košíku',
       (WidgetTester tester) async {
-    await tester.pumpWidget(MyApp(cart: Cart()));
+    await tester.pumpWidget(await buildTestApp());
     await tester.tap(find.text('Prohlédnout menu'));
     await tester.pumpAndSettle();
 
@@ -81,16 +113,16 @@ void main() {
 
   testWidgets('Objednávka přes spodní lištu: menu → košík → objednávky',
       (WidgetTester tester) async {
-    await tester.pumpWidget(MyApp(cart: Cart()));
+    await tester.pumpWidget(await buildTestApp());
 
     // Otevře menu.
     await tester.tap(find.text('Prohlédnout menu'));
     await tester.pumpAndSettle();
 
-    // Přidá první produkt (Espresso) tlačítkem +.
+    // Přidá první produkt (Cappuccino – káva je první, pak abecedně) tlačítkem +.
     await tester.tap(find.byTooltip('Přidat do košíku').first);
     await tester.pump();
-    // Počká, až zmizí hlášení "Přidáno: Espresso".
+    // Počká, až zmizí hlášení "Přidáno: 1× Cappuccino".
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
 
@@ -100,7 +132,7 @@ void main() {
     // Přepne na záložku Košík.
     await tester.tap(find.text('Košík').last);
     await tester.pumpAndSettle();
-    expect(find.text('Espresso'), findsWidgets);
+    expect(find.text('Cappuccino'), findsWidgets);
 
     // Vybere stůl 3.
     await tester.tap(find.byType(DropdownButton<int>));
@@ -121,14 +153,14 @@ void main() {
     final cart = Cart();
     cart.orderHistory.addOrder(
       Order(
-        items: [CartItem(product: menuProducts.first, quantity: 2)],
+        items: [CartItem(product: sampleMenu.first, quantity: 2)],
         totalPrice: 90,
         tableNumber: 5,
         status: OrderStatus.prijata,
       ),
     );
 
-    await tester.pumpWidget(MyApp(cart: cart));
+    await tester.pumpWidget(await buildTestApp(cart: cart));
     await tester.tap(find.text('Vstup pro obsluhu'));
     await tester.pumpAndSettle();
 
