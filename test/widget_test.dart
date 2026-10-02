@@ -1,4 +1,5 @@
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
+import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -7,15 +8,23 @@ import 'package:brewly/data/menu_data.dart';
 import 'package:brewly/models/cart.dart';
 import 'package:brewly/models/cart_item.dart';
 import 'package:brewly/models/order.dart';
+import 'package:brewly/services/app_services.dart';
+import 'package:brewly/services/auth_service.dart';
 import 'package:brewly/services/order_service.dart';
 import 'package:brewly/services/product_service.dart';
 import 'package:brewly/utils/format.dart';
 
-// Připraví aplikaci pro test s falešnou databází v paměti (místo skutečného Firebase).
-// Když withMenu = true, nahraje do ní ukázkové menu.
-// Když je zadaná db, použije se (aby test mohl předem vytvořit objednávky).
+// Testovací zákaznice, která je v testech "přihlášená".
+final testUser = MockUser(uid: 'klara-123', email: 'klara@test.cz', displayName: 'Klára');
+
+// Připraví aplikaci pro test s falešnou databází a falešným přihlašováním
+// v paměti (místo skutečného Firebase).
+// - withMenu: nahraje do databáze ukázkové menu
+// - signedIn: zákaznice je na začátku přihlášená
+// - db: vlastní databáze (aby test mohl předem vytvořit objednávky)
 Future<Widget> buildTestApp({
   bool withMenu = true,
+  bool signedIn = true,
   FakeFirebaseFirestore? db,
 }) async {
   final database = db ?? FakeFirebaseFirestore();
@@ -25,8 +34,22 @@ Future<Widget> buildTestApp({
   }
   return MyApp(
     cart: Cart(),
-    productService: productService,
-    orderService: OrderService(database),
+    services: AppServices(
+      auth: AuthService(MockFirebaseAuth(signedIn: signedIn, mockUser: testUser)),
+      products: productService,
+      orders: OrderService(database),
+    ),
+  );
+}
+
+// Krátká pomocná funkce pro vytvoření objednávky v testech.
+Future<String> createTestOrder(OrderService orderService, {int table = 1}) {
+  return orderService.createOrder(
+    items: [CartItem(product: sampleMenu.first, quantity: 2)],
+    totalPrice: 90,
+    tableNumber: table,
+    userId: testUser.uid,
+    customerName: 'Klára',
   );
 }
 
@@ -159,12 +182,9 @@ void main() {
 
   test('Objednávky dostanou pořadová čísla a jde měnit jejich stav', () async {
     final orderService = OrderService(FakeFirebaseFirestore());
-    final items = [CartItem(product: sampleMenu.first, quantity: 2)];
 
-    await orderService.createOrder(
-        items: items, totalPrice: 90, tableNumber: 1);
-    await orderService.createOrder(
-        items: items, totalPrice: 90, tableNumber: 2);
+    await createTestOrder(orderService, table: 1);
+    await createTestOrder(orderService, table: 2);
 
     final orders = await orderService.watchAllOrders().first;
     expect(orders.map((order) => order.number), [1, 2]);
@@ -175,17 +195,81 @@ void main() {
     await orderService.moveToNextStatus(orders.first);
     final updated = await orderService.watchOrder(orders.first.id).first;
     expect(updated!.status, OrderStatus.pripravujeSe);
+
+    // Objednávky se ukládají i s tím, kdo je vytvořil.
+    final myOrders = await orderService.watchMyOrders(testUser.uid).first;
+    expect(myOrders.length, 2);
+    expect(myOrders.first.customerName, 'Klára');
+    final otherOrders = await orderService.watchMyOrders('nekdo-jiny').first;
+    expect(otherOrders, isEmpty);
+  });
+
+  testWidgets('Nepřihlášený zákazník musí se před objednáním přihlásit',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(await buildTestApp(signedIn: false));
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+
+    // Přidá produkt, přejde do košíku a vybere stůl.
+    await tester.tap(find.byTooltip('Přidat do košíku').first);
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Košík').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButton<int>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Stůl 2').last);
+    await tester.pumpAndSettle();
+
+    // "Objednat" otevře přihlášení.
+    await tester.tap(find.text('Objednat'));
+    await tester.pumpAndSettle();
+    expect(find.text('Přihlášení'), findsOneWidget);
+
+    // Vyplní přihlášení a přihlásí se – objednávka se pak sama dokončí.
+    await tester.enterText(find.byType(TextFormField).at(0), 'klara@test.cz');
+    await tester.enterText(find.byType(TextFormField).at(1), 'tajneheslo');
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Přihlásit se'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Moje objednávky'), findsOneWidget);
+    expect(find.textContaining('Stůl 2'), findsOneWidget);
+  });
+
+  testWidgets('Registrace kontroluje, že se hesla shodují',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(await buildTestApp(signedIn: false));
+    await tester.tap(find.text('Přihlásit se'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Zaregistrujte se'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).at(0), 'Klára');
+    await tester.enterText(find.byType(TextFormField).at(1), 'klara@test.cz');
+    await tester.enterText(find.byType(TextFormField).at(2), 'heslo123');
+    await tester.enterText(find.byType(TextFormField).at(3), 'jineheslo');
+    await tester.tap(find.text('Zaregistrovat se'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Hesla se neshodují'), findsOneWidget);
+  });
+
+  testWidgets('Moje objednávky vyzvou nepřihlášeného k přihlášení',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(await buildTestApp(signedIn: false));
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Objednávky').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Přihlaste se'), findsOneWidget);
   });
 
   testWidgets('Obsluha posune objednávku až do Dokončených',
       (WidgetTester tester) async {
     // Připraví databázi s jednou objednávkou ke stolu 5.
     final db = FakeFirebaseFirestore();
-    await OrderService(db).createOrder(
-      items: [CartItem(product: sampleMenu.first, quantity: 2)],
-      totalPrice: 90,
-      tableNumber: 5,
-    );
+    await createTestOrder(OrderService(db), table: 5);
 
     await tester.pumpWidget(await buildTestApp(db: db));
     await tester.tap(find.text('Vstup pro obsluhu'));
@@ -196,9 +280,9 @@ void main() {
 
     // Projde všechny stavy pomocí tlačítka na kartě.
     await tester.tap(find.text('Začít připravovat'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Označit jako připravenou'));
-    await tester.pump();
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Předáno zákazníkovi'));
     await tester.pumpAndSettle();
 

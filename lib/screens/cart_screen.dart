@@ -2,16 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../models/cart.dart';
 import '../models/cart_item.dart';
-import '../services/order_service.dart';
+import '../services/app_services.dart';
+import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../widgets/app_message.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/product_card.dart';
+import 'login_screen.dart';
 
 class CartScreen extends StatefulWidget {
   final Cart cart;
-  final OrderService orderService;
+  final AppServices services;
 
   // Zavolá se, když se změní obsah košíku (aby se aktualizovalo číslo v liště).
   final VoidCallback onCartChanged;
@@ -25,7 +27,7 @@ class CartScreen extends StatefulWidget {
   const CartScreen({
     super.key,
     required this.cart,
-    required this.orderService,
+    required this.services,
     required this.onCartChanged,
     required this.onOrderCreated,
     required this.onGoToMenu,
@@ -70,20 +72,37 @@ class _CartScreenState extends State<CartScreen> {
       return;
     }
 
+    // Objednávat může jen přihlášený zákazník. Když není přihlášený,
+    // otevře se přihlášení a po něm se objednávka dokončí.
+    var user = widget.services.auth.currentUser;
+    if (user == null) {
+      showAppMessage(context, 'Pro objednání se prosím přihlaste');
+      final loggedIn = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              LoginScreen(authService: widget.services.auth),
+        ),
+      );
+      user = widget.services.auth.currentUser;
+      if (loggedIn != true || user == null || !mounted) return;
+    }
+
     setState(() {
       isSending = true;
     });
 
     try {
-      // Uloží objednávku do databáze a vrátí její ID.
-      final orderId = await widget.orderService.createOrder(
+      // Uloží objednávku do databáze i s tím, kdo ji vytvořil.
+      await widget.services.orders.createOrder(
         items: widget.cart.items,
         totalPrice: widget.cart.totalPrice,
         tableNumber: selectedTable!,
+        userId: user.uid,
+        customerName: userDisplayName(user),
       );
       if (!mounted) return;
 
-      widget.cart.orderHistory.addOrderId(orderId);
       setState(() {
         widget.cart.items.clear();
       });

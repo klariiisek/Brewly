@@ -84,6 +84,25 @@ class AppTheme {
         style: TextButton.styleFrom(foregroundColor: AppColors.coffee),
       ),
 
+      // Textová pole (e-mail, heslo...): bílá, kulaté rohy, hnědý rámeček.
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        prefixIconColor: AppColors.coffee,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.medium),
+          borderSide: BorderSide(color: AppColors.muted.withValues(alpha: 0.3)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.medium),
+          borderSide: BorderSide(color: AppColors.muted.withValues(alpha: 0.3)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppRadius.medium),
+          borderSide: const BorderSide(color: AppColors.coffee, width: 2),
+        ),
+      ),
+
       // Záložky nahoře (např. Aktivní / Dokončené u obsluhy).
       tabBarTheme: const TabBarThemeData(
         labelColor: AppColors.coffee,

@@ -44,6 +44,9 @@ class Order {
   final double totalPrice;
   final int tableNumber;
   final OrderStatus status;
+  // Kdo objednávku vytvořil: ID účtu a jméno (jméno uvidí obsluha).
+  final String userId;
+  final String customerName;
 
   const Order({
     required this.id,
@@ -52,6 +55,8 @@ class Order {
     required this.totalPrice,
     required this.tableNumber,
     required this.status,
+    required this.userId,
+    required this.customerName,
   });
 
   // Vytvoří objednávku z dat načtených z databáze.
@@ -71,6 +76,8 @@ class Order {
         (status) => status.name == data['status'],
         orElse: () => OrderStatus.prijata,
       ),
+      userId: data['userId'] as String? ?? '',
+      customerName: data['customerName'] as String? ?? '',
     );
   }
 }

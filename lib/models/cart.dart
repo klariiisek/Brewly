@@ -1,9 +1,7 @@
 import 'cart_item.dart';
-import 'order_history.dart';
 
 class Cart {
   final List<CartItem> items = [];
-  final OrderHistory orderHistory = OrderHistory();
 
   void addItem(CartItem item) {
   for (final existingItem in items) {

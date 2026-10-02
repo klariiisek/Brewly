@@ -1,23 +1,40 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../models/cart.dart';
-import '../services/order_service.dart';
-import '../services/product_service.dart';
+import '../services/app_services.dart';
+import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_message.dart';
+import 'login_screen.dart';
 import 'main_screen.dart';
 import 'staff_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final Cart cart;
-  final ProductService productService;
-  final OrderService orderService;
+  final AppServices services;
 
-  const HomeScreen({
-    super.key,
-    required this.cart,
-    required this.productService,
-    required this.orderService,
-  });
+  const HomeScreen({super.key, required this.cart, required this.services});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // Proud přihlášeného uživatele (null = nikdo není přihlášený).
+  late final Stream<User?> userStream;
+
+  @override
+  void initState() {
+    super.initState();
+    userStream = widget.services.auth.userChanges();
+  }
+
+  Future<void> signOut() async {
+    await widget.services.auth.signOut();
+    if (!mounted) return;
+    showAppMessage(context, 'Byli jste odhlášeni');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -25,20 +42,29 @@ class HomeScreen extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              // Horní část: logo, název a uvítání.
-              Expanded(child: buildWelcome()),
-              // Spodní část: tlačítka.
-              buildButtons(context),
-            ],
+          // Obrazovka se překreslí, když se někdo přihlásí nebo odhlásí.
+          child: StreamBuilder<User?>(
+            stream: userStream,
+            // Než proud pošle první hodnotu, použije se aktuálně přihlášený uživatel.
+            initialData: widget.services.auth.currentUser,
+            builder: (context, snapshot) {
+              final user = snapshot.data;
+              return Column(
+                children: [
+                  // Horní část: logo, název a uvítání.
+                  Expanded(child: buildWelcome(user)),
+                  // Spodní část: tlačítka.
+                  buildButtons(user),
+                ],
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget buildWelcome() {
+  Widget buildWelcome(User? user) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -63,16 +89,18 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Vítejte v naší kavárně',
-            style: TextStyle(fontSize: 17, color: AppColors.muted),
+          Text(
+            user == null
+                ? 'Vítejte v naší kavárně'
+                : 'Vítejte, ${userDisplayName(user)}',
+            style: const TextStyle(fontSize: 17, color: AppColors.muted),
           ),
         ],
       ),
     );
   }
 
-  Widget buildButtons(BuildContext context) {
+  Widget buildButtons(User? user) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -84,9 +112,8 @@ class HomeScreen extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => MainScreen(
-                    cart: cart,
-                    productService: productService,
-                    orderService: orderService,
+                    cart: widget.cart,
+                    services: widget.services,
                   ),
                 ),
               );
@@ -97,21 +124,34 @@ class HomeScreen extends StatelessWidget {
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
-          child: OutlinedButton(
-            // Přihlášení zatím není hotové (přijde s Firebase).
-            onPressed: () {},
-            child: const Text('Přihlásit se'),
-          ),
+          // Podle toho, jestli je někdo přihlášený: Přihlásit / Odhlásit.
+          child: user == null
+              ? OutlinedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            LoginScreen(authService: widget.services.auth),
+                      ),
+                    );
+                  },
+                  child: const Text('Přihlásit se'),
+                )
+              : OutlinedButton(
+                  onPressed: signOut,
+                  child: const Text('Odhlásit se'),
+                ),
         ),
         const SizedBox(height: 8),
-        // Dočasný vstup pro obsluhu, dokud nebudou přihlášení a role.
+        // Dočasný vstup pro obsluhu, dokud nebudou role (krok 5).
         TextButton(
           onPressed: () {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) =>
-                    StaffScreen(orderService: orderService),
+                    StaffScreen(orderService: widget.services.orders),
               ),
             );
           },

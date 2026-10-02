@@ -23,6 +23,8 @@ class OrderService {
     required List<CartItem> items,
     required double totalPrice,
     required int tableNumber,
+    required String userId,
+    required String customerName,
   }) async {
     final newOrder = _orders.doc();
 
@@ -40,6 +42,8 @@ class OrderService {
         'totalPrice': totalPrice,
         'tableNumber': tableNumber,
         'status': OrderStatus.prijata.name,
+        'userId': userId,
+        'customerName': customerName,
         'createdAt': FieldValue.serverTimestamp(),
       });
     });
@@ -53,6 +57,22 @@ class OrderService {
       return snapshot.docs
           .map((doc) => Order.fromMap(doc.id, doc.data()))
           .toList();
+    });
+  }
+
+  // Živý proud objednávek jednoho zákazníka, seřazených podle čísla.
+  Stream<List<Order>> watchMyOrders(String userId) {
+    return _orders
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+      final orders = snapshot.docs
+          .map((doc) => Order.fromMap(doc.id, doc.data()))
+          .toList();
+      // Řadíme až v aplikaci: kombinace where + orderBy by ve Firestore
+      // vyžadovala zvláštní index.
+      orders.sort((a, b) => a.number.compareTo(b.number));
+      return orders;
     });
   }
 

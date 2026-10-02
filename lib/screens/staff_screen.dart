@@ -191,7 +191,11 @@ class _StaffScreenState extends State<StaffScreen> {
                         ),
                       ),
                       Text(
-                        'Objednávka #$orderNumber • ${formatPrice(order.totalPrice)}',
+                        // Starší objednávky jméno zákazníka nemají.
+                        order.customerName.isEmpty
+                            ? '#$orderNumber • ${formatPrice(order.totalPrice)}'
+                            : '#$orderNumber • ${order.customerName} • '
+                                '${formatPrice(order.totalPrice)}',
                         style: const TextStyle(color: AppColors.muted),
                       ),
                     ],

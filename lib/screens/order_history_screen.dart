@@ -1,25 +1,25 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../models/order.dart';
-import '../models/order_history.dart';
-import '../services/order_service.dart';
+import '../services/app_services.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
+import '../widgets/app_message.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/status_badge.dart';
+import 'login_screen.dart';
 import 'order_detail_screen.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
-  final OrderHistory orderHistory;
-  final OrderService orderService;
+  final AppServices services;
 
   // Volitelné: tlačítko "Přejít do menu" u prázdného seznamu.
   final VoidCallback? onGoToMenu;
 
   const OrderHistoryScreen({
     super.key,
-    required this.orderHistory,
-    required this.orderService,
+    required this.services,
     this.onGoToMenu,
   });
 
@@ -28,59 +28,112 @@ class OrderHistoryScreen extends StatefulWidget {
 }
 
 class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
-  // Živý proud objednávek z databáze (vytvoří se jen jednou).
-  late final Stream<List<Order>> ordersStream;
+  // Proud přihlášeného uživatele.
+  late final Stream<User?> userStream;
+
+  // Proud objednávek pro aktuálního uživatele. Vytvoří se znovu jen tehdy,
+  // když se přihlásí někdo jiný (aby se databáze nedotazovala zbytečně často).
+  String? streamUserId;
+  Stream<List<Order>>? ordersStream;
 
   @override
   void initState() {
     super.initState();
-    ordersStream = widget.orderService.watchAllOrders();
+    userStream = widget.services.auth.userChanges();
+  }
+
+  Stream<List<Order>> ordersFor(String userId) {
+    if (userId != streamUserId || ordersStream == null) {
+      streamUserId = userId;
+      ordersStream = widget.services.orders.watchMyOrders(userId);
+    }
+    return ordersStream!;
+  }
+
+  void openLogin() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LoginScreen(authService: widget.services.auth),
+      ),
+    );
+  }
+
+  Future<void> signOut() async {
+    await widget.services.auth.signOut();
+    if (!mounted) return;
+    showAppMessage(context, 'Byli jste odhlášeni');
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Moje objednávky')),
-      body: StreamBuilder<List<Order>>(
-        stream: ordersStream,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return const EmptyState(
-              icon: Icons.cloud_off,
-              title: 'Objednávky se nepodařilo načíst',
-              message: 'Zkontrolujte připojení k internetu.',
-            );
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return StreamBuilder<User?>(
+      stream: userStream,
+      // Než proud pošle první hodnotu, použije se aktuálně přihlášený uživatel.
+      initialData: widget.services.auth.currentUser,
+      builder: (context, userSnapshot) {
+        final user = userSnapshot.data;
 
-          // Jen "moje" objednávky (odeslané z tohoto zařízení),
-          // nejnovější nahoře.
-          final myIds = widget.orderHistory.orderIds;
-          final orders = snapshot.data!
-              .where((order) => myIds.contains(order.id))
-              .toList()
-              .reversed
-              .toList();
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Moje objednávky'),
+            actions: [
+              if (user != null)
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  tooltip: 'Odhlásit se',
+                  onPressed: signOut,
+                ),
+            ],
+          ),
+          body: user == null
+              ? EmptyState(
+                  icon: Icons.person_outline,
+                  title: 'Přihlaste se',
+                  message: 'Po přihlášení tu uvidíte své objednávky.',
+                  buttonText: 'Přihlásit se',
+                  onPressed: openLogin,
+                )
+              : buildOrders(user),
+        );
+      },
+    );
+  }
 
-          if (orders.isEmpty) {
-            return EmptyState(
-              icon: Icons.receipt_long_outlined,
-              title: 'Zatím nemáte žádné objednávky',
-              message: 'Vaše objednávky se zobrazí tady.',
-              buttonText: 'Přejít do menu',
-              onPressed: widget.onGoToMenu,
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.only(top: 4, bottom: 16),
-            itemCount: orders.length,
-            itemBuilder: (context, index) => buildOrderCard(orders[index]),
+  Widget buildOrders(User user) {
+    return StreamBuilder<List<Order>>(
+      stream: ordersFor(user.uid),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return const EmptyState(
+            icon: Icons.cloud_off,
+            title: 'Objednávky se nepodařilo načíst',
+            message: 'Zkontrolujte připojení k internetu.',
           );
-        },
-      ),
+        }
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        // Nejnovější objednávka nahoře.
+        final orders = snapshot.data!.reversed.toList();
+
+        if (orders.isEmpty) {
+          return EmptyState(
+            icon: Icons.receipt_long_outlined,
+            title: 'Zatím nemáte žádné objednávky',
+            message: 'Vaše objednávky se zobrazí tady.',
+            buttonText: 'Přejít do menu',
+            onPressed: widget.onGoToMenu,
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.only(top: 4, bottom: 16),
+          itemCount: orders.length,
+          itemBuilder: (context, index) => buildOrderCard(orders[index]),
+        );
+      },
     );
   }
 
@@ -94,7 +147,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
             MaterialPageRoute(
               builder: (context) => OrderDetailScreen(
                 orderId: order.id,
-                orderService: widget.orderService,
+                orderService: widget.services.orders,
               ),
             ),
           );
