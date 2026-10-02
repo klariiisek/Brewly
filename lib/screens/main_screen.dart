@@ -57,6 +57,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           OrderHistoryScreen(
             services: widget.services,
+            cart: cart,
             onGoToMenu: () => goToTab(0),
           ),
         ],

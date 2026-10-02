@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../models/cart.dart';
 import '../models/order.dart';
 import '../services/app_services.dart';
 import '../theme/app_theme.dart';
@@ -8,11 +9,13 @@ import '../utils/format.dart';
 import '../widgets/app_message.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/status_badge.dart';
+import '../widgets/table_service_card.dart';
 import 'login_screen.dart';
 import 'order_detail_screen.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   final AppServices services;
+  final Cart cart;
 
   // Volitelné: tlačítko "Přejít do menu" u prázdného seznamu.
   final VoidCallback? onGoToMenu;
@@ -20,6 +23,7 @@ class OrderHistoryScreen extends StatefulWidget {
   const OrderHistoryScreen({
     super.key,
     required this.services,
+    required this.cart,
     this.onGoToMenu,
   });
 
@@ -94,7 +98,19 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                   buttonText: 'Přihlásit se',
                   onPressed: openLogin,
                 )
-              : buildOrders(user),
+              : Column(
+                  children: [
+                    // Karta Přivolat obsluhu / Chci zaplatit.
+                    // key: když se přihlásí jiný uživatel, karta se vytvoří znovu.
+                    TableServiceCard(
+                      key: ValueKey(user.uid),
+                      services: widget.services,
+                      cart: widget.cart,
+                      user: user,
+                    ),
+                    Expanded(child: buildOrders(user)),
+                  ],
+                ),
         );
       },
     );

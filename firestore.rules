@@ -84,5 +84,46 @@ service cloud.firestore {
       // Objednávky se nemažou (zůstávají jako historie).
       allow delete: if false;
     }
+
+    // ---------- Požadavky na obsluhu ----------
+    // "Přivolat obsluhu" a "Chci zaplatit".
+    match /requests/{requestId} {
+      // Zákazník vidí své požadavky, obsluha všechny.
+      allow read: if isSignedIn()
+        && (resource.data.get('userId', '') == request.auth.uid || isStaff());
+
+      // Je nový požadavek v pořádku? Posílá ho přihlášený zákazník sám za sebe,
+      // povoleného typu, ke stolu 1–10 a ve stavu "cekajici".
+      function isValidNewRequest() {
+        return isSignedIn()
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.type in ['obsluha', 'platba']
+          && request.resource.data.status == 'cekajici'
+          && request.resource.data.tableNumber is int
+          && request.resource.data.tableNumber >= 1
+          && request.resource.data.tableNumber <= 10;
+      }
+
+      // Ochrana proti spamu: ID dokumentu musí být "uživatel_typ"
+      // (např. abc123_platba), takže každý má pro každý typ jen jeden dokument.
+      allow create: if isValidNewRequest()
+        && requestId == request.auth.uid + '_' + request.resource.data.type;
+
+      // Zákazník smí svůj požadavek znovu odeslat, jen když ho obsluha
+      // už vyřídila. Dokud čeká, další stejný požadavek databáze odmítne.
+      // Obsluha smí požadavek vyřídit (změnit stav na "vyrizeno").
+      allow update: if (
+          isValidNewRequest()
+          && resource.data.userId == request.auth.uid
+          && resource.data.status == 'vyrizeno'
+          && request.resource.data.type == resource.data.type
+        ) || (
+          isStaff()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && request.resource.data.status == 'vyrizeno'
+        );
+
+      allow delete: if false;
+    }
   }
 }

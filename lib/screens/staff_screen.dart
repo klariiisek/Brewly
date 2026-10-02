@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/order.dart';
-import '../services/order_service.dart';
+import '../models/service_request.dart';
+import '../services/app_services.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../widgets/app_message.dart';
@@ -22,31 +23,45 @@ String nextStatusAction(OrderStatus status) {
   }
 }
 
-// Obrazovka pro obsluhu: aktivní a dokončené objednávky, změna stavu.
+// Obrazovka pro obsluhu: požadavky zákazníků, aktivní a dokončené objednávky.
 class StaffScreen extends StatefulWidget {
-  final OrderService orderService;
+  final AppServices services;
 
-  const StaffScreen({super.key, required this.orderService});
+  const StaffScreen({super.key, required this.services});
 
   @override
   State<StaffScreen> createState() => _StaffScreenState();
 }
 
 class _StaffScreenState extends State<StaffScreen> {
-  // Živý proud všech objednávek z databáze (vytvoří se jen jednou).
+  // Živé proudy z databáze (vytvoří se jen jednou).
   late final Stream<List<Order>> ordersStream;
+  late final Stream<List<ServiceRequest>> requestsStream;
 
   @override
   void initState() {
     super.initState();
-    ordersStream = widget.orderService.watchAllOrders();
+    ordersStream = widget.services.orders.watchAllOrders();
+    requestsStream = widget.services.requests.watchPendingRequests();
+  }
+
+  // Označí požadavek zákazníka jako vyřízený – zmizí ze seznamu.
+  Future<void> markRequestDone(ServiceRequest request) async {
+    try {
+      await widget.services.requests.markDone(request.id);
+      if (!mounted) return;
+      showAppMessage(context, 'Stůl ${request.tableNumber}: vyřízeno');
+    } catch (error) {
+      if (!mounted) return;
+      showAppMessage(context, 'Požadavek se nepodařilo vyřídit');
+    }
   }
 
   // Uloží do databáze další stav objednávky. Obrazovka se pak překreslí
   // sama, protože databáze pošle změnu přes stream.
   Future<void> moveToNextStatus(Order order) async {
     try {
-      await widget.orderService.moveToNextStatus(order);
+      await widget.services.orders.moveToNextStatus(order);
       if (!mounted) return;
       showAppMessage(
         context,
@@ -80,12 +95,20 @@ class _StaffScreenState extends State<StaffScreen> {
             body: const Center(child: CircularProgressIndicator()),
           );
         }
-        return buildTabs(snapshot.data!);
+        final orders = snapshot.data!;
+
+        // Druhý proud: požadavky zákazníků (než dorazí, bereme prázdný seznam).
+        return StreamBuilder<List<ServiceRequest>>(
+          stream: requestsStream,
+          builder: (context, requestSnapshot) {
+            return buildTabs(orders, requestSnapshot.data ?? []);
+          },
+        );
       },
     );
   }
 
-  Widget buildTabs(List<Order> orders) {
+  Widget buildTabs(List<Order> orders, List<ServiceRequest> requests) {
     // Rozdělení objednávek na aktivní a dokončené.
     // Aktivní: nejstarší nahoře, aby obsluha vyřizovala objednávky popořadě.
     final activeOrders =
@@ -99,12 +122,16 @@ class _StaffScreenState extends State<StaffScreen> {
 
     // DefaultTabController řídí přepínání mezi záložkami nahoře.
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Obsluha'),
           bottom: TabBar(
+            // Tři záložky se nemusí vejít – dají se posouvat do stran.
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             tabs: [
+              Tab(text: 'Požadavky (${requests.length})'),
               Tab(text: 'Aktivní (${activeOrders.length})'),
               Tab(text: 'Dokončené (${doneOrders.length})'),
             ],
@@ -112,6 +139,7 @@ class _StaffScreenState extends State<StaffScreen> {
         ),
         body: TabBarView(
           children: [
+            buildRequestList(requests),
             buildOrderList(
               activeOrders,
               emptyState: const EmptyState(
@@ -127,6 +155,81 @@ class _StaffScreenState extends State<StaffScreen> {
                 title: 'Zatím nic dokončeného',
                 message: 'Vyřízené objednávky se přesunou sem.',
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildRequestList(List<ServiceRequest> requests) {
+    if (requests.isEmpty) {
+      return const EmptyState(
+        icon: Icons.notifications_none,
+        title: 'Žádné požadavky',
+        message: 'Když zákazník přivolá obsluhu nebo chce zaplatit, '
+            'objeví se to tady.',
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: requests.length,
+      itemBuilder: (context, index) => buildRequestCard(requests[index]),
+    );
+  }
+
+  // Karta požadavku: stůl, co zákazník chce, kdo a kdy, tlačítko Vyřízeno.
+  Widget buildRequestCard(ServiceRequest request) {
+    final isPayment = request.type == RequestType.platba;
+    // Platba karamelově, přivolání hnědě.
+    final color = isPayment ? AppColors.caramel : AppColors.coffee;
+    final time = request.createdAt;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(AppRadius.medium),
+              ),
+              child: Icon(
+                isPayment
+                    ? Icons.payments_outlined
+                    : Icons.notifications_active_outlined,
+                color: color,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Stůl ${request.tableNumber} • ${requestTypeText(request.type)}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.darkCoffee,
+                    ),
+                  ),
+                  Text(
+                    time == null
+                        ? request.customerName
+                        : '${request.customerName} • ${formatTime(time)}',
+                    style: const TextStyle(color: AppColors.muted),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton(
+              onPressed: () => markRequestDone(request),
+              child: const Text('Vyřízeno'),
             ),
           ],
         ),

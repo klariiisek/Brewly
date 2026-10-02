@@ -10,6 +10,7 @@ import 'services/app_services.dart';
 import 'services/auth_service.dart';
 import 'services/order_service.dart';
 import 'services/product_service.dart';
+import 'services/request_service.dart';
 import 'services/user_service.dart';
 import 'theme/app_theme.dart';
 
@@ -29,6 +30,7 @@ Future<void> main() async {
     users: UserService(FirebaseFirestore.instance),
     products: ProductService(FirebaseFirestore.instance),
     orders: OrderService(FirebaseFirestore.instance),
+    requests: RequestService(FirebaseFirestore.instance),
   );
 
   // Košík se vytvoří jen jednou při spuštění aplikace a předává se obrazovkám.

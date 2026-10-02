@@ -180,7 +180,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (context) =>
-                      StaffScreen(orderService: widget.services.orders),
+                      StaffScreen(services: widget.services),
                 ),
               );
             },

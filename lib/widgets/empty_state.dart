@@ -24,7 +24,9 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
+      // Když je málo místa (malý telefon), obsah se dá posunout
+      // místo toho, aby přetekl přes okraj.
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisSize: MainAxisSize.min,

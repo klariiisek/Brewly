@@ -38,12 +38,6 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  // Počet stolů v kavárně.
-  static const int tableCount = 10;
-
-  // Vybraný stůl. Otazník (int?) znamená, že zatím nemusí být vybraný (null).
-  int? selectedTable;
-
   void increase(CartItem item) {
     setState(() {
       item.quantity++;
@@ -67,7 +61,7 @@ class _CartScreenState extends State<CartScreen> {
   bool isSending = false;
 
   Future<void> placeOrder() async {
-    if (selectedTable == null) {
+    if (widget.cart.tableNumber == null) {
       showAppMessage(context, 'Vyberte prosím stůl');
       return;
     }
@@ -97,7 +91,7 @@ class _CartScreenState extends State<CartScreen> {
       await widget.services.orders.createOrder(
         items: widget.cart.items,
         totalPrice: widget.cart.totalPrice,
-        tableNumber: selectedTable!,
+        tableNumber: widget.cart.tableNumber!,
         userId: user.uid,
         customerName: userDisplayName(user),
       );
@@ -244,11 +238,11 @@ class _CartScreenState extends State<CartScreen> {
               ),
               const Spacer(),
               DropdownButton<int>(
-                value: selectedTable,
+                value: widget.cart.tableNumber,
                 hint: const Text('Vyberte stůl'),
                 underline: const SizedBox(),
-                // Vytvoří nabídku stolů 1 až tableCount.
-                items: List.generate(tableCount, (index) {
+                // Vytvoří nabídku stolů 1 až Cart.tableCount.
+                items: List.generate(Cart.tableCount, (index) {
                   final number = index + 1;
                   return DropdownMenuItem(
                     value: number,
@@ -257,7 +251,7 @@ class _CartScreenState extends State<CartScreen> {
                 }),
                 onChanged: (number) {
                   setState(() {
-                    selectedTable = number;
+                    widget.cart.tableNumber = number;
                   });
                 },
               ),

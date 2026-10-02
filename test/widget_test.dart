@@ -8,10 +8,12 @@ import 'package:brewly/data/menu_data.dart';
 import 'package:brewly/models/cart.dart';
 import 'package:brewly/models/cart_item.dart';
 import 'package:brewly/models/order.dart';
+import 'package:brewly/models/service_request.dart';
 import 'package:brewly/services/app_services.dart';
 import 'package:brewly/services/auth_service.dart';
 import 'package:brewly/services/order_service.dart';
 import 'package:brewly/services/product_service.dart';
+import 'package:brewly/services/request_service.dart';
 import 'package:brewly/services/user_service.dart';
 import 'package:brewly/utils/format.dart';
 
@@ -40,6 +42,7 @@ Future<Widget> buildTestApp({
       users: UserService(database),
       products: productService,
       orders: OrderService(database),
+      requests: RequestService(database),
     ),
   );
 }
@@ -179,7 +182,7 @@ void main() {
     await tester.tap(find.text('Objednat'));
     await tester.pumpAndSettle();
     expect(find.text('Moje objednávky'), findsOneWidget);
-    expect(find.textContaining('Stůl 3'), findsOneWidget);
+    expect(find.textContaining('Stůl 3 •'), findsOneWidget);
   });
 
   test('Objednávky dostanou pořadová čísla a jde měnit jejich stav', () async {
@@ -235,7 +238,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Moje objednávky'), findsOneWidget);
-    expect(find.textContaining('Stůl 2'), findsOneWidget);
+    expect(find.textContaining('Stůl 2 •'), findsOneWidget);
   });
 
   testWidgets('Přihlášení přes Google přihlásí uživatele',
@@ -325,7 +328,9 @@ void main() {
     await tester.tap(find.text('Vstup pro obsluhu'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Aktivní (1)'), findsOneWidget);
+    // První je záložka Požadavky – přepne na Aktivní.
+    await tester.tap(find.text('Aktivní (1)'));
+    await tester.pumpAndSettle();
     expect(find.text('Stůl 5'), findsOneWidget);
 
     // Projde všechny stavy pomocí tlačítka na kartě.
@@ -340,5 +345,54 @@ void main() {
     expect(find.text('Aktivní (0)'), findsOneWidget);
     expect(find.text('Dokončené (1)'), findsOneWidget);
     expect(find.text('Žádné aktivní objednávky'), findsOneWidget);
+  });
+
+  testWidgets('Zákazník přivolá obsluhu – nejdřív vybere stůl',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await tester.pumpWidget(await buildTestApp(db: db));
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Objednávky').last);
+    await tester.pumpAndSettle();
+
+    // Stůl ještě není vybraný → aplikace se zeptá.
+    await tester.tap(find.text('Přivolat obsluhu'));
+    await tester.pumpAndSettle();
+    expect(find.text('U kterého stolu sedíte?'), findsOneWidget);
+    await tester.tap(find.text('Stůl 7'));
+    await tester.pumpAndSettle();
+
+    // Požadavek je v databázi a tlačítko ukazuje, že se čeká.
+    expect(find.text('Obsluha o vás ví…'), findsOneWidget);
+    expect(find.text('Stůl 7'), findsOneWidget);
+    final saved = await db.collection('requests').get();
+    expect(saved.docs.single.data()['type'], 'obsluha');
+    expect(saved.docs.single.data()['tableNumber'], 7);
+  });
+
+  testWidgets('Obsluha vidí požadavek a vyřídí ho', (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set({'role': 'obsluha'});
+    await RequestService(db).createRequest(
+      type: RequestType.platba,
+      tableNumber: 3,
+      userId: 'host-1',
+      customerName: 'Pavel',
+    );
+
+    await tester.pumpWidget(await buildTestApp(db: db));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Vstup pro obsluhu'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Požadavky (1)'), findsOneWidget);
+    expect(find.text('Stůl 3 • Chce zaplatit'), findsOneWidget);
+
+    await tester.tap(find.text('Vyřízeno'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Požadavky (0)'), findsOneWidget);
+    expect(find.text('Žádné požadavky'), findsOneWidget);
   });
 }
