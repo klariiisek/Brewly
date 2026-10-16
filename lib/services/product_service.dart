@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../data/menu_data.dart';
 import '../models/product.dart';
+import '../utils/text.dart';
 
 // Služba, která se stará o produkty v databázi Firestore.
 // Obrazovky se nemusí starat o to, JAK se data čtou – jen si řeknou o produkty.
@@ -73,6 +74,39 @@ class ProductService {
   // Rychlé přepnutí "vyprodáno" / "k dispozici".
   Future<void> setAvailable(String id, bool isAvailable) {
     return _products.doc(id).update({'available': isAvailable});
+  }
+
+  // Hromadné nahrání produktů (z CSV souboru).
+  // Produkt se stejným názvem jako v menu se aktualizuje (cena, kategorie,
+  // popis; dostupnost zůstane), ostatní se přidají jako nové.
+  // Vrátí, kolik produktů se přidalo a kolik upravilo.
+  Future<({int added, int updated})> importProducts(
+    List<Product> products,
+  ) async {
+    // Současné menu: normalizovaný název → ID dokumentu.
+    final existing = await _products.get();
+    final idsByName = {
+      for (final doc in existing.docs)
+        normalizeText(doc.data()['name'] as String? ?? ''): doc.id,
+    };
+
+    var added = 0;
+    var updated = 0;
+    // Batch = všechny zápisy najednou (buď všechny, nebo žádný).
+    // Firestore dovolí max. 500 zápisů v jednom batchi – na menu to stačí.
+    final batch = db.batch();
+    for (final product in products) {
+      final id = idsByName[normalizeText(product.name)];
+      if (id != null) {
+        batch.update(_products.doc(id), product.toMap());
+        updated++;
+      } else {
+        batch.set(_products.doc(), _menuData(product));
+        added++;
+      }
+    }
+    await batch.commit();
+    return (added: added, updated: updated);
   }
 
   // Nahraje ukázkové menu (z menu_data.dart), ale jen když je databáze prázdná.

@@ -17,7 +17,9 @@ import 'package:brewly/services/product_service.dart';
 import 'package:brewly/services/request_service.dart';
 import 'package:brewly/services/table_service.dart';
 import 'package:brewly/services/user_service.dart';
+import 'package:brewly/utils/csv_import.dart';
 import 'package:brewly/utils/format.dart';
+import 'package:brewly/utils/text.dart';
 import 'package:brewly/widgets/product_card.dart';
 
 // Testovací zákaznice, která je v testech "přihlášená".
@@ -598,5 +600,100 @@ void main() {
     await cappuccino.docs.single.reference.update({'available': true});
     await tester.pumpAndSettle();
     expect(firstProductName(), 'Cappuccino');
+  });
+
+  test('Hledání nezávisí na diakritice a velkých písmenech', () {
+    expect(normalizeText('Káva'), 'kava');
+    expect(normalizeText('  ŽLUŤOUČKÝ Kůň '), 'zlutoucky kun');
+  });
+
+  test('CSV: přečte produkty a najde chybné řádky', () {
+    final result = parseProductsCsv(
+      '﻿název;cena;kategorie;popis\r\n'
+      'Flat white;72;Káva;Espresso s mlékem\r\n'
+      'Brownies;65,50 Kč;Dezerty;"Čokoládový; s ořechy"\r\n'
+      '\r\n'
+      'Čaj;;Nápoje;Bez ceny\r\n'
+      'Voda;20;;Bez kategorie\r\n'
+      'flat WHITE;80;Káva;Podruhé\r\n'
+      'Džus;35;Nápoje\r\n',
+    );
+
+    expect(result.products.map((p) => p.name),
+        ['Flat white', 'Brownies', 'Džus']);
+    expect(result.products[1].price, 65.5);
+    // Středník v uvozovkách je součást popisu, ne oddělovač.
+    expect(result.products[1].description, 'Čokoládový; s ořechy');
+    // Popis není povinný.
+    expect(result.products[2].description, '');
+    expect(result.errors, [
+      'Řádek 5 (Čaj): cena "" není číslo',
+      'Řádek 6 (Voda): chybí kategorie',
+      'Řádek 7: flat WHITE je v souboru dvakrát',
+    ]);
+  });
+
+  test('CSV oddělené čárkou a bez záhlaví', () {
+    final result = parseProductsCsv('Latte,70,Káva,"Jemná, mléčná"');
+    expect(result.errors, isEmpty);
+    expect(result.products.single.description, 'Jemná, mléčná');
+  });
+
+  test('Hromadné nahrání: stejný název aktualizuje, nový přidá', () async {
+    final db = FakeFirebaseFirestore();
+    final productService = ProductService(db);
+    await productService.uploadSampleMenu();
+    // Latte je vyprodané – po nahrání má vyprodané zůstat.
+    final latte = (await db
+            .collection('products')
+            .where('name', isEqualTo: 'Latte')
+            .get())
+        .docs
+        .single
+        .reference;
+    await latte.update({'available': false});
+
+    final counts = await productService.importProducts(
+      parseProductsCsv('latte;75;Káva;Nový popis\nFlat white;72;Káva;').products,
+    );
+
+    expect(counts.added, 1);
+    expect(counts.updated, 1);
+    final updatedLatte = (await latte.get()).data()!;
+    expect(updatedLatte['price'], 75);
+    expect(updatedLatte['available'], false);
+    final all = await db.collection('products').get();
+    expect(all.docs.length, sampleMenu.length + 1);
+  });
+
+  testWidgets('Admin vyhledá produkt ve správě menu',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
+
+    await tester.pumpWidget(await buildTestApp(db: db));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Správa menu'));
+    await tester.pumpAndSettle();
+
+    // "tira" najde Tiramisu, nic jiného.
+    await tester.enterText(find.byType(TextField), 'tira');
+    await tester.pumpAndSettle();
+    expect(find.text('Tiramisu'), findsOneWidget);
+    expect(find.text('Espresso'), findsNothing);
+
+    // "napoje" bez diakritiky najde kategorii Nápoje.
+    await tester.enterText(find.byType(TextField), 'napoje');
+    await tester.pumpAndSettle();
+    expect(find.text('Domácí limonáda'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'pizza');
+    await tester.pumpAndSettle();
+    expect(find.text('Nic nenalezeno'), findsOneWidget);
+
+    // Křížek hledání zruší.
+    await tester.tap(find.byTooltip('Zrušit hledání'));
+    await tester.pumpAndSettle();
+    expect(find.text('Espresso'), findsOneWidget);
   });
 }

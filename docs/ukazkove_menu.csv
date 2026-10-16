@@ -1,0 +1,5 @@
+﻿název;cena;kategorie;popis
+Latte;75;Káva;Jemná káva s větším množstvím teplého mléka.
+Flat white;72;Káva;Espresso s jemným mléčným krémem.
+Brownies;65;Dezerty;Čokoládový řez s ořechy.
+Zelený čaj;;Nápoje;Tady schválně chybí cena – aplikace ukáže chybu.
