@@ -145,10 +145,10 @@ class _StaffTablesScreenState extends State<StaffTablesScreen> {
           children: [
             Text(
               'Stůl $number',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: AppColors.darkCoffee,
+                color: context.colors.dark,
               ),
             ),
             const SizedBox(height: 8),
@@ -158,13 +158,13 @@ class _StaffTablesScreenState extends State<StaffTablesScreen> {
                   // QR kód s odkazem na aplikaci s číslem a kódem stolu.
                   : QrImageView(
                       data: tableLink(number, code),
-                      eyeStyle: const QrEyeStyle(
+                      eyeStyle: QrEyeStyle(
                         eyeShape: QrEyeShape.square,
-                        color: AppColors.darkCoffee,
+                        color: context.colors.dark,
                       ),
-                      dataModuleStyle: const QrDataModuleStyle(
+                      dataModuleStyle: QrDataModuleStyle(
                         dataModuleShape: QrDataModuleShape.square,
-                        color: AppColors.darkCoffee,
+                        color: context.colors.dark,
                       ),
                     ),
             ),
@@ -173,11 +173,11 @@ class _StaffTablesScreenState extends State<StaffTablesScreen> {
             if (code != null)
               SelectableText(
                 shortTableCode(number, code),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.5,
-                  color: AppColors.coffee,
+                  color: context.colors.primary,
                 ),
               ),
           ],

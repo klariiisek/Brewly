@@ -165,9 +165,9 @@ class _LoginScreenState extends State<LoginScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
+                Text(
                   'Nemáte účet?',
-                  style: TextStyle(color: AppColors.muted),
+                  style: TextStyle(color: context.colors.muted),
                 ),
                 TextButton(
                   onPressed: openRegister,
@@ -207,7 +207,7 @@ class AuthHeader extends StatelessWidget {
           width: 72,
           height: 72,
           decoration: BoxDecoration(
-            color: AppColors.coffee,
+            color: context.colors.primary,
             borderRadius: BorderRadius.circular(22),
           ),
           child: const Icon(Icons.coffee, size: 40, color: Colors.white),
@@ -215,17 +215,17 @@ class AuthHeader extends StatelessWidget {
         const SizedBox(height: 16),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: AppColors.darkCoffee,
+            color: context.colors.dark,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           subtitle,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.muted),
+          style: TextStyle(color: context.colors.muted),
         ),
       ],
     );

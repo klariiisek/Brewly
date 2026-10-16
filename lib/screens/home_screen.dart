@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/cart.dart';
 import '../models/user_role.dart';
+import '../models/venue_settings.dart';
 import '../services/app_services.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
@@ -11,6 +12,7 @@ import 'admin_menu_screen.dart';
 import 'login_screen.dart';
 import 'main_screen.dart';
 import 'staff_screen.dart';
+import 'venue_settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Cart cart;
@@ -80,36 +82,53 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget buildWelcome(User? user) {
+    // Název, slogan a ikona podle nastavení podniku (mění je admin).
+    final venue = VenueScope.of(context);
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Logo: hnědý čtverec s kulatými rohy a bílým šálkem.
+          // Logo: barevný čtverec s kulatými rohy a ikonou podle typu podniku.
           Container(
             width: 96,
             height: 96,
             decoration: BoxDecoration(
-              color: AppColors.coffee,
+              color: context.colors.primary,
               borderRadius: BorderRadius.circular(28),
             ),
-            child: const Icon(Icons.coffee, size: 52, color: Colors.white),
+            child: Icon(venue.type.icon, size: 52, color: Colors.white),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'Brewly',
+          Text(
+            venue.name,
+            textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 40,
               fontWeight: FontWeight.bold,
-              color: AppColors.darkCoffee,
+              color: context.colors.dark,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             user == null
-                ? 'Vítejte v naší kavárně'
+                ? venue.slogan
                 : 'Vítejte, ${userDisplayName(user)}',
-            style: const TextStyle(fontSize: 17, color: AppColors.muted),
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 17, color: context.colors.muted),
           ),
+          // Když má podnik vlastní název, připomeneme, na čem aplikace běží.
+          if (venue.name != 'Brewly') ...[
+            const SizedBox(height: 16),
+            Text(
+              'powered by Brewly',
+              style: TextStyle(
+                fontSize: 12,
+                letterSpacing: 1,
+                color: context.colors.muted.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -186,17 +205,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   StaffScreen(services: widget.services),
                 ),
               ),
-              // Správa menu jen pro admina.
-              if (role.isAdmin)
+              // Správa menu a nastavení podniku jen pro admina.
+              if (role.isAdmin) ...[
                 TextButton.icon(
                   icon: const Icon(Icons.edit_note, size: 20),
                   label: const Text('Správa menu'),
                   onPressed: () => openScreen(
-                    AdminMenuScreen(
-                      productService: widget.services.products,
-                    ),
+                    AdminMenuScreen(services: widget.services),
                   ),
                 ),
+                TextButton.icon(
+                  icon: const Icon(Icons.storefront_outlined, size: 18),
+                  label: const Text('Nastavení podniku'),
+                  onPressed: () => openScreen(
+                    VenueSettingsScreen(services: widget.services),
+                  ),
+                ),
+              ],
             ],
           ),
         );

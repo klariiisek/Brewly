@@ -23,26 +23,11 @@ class ProductService {
           .map((doc) => Product.fromMap(doc.data(), id: doc.id))
           .toList();
 
-      // Seřadí produkty podle kategorie a pak podle názvu.
-      products.sort((a, b) {
-        final byCategory =
-            _categoryRank(a.category).compareTo(_categoryRank(b.category));
-        if (byCategory != 0) return byCategory;
-        final byCategoryName = a.category.compareTo(b.category);
-        if (byCategoryName != 0) return byCategoryName;
-        return a.name.compareTo(b.name);
-      });
+      // Seřadí produkty podle názvu. Pořadí kategorií určuje admin
+      // v nastavení podniku (VenueSettings.sortProducts).
+      products.sort((a, b) => a.name.compareTo(b.name));
       return products;
     });
-  }
-
-  // Pořadí kategorií v menu. Káva je v kavárně nejdůležitější, proto první.
-  // Kategorie, které tu nejsou, se zařadí na konec.
-  static const List<String> _categoryOrder = ['Káva', 'Dezerty', 'Nápoje'];
-
-  int _categoryRank(String category) {
-    final index = _categoryOrder.indexOf(category);
-    return index == -1 ? _categoryOrder.length : index;
   }
 
   // ---------- Správa menu (jen admin – hlídají to pravidla databáze) ----------
@@ -74,6 +59,17 @@ class ProductService {
   // Rychlé přepnutí "vyprodáno" / "k dispozici".
   Future<void> setAvailable(String id, bool isAvailable) {
     return _products.doc(id).update({'available': isAvailable});
+  }
+
+  // Přejmenuje kategorii u všech jejích produktů najednou (batch).
+  Future<void> renameCategory(String oldName, String newName) async {
+    final products =
+        await _products.where('category', isEqualTo: oldName).get();
+    final batch = db.batch();
+    for (final doc in products.docs) {
+      batch.update(doc.reference, {'category': newName});
+    }
+    await batch.commit();
   }
 
   // Hromadné nahrání produktů (z CSV souboru).

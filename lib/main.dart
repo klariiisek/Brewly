@@ -11,9 +11,12 @@ import 'services/auth_service.dart';
 import 'services/order_service.dart';
 import 'services/product_service.dart';
 import 'services/request_service.dart';
+import 'services/settings_service.dart';
 import 'services/table_service.dart';
 import 'services/user_service.dart';
+import 'models/venue_settings.dart';
 import 'theme/app_theme.dart';
+import 'theme/palettes.dart';
 
 // "async" protože před spuštěním aplikace musíme počkat na připojení k Firebase.
 Future<void> main() async {
@@ -33,6 +36,7 @@ Future<void> main() async {
     orders: OrderService(FirebaseFirestore.instance),
     requests: RequestService(FirebaseFirestore.instance),
     tables: TableService(FirebaseFirestore.instance),
+    settings: SettingsService(FirebaseFirestore.instance),
   );
 
   // Košík se vytvoří jen jednou při spuštění aplikace a předává se obrazovkám.
@@ -50,19 +54,44 @@ Future<void> main() async {
   runApp(MyApp(cart: cart, services: services));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   final Cart cart;
   final AppServices services;
 
   const MyApp({super.key, required this.cart, required this.services});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final Stream<VenueSettings> settingsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    settingsStream = widget.services.settings.watchSettings();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Brewly',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      home: HomeScreen(cart: cart, services: services),
+    // Celá aplikace poslouchá nastavení podniku. Když admin změní
+    // barvu nebo název, aplikace se hned překreslí – všem zákazníkům.
+    return StreamBuilder<VenueSettings>(
+      stream: settingsStream,
+      builder: (context, snapshot) {
+        final settings = snapshot.data ?? VenueSettings.defaults;
+        return VenueScope(
+          settings: settings,
+          child: MaterialApp(
+            title: settings.name,
+            debugShowCheckedModeBanner: false,
+            // Téma sestavené z palety, kterou admin vybral.
+            theme: AppTheme.build(paletteFor(settings.colorKey).colors),
+            home: HomeScreen(cart: widget.cart, services: widget.services),
+          ),
+        );
+      },
     );
   }
 }

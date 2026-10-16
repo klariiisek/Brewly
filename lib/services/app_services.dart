@@ -2,6 +2,7 @@ import 'auth_service.dart';
 import 'order_service.dart';
 import 'product_service.dart';
 import 'request_service.dart';
+import 'settings_service.dart';
 import 'table_service.dart';
 import 'user_service.dart';
 
@@ -14,6 +15,7 @@ class AppServices {
   final OrderService orders;
   final RequestService requests;
   final TableService tables;
+  final SettingsService settings;
 
   const AppServices({
     required this.auth,
@@ -22,5 +24,6 @@ class AppServices {
     required this.orders,
     required this.requests,
     required this.tables,
+    required this.settings,
   });
 }

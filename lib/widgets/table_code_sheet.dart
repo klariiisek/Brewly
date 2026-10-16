@@ -58,19 +58,19 @@ class _TableCodeSheetState extends State<_TableCodeSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'U kterého stolu sedíte?',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.darkCoffee,
+                    color: context.colors.dark,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Naskenujte QR kód na stole fotoaparátem, '
                   'nebo opište kód, který je pod ním.',
-                  style: TextStyle(color: AppColors.muted),
+                  style: TextStyle(color: context.colors.muted),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

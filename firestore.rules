@@ -64,6 +64,26 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // ---------- Nastavení podniku ----------
+    // Název, barvu a další nastavení vidí každý (aplikace podle nich vypadá),
+    // měnit je smí jen admin – a jen ve správném tvaru.
+    match /settings/venue {
+      allow read: if true;
+
+      function isValidSettings() {
+        let settings = request.resource.data;
+        return settings.keys().hasOnly(['name', 'slogan', 'color', 'type', 'categoryOrder'])
+          && settings.name is string && settings.name.size() > 0 && settings.name.size() <= 40
+          && settings.slogan is string && settings.slogan.size() <= 80
+          && settings.color in ['kava', 'bordo', 'terakota', 'olivova', 'lesni', 'namornicka', 'levandulova', 'grafitova']
+          && settings.type in ['kavarna', 'cukrarna', 'bar', 'pivnice', 'restaurace']
+          && settings.categoryOrder is list && settings.categoryOrder.size() <= 50;
+      }
+
+      allow create, update: if isAdmin() && isValidSettings();
+      allow delete: if false;
+    }
+
     // ---------- Uživatelé ----------
     match /users/{userId} {
       // Svůj profil vidí uživatel sám, profily všech vidí obsluha.

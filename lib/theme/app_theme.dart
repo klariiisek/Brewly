@@ -1,13 +1,65 @@
 import 'package:flutter/material.dart';
 
-// Barvy Brewly na jednom místě.
-class AppColors {
-  static const Color coffee = Color(0xFF6F4E37); // hlavní kávově hnědá
-  static const Color darkCoffee = Color(0xFF3E2723); // tmavá hnědá na text
-  static const Color caramel = Color(0xFFC8894B); // akcent
-  static const Color cream = Color(0xFFFAF6F1); // pozadí obrazovek
-  static const Color muted = Color(0xFF8D7B6F); // méně důležitý text
-  static const Color success = Color(0xFF5B8C5A); // zelená, např. "Připravena"
+// Barvy aplikace (paleta). Admin si v nastavení podniku vybere jednu
+// z připravených palet (viz palettes.dart) a celá aplikace se přebarví.
+//
+// Paleta je uložená v tématu (Theme) jako "rozšíření" (ThemeExtension).
+// Obrazovky si barvy berou přes context.colors – a když se téma změní,
+// Flutter je sám překreslí novými barvami.
+class AppColors extends ThemeExtension<AppColors> {
+  final Color primary; // hlavní barva (tlačítka, ikony, ceny)
+  final Color dark; // tmavá barva na nadpisy a text
+  final Color accent; // doplňková barva (přechod v hlavičce, akcenty)
+  final Color background; // pozadí obrazovek
+  final Color muted; // méně důležitý text
+
+  // Zelená pro "Připravena" je stejná ve všech paletách.
+  static const Color success = Color(0xFF5B8C5A);
+
+  const AppColors({
+    required this.primary,
+    required this.dark,
+    required this.accent,
+    required this.background,
+    required this.muted,
+  });
+
+  // Tyhle dvě metody po nás Flutter u ThemeExtension vyžaduje.
+  // copyWith = kopie se změněnými barvami, lerp = plynulý přechod mezi
+  // dvěma paletami (díky tomu se aplikace přebarví s jemnou animací).
+  @override
+  AppColors copyWith({
+    Color? primary,
+    Color? dark,
+    Color? accent,
+    Color? background,
+    Color? muted,
+  }) {
+    return AppColors(
+      primary: primary ?? this.primary,
+      dark: dark ?? this.dark,
+      accent: accent ?? this.accent,
+      background: background ?? this.background,
+      muted: muted ?? this.muted,
+    );
+  }
+
+  @override
+  AppColors lerp(AppColors? other, double t) {
+    if (other == null) return this;
+    return AppColors(
+      primary: Color.lerp(primary, other.primary, t)!,
+      dark: Color.lerp(dark, other.dark, t)!,
+      accent: Color.lerp(accent, other.accent, t)!,
+      background: Color.lerp(background, other.background, t)!,
+      muted: Color.lerp(muted, other.muted, t)!,
+    );
+  }
+}
+
+// Zkratka: context.colors.primary místo Theme.of(context).extension<AppColors>()!
+extension AppColorsContext on BuildContext {
+  AppColors get colors => Theme.of(this).extension<AppColors>()!;
 }
 
 // Zaoblení rohů, aby všude vypadalo stejně.
@@ -17,28 +69,30 @@ class AppRadius {
   static const double large = 16;
 }
 
-// Vzhled celé aplikace. Používá se v main.dart (theme: AppTheme.light).
+// Vzhled celé aplikace sestavený z vybrané palety.
+// Používá se v main.dart: theme: AppTheme.build(paleta).
 class AppTheme {
-  static ThemeData get light {
+  static ThemeData build(AppColors colors) {
     return ThemeData(
+      extensions: [colors],
       colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.coffee,
-        primary: AppColors.coffee,
-        secondary: AppColors.caramel,
+        seedColor: colors.primary,
+        primary: colors.primary,
+        secondary: colors.accent,
         surface: Colors.white,
       ),
-      scaffoldBackgroundColor: AppColors.cream,
+      scaffoldBackgroundColor: colors.background,
 
-      // Horní lišta: krémová s tmavě hnědým nadpisem.
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.cream,
-        foregroundColor: AppColors.darkCoffee,
+      // Horní lišta: barva pozadí s tmavým nadpisem.
+      appBarTheme: AppBarTheme(
+        backgroundColor: colors.background,
+        foregroundColor: colors.dark,
         elevation: 0,
         scrolledUnderElevation: 0,
         titleTextStyle: TextStyle(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: AppColors.darkCoffee,
+          color: colors.dark,
         ),
       ),
 
@@ -46,7 +100,7 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: Colors.white,
         elevation: 2,
-        shadowColor: AppColors.coffee.withValues(alpha: 0.15),
+        shadowColor: colors.primary.withValues(alpha: 0.15),
         surfaceTintColor: Colors.transparent,
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         shape: RoundedRectangleBorder(
@@ -54,10 +108,10 @@ class AppTheme {
         ),
       ),
 
-      // Hlavní tlačítka: hnědá s bílým textem.
+      // Hlavní tlačítka: hlavní barva s bílým textem.
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.coffee,
+          backgroundColor: colors.primary,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
@@ -70,8 +124,8 @@ class AppTheme {
       // Tlačítka s rámečkem.
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.coffee,
-          side: const BorderSide(color: AppColors.coffee),
+          foregroundColor: colors.primary,
+          side: BorderSide(color: colors.primary),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.medium),
@@ -81,42 +135,42 @@ class AppTheme {
 
       // Textová tlačítka.
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: AppColors.coffee),
+        style: TextButton.styleFrom(foregroundColor: colors.primary),
       ),
 
-      // Textová pole (e-mail, heslo...): bílá, kulaté rohy, hnědý rámeček.
+      // Textová pole (e-mail, heslo...): bílá, kulaté rohy, barevný rámeček.
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
-        prefixIconColor: AppColors.coffee,
+        prefixIconColor: colors.primary,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.medium),
-          borderSide: BorderSide(color: AppColors.muted.withValues(alpha: 0.3)),
+          borderSide: BorderSide(color: colors.muted.withValues(alpha: 0.3)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.medium),
-          borderSide: BorderSide(color: AppColors.muted.withValues(alpha: 0.3)),
+          borderSide: BorderSide(color: colors.muted.withValues(alpha: 0.3)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.medium),
-          borderSide: const BorderSide(color: AppColors.coffee, width: 2),
+          borderSide: BorderSide(color: colors.primary, width: 2),
         ),
       ),
 
       // Záložky nahoře (např. Aktivní / Dokončené u obsluhy).
-      tabBarTheme: const TabBarThemeData(
-        labelColor: AppColors.coffee,
-        unselectedLabelColor: AppColors.muted,
-        indicatorColor: AppColors.coffee,
-        labelStyle: TextStyle(fontWeight: FontWeight.w600),
+      tabBarTheme: TabBarThemeData(
+        labelColor: colors.primary,
+        unselectedLabelColor: colors.muted,
+        indicatorColor: colors.primary,
+        labelStyle: const TextStyle(fontWeight: FontWeight.w600),
       ),
 
       // Okna vysunutá zespodu (detail produktu).
-      bottomSheetTheme: const BottomSheetThemeData(
+      bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: Colors.white,
         showDragHandle: true,
-        dragHandleColor: AppColors.muted,
-        shape: RoundedRectangleBorder(
+        dragHandleColor: colors.muted,
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
       ),
@@ -124,22 +178,22 @@ class AppTheme {
       // Spodní lišta se záložkami.
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
-        indicatorColor: AppColors.coffee.withValues(alpha: 0.15),
+        indicatorColor: colors.primary.withValues(alpha: 0.15),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: AppColors.coffee);
+            return IconThemeData(color: colors.primary);
           }
-          return const IconThemeData(color: AppColors.muted);
+          return IconThemeData(color: colors.muted);
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const TextStyle(
+            return TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: AppColors.coffee,
+              color: colors.primary,
             );
           }
-          return const TextStyle(fontSize: 12, color: AppColors.muted);
+          return TextStyle(fontSize: 12, color: colors.muted);
         }),
       ),
 
@@ -147,7 +201,7 @@ class AppTheme {
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         width: 320,
-        backgroundColor: AppColors.darkCoffee,
+        backgroundColor: colors.dark,
         contentTextStyle: const TextStyle(color: Colors.white),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.medium),

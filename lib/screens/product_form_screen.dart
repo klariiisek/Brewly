@@ -228,7 +228,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                 isAvailable
                     ? 'Zákazníci si ho mohou objednat'
                     : 'V menu bude označený jako vyprodaný',
-                style: const TextStyle(color: AppColors.muted),
+                style: TextStyle(color: context.colors.muted),
               ),
               value: isAvailable,
               onChanged: (value) => setState(() => isAvailable = value),

@@ -199,7 +199,7 @@ class _StaffScreenState extends State<StaffScreen> {
   Widget buildRequestCard(ServiceRequest request) {
     final isPayment = request.type == RequestType.platba;
     // Platba karamelově, přivolání hnědě.
-    final color = isPayment ? AppColors.caramel : AppColors.coffee;
+    final color = isPayment ? context.colors.accent : context.colors.primary;
     final time = request.createdAt;
 
     return Card(
@@ -228,17 +228,17 @@ class _StaffScreenState extends State<StaffScreen> {
                 children: [
                   Text(
                     'Stůl ${request.tableNumber} • ${requestTypeText(request.type)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.darkCoffee,
+                      color: context.colors.dark,
                     ),
                   ),
                   Text(
                     time == null
                         ? request.customerName
                         : '${request.customerName} • ${formatTime(time)}',
-                    style: const TextStyle(color: AppColors.muted),
+                    style: TextStyle(color: context.colors.muted),
                   ),
                 ],
               ),
@@ -283,16 +283,16 @@ class _StaffScreenState extends State<StaffScreen> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: AppColors.coffee.withValues(alpha: 0.12),
+                    color: context.colors.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(AppRadius.medium),
                   ),
                   child: Center(
                     child: Text(
                       '${order.tableNumber}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.coffee,
+                        color: context.colors.primary,
                       ),
                     ),
                   ),
@@ -304,10 +304,10 @@ class _StaffScreenState extends State<StaffScreen> {
                     children: [
                       Text(
                         'Stůl ${order.tableNumber}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.darkCoffee,
+                          color: context.colors.dark,
                         ),
                       ),
                       Text(
@@ -316,7 +316,7 @@ class _StaffScreenState extends State<StaffScreen> {
                             ? '#$orderNumber • ${formatPrice(order.totalPrice)}'
                             : '#$orderNumber • ${order.customerName} • '
                                 '${formatPrice(order.totalPrice)}',
-                        style: const TextStyle(color: AppColors.muted),
+                        style: TextStyle(color: context.colors.muted),
                       ),
                     ],
                   ),

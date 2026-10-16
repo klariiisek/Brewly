@@ -34,26 +34,26 @@ class EmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: AppColors.coffee.withValues(alpha: 0.1),
+                color: context.colors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 56, color: AppColors.coffee),
+              child: Icon(icon, size: 56, color: context.colors.primary),
             ),
             const SizedBox(height: 24),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: AppColors.darkCoffee,
+                color: context.colors.dark,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 15, color: AppColors.muted),
+              style: TextStyle(fontSize: 15, color: context.colors.muted),
             ),
             if (buttonText != null && onPressed != null) ...[
               const SizedBox(height: 24),

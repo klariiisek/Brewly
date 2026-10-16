@@ -47,12 +47,12 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
     return Column(
       children: [
         // Oddělovač: ——— nebo ———
-        const Row(
+        Row(
           children: [
             Expanded(child: Divider()),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text('nebo', style: TextStyle(color: AppColors.muted)),
+              child: Text('nebo', style: TextStyle(color: context.colors.muted)),
             ),
             Expanded(child: Divider()),
           ],

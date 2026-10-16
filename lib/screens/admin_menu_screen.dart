@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../models/product.dart';
-import '../services/product_service.dart';
+import '../models/venue_settings.dart';
+import '../services/app_services.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/product_card.dart';
 import '../utils/text.dart';
+import 'categories_screen.dart';
 import 'csv_import_screen.dart';
 import 'product_form_screen.dart';
 
@@ -15,9 +17,9 @@ import 'product_form_screen.dart';
 // - klik na produkt = úprava (nebo smazání)
 // - tlačítko dole = nový produkt
 class AdminMenuScreen extends StatefulWidget {
-  final ProductService productService;
+  final AppServices services;
 
-  const AdminMenuScreen({super.key, required this.productService});
+  const AdminMenuScreen({super.key, required this.services});
 
   @override
   State<AdminMenuScreen> createState() => _AdminMenuScreenState();
@@ -36,7 +38,7 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
   @override
   void initState() {
     super.initState();
-    productsStream = widget.productService.watchProducts();
+    productsStream = widget.services.products.watchProducts();
   }
 
   @override
@@ -62,18 +64,18 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
       context,
       MaterialPageRoute(
         builder: (context) =>
-            CsvImportScreen(productService: widget.productService),
+            CsvImportScreen(productService: widget.services.products),
       ),
     );
   }
 
-  // Všechny kategorie, které v menu jsou (každá jen jednou).
+  // Všechny kategorie (i ty založené dopředu bez produktů) v nastaveném pořadí.
   List<String> get categories =>
-      products.map((product) => product.category).toSet().toList();
+      VenueScope.of(context).allCategories(products);
 
   Future<void> toggleAvailable(Product product, bool isAvailable) async {
     try {
-      await widget.productService.setAvailable(product.id, isAvailable);
+      await widget.services.products.setAvailable(product.id, isAvailable);
       if (!mounted) return;
       showAppMessage(
         context,
@@ -93,7 +95,7 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => ProductFormScreen(
-          productService: widget.productService,
+          productService: widget.services.products,
           product: product,
           categories: categories,
         ),
@@ -107,6 +109,17 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
       appBar: AppBar(
         title: const Text('Správa menu'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.category_outlined),
+            tooltip: 'Kategorie',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) =>
+                    CategoriesScreen(services: widget.services),
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.upload_file),
             tooltip: 'Nahrát z CSV',
@@ -132,7 +145,8 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          products = snapshot.data!;
+          // Seřazené podle pořadí kategorií z nastavení podniku.
+          products = VenueScope.of(context).sortProducts(snapshot.data!);
           if (products.isEmpty) {
             return EmptyState(
               icon: Icons.menu_book,
@@ -205,10 +219,10 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
                 child: Text(
                   product.category,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.darkCoffee,
+                    color: context.colors.dark,
                   ),
                 ),
               ),

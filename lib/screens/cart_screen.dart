@@ -268,12 +268,12 @@ class _CartScreenState extends State<CartScreen> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: AppColors.coffee.withValues(alpha: 0.12),
+                color: context.colors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(AppRadius.medium),
               ),
               child: Icon(
                 categoryIcon(item.product.category),
-                color: AppColors.coffee,
+                color: context.colors.primary,
               ),
             ),
             const SizedBox(width: 12),
@@ -283,18 +283,18 @@ class _CartScreenState extends State<CartScreen> {
                 children: [
                   Text(
                     item.product.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.darkCoffee,
+                      color: context.colors.dark,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     formatPrice(item.product.price * item.quantity),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: AppColors.coffee,
+                      color: context.colors.primary,
                     ),
                   ),
                 ],
@@ -313,7 +313,7 @@ class _CartScreenState extends State<CartScreen> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.coffee.withValues(alpha: 0.1),
+            color: context.colors.primary.withValues(alpha: 0.1),
             blurRadius: 12,
             offset: const Offset(0, -4),
           ),
@@ -323,9 +323,9 @@ class _CartScreenState extends State<CartScreen> {
         children: [
           Row(
             children: [
-              const Text(
+              Text(
                 'Stůl',
-                style: TextStyle(fontSize: 16, color: AppColors.muted),
+                style: TextStyle(fontSize: 16, color: context.colors.muted),
               ),
               const Spacer(),
               // Stůl z QR kódu. Kliknutím se dá zadat kód stolu ručně.
@@ -353,10 +353,10 @@ class _CartScreenState extends State<CartScreen> {
               const Spacer(),
               Text(
                 formatPrice(widget.cart.totalPrice),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.coffee,
+                  color: context.colors.primary,
                 ),
               ),
             ],

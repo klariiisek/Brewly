@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/cart.dart';
 import '../models/cart_item.dart';
 import '../models/product.dart';
+import '../models/venue_settings.dart';
 import '../services/product_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
@@ -134,7 +135,9 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  Widget buildMenu(List<Product> allProducts) {
+  Widget buildMenu(List<Product> menuProducts) {
+    // Pořadí kategorií podle nastavení podniku (určuje admin).
+    final allProducts = VenueScope.of(context).sortProducts(menuProducts);
     final products = filterProducts(allProducts);
 
     return Column(
@@ -166,11 +169,11 @@ class _MenuScreenState extends State<MenuScreen> {
 
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.coffee, AppColors.caramel],
+          colors: [context.colors.primary, context.colors.accent],
         ),
         borderRadius: BorderRadius.vertical(
           bottom: Radius.circular(24),
@@ -204,7 +207,7 @@ class _MenuScreenState extends State<MenuScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$greeting ☕',
+                  '$greeting ${VenueScope.of(context).type.emoji}',
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -229,15 +232,17 @@ class _MenuScreenState extends State<MenuScreen> {
 
   // Úzká hlavička: šipka zpět a nadpis vedle sebe v jednom řádku.
   Widget buildCompactHeader() {
-    return const Padding(
-      padding: EdgeInsets.fromLTRB(8, 4, 24, 8),
+    // Emoji podle typu podniku (☕ kavárna, 🍸 bar...).
+    final emoji = VenueScope.of(context).type.emoji;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 4, 24, 8),
       child: Row(
         children: [
-          BackButton(color: Colors.white),
-          SizedBox(width: 4),
+          const BackButton(color: Colors.white),
+          const SizedBox(width: 4),
           Text(
-            'Menu ☕',
-            style: TextStyle(
+            'Menu $emoji',
+            style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Colors.white,
@@ -262,12 +267,12 @@ class _MenuScreenState extends State<MenuScreen> {
               label: Text(category),
               selected: isSelected,
               showCheckmark: false,
-              selectedColor: AppColors.coffee,
+              selectedColor: context.colors.primary,
               backgroundColor: Colors.white,
               side: BorderSide.none,
               shape: const StadiumBorder(),
               labelStyle: TextStyle(
-                color: isSelected ? Colors.white : AppColors.darkCoffee,
+                color: isSelected ? Colors.white : context.colors.dark,
                 fontWeight: FontWeight.w600,
               ),
               onSelected: (_) {

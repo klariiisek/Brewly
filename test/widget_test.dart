@@ -10,11 +10,15 @@ import 'package:brewly/models/cart_item.dart';
 import 'package:brewly/models/order.dart';
 import 'package:brewly/models/service_request.dart';
 import 'package:brewly/models/user_role.dart';
+import 'package:brewly/models/venue_settings.dart';
+import 'package:brewly/theme/app_theme.dart';
+import 'package:brewly/theme/palettes.dart';
 import 'package:brewly/services/app_services.dart';
 import 'package:brewly/services/auth_service.dart';
 import 'package:brewly/services/order_service.dart';
 import 'package:brewly/services/product_service.dart';
 import 'package:brewly/services/request_service.dart';
+import 'package:brewly/services/settings_service.dart';
 import 'package:brewly/services/table_service.dart';
 import 'package:brewly/services/user_service.dart';
 import 'package:brewly/utils/csv_import.dart';
@@ -51,6 +55,7 @@ Future<Widget> buildTestApp({
       orders: OrderService(database),
       requests: RequestService(database),
       tables: TableService(database),
+      settings: SettingsService(database),
     ),
   );
 }
@@ -695,5 +700,141 @@ void main() {
     await tester.tap(find.byTooltip('Zrušit hledání'));
     await tester.pumpAndSettle();
     expect(find.text('Espresso'), findsOneWidget);
+  });
+
+  test('Nastavení podniku: výchozí hodnoty a pořadí kategorií', () {
+    final settings = VenueSettings.fromMap({
+      'name': 'Bar U Lípy',
+      'type': 'bar',
+      'categoryOrder': ['Koktejly', 'Pivo'],
+    });
+    expect(settings.name, 'Bar U Lípy');
+    expect(settings.type, VenueType.bar);
+    // Co v databázi chybí, doplní se z výchozího nastavení.
+    expect(settings.colorKey, 'kava');
+    // Kategorie mimo pořadí jsou na konci podle abecedy.
+    expect(settings.sortCategories(['Víno', 'Pivo', 'Jídlo', 'Koktejly']),
+        ['Koktejly', 'Pivo', 'Jídlo', 'Víno']);
+    // Neznámá paleta = kávová.
+    expect(paletteFor('neexistuje').key, 'kava');
+  });
+
+  testWidgets('Menu řadí kategorie podle nastavení podniku',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('settings').doc('venue').set({
+      'categoryOrder': ['Nápoje', 'Dezerty', 'Káva'],
+    });
+
+    await tester.pumpWidget(await buildTestApp(db: db));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+
+    final first =
+        tester.widgetList<ProductCard>(find.byType(ProductCard)).first;
+    expect(first.product.name, 'Domácí limonáda');
+  });
+
+  testWidgets('Admin změní název, typ a barvu podniku',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
+
+    await tester.pumpWidget(await buildTestApp(db: db));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nastavení podniku'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Název podniku'), 'Bar U Lípy');
+    await tester.pumpAndSettle();
+    // Náhled ukazuje nový název ještě před uložením (+ text v poli).
+    expect(find.text('Bar U Lípy'), findsNWidgets(2));
+
+    // Posune obrazovku dolů, dokud není prvek vidět, a klikne na něj.
+    Future<void> scrollAndTap(Finder finder) async {
+      await tester.scrollUntilVisible(finder, 200,
+          scrollable: find.byType(Scrollable).first);
+      await tester.pumpAndSettle();
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    await scrollAndTap(find.widgetWithText(ChoiceChip, 'Bar'));
+    await scrollAndTap(find.byTooltip('Bordó'));
+    await scrollAndTap(find.text('Uložit nastavení'));
+    await tester.pumpAndSettle();
+
+    final saved = (await db.collection('settings').doc('venue').get()).data()!;
+    expect(saved['name'], 'Bar U Lípy');
+    expect(saved['type'], 'bar');
+    expect(saved['color'], 'bordo');
+    expect(saved['categoryOrder'], ['Káva', 'Dezerty', 'Nápoje']);
+
+    // Zpět na úvod: nový název, ikona baru a celá aplikace v barvě bordó.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Bar U Lípy'), findsOneWidget);
+    expect(find.text('powered by Brewly'), findsOneWidget);
+    expect(find.byIcon(Icons.local_bar), findsOneWidget);
+    final context = tester.element(find.text('Bar U Lípy'));
+    expect(context.colors.primary, paletteFor('bordo').colors.primary);
+  });
+
+  testWidgets('Admin spravuje kategorie: přidá, přejmenuje, smaže',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
+
+    await tester.pumpWidget(await buildTestApp(db: db));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Správa menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Kategorie'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('3 produkty'), findsOneWidget); // Káva
+    expect(find.text('2 produkty'), findsOneWidget); // Dezerty
+
+    // Přidá prázdnou kategorii Snídaně. Stejný název podruhé nejde.
+    await tester.tap(find.text('Přidat kategorii'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), 'káva');
+    await tester.tap(find.text('Přidat'));
+    await tester.pumpAndSettle();
+    expect(find.text('Taková kategorie už je'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField), 'Snídaně');
+    await tester.tap(find.text('Přidat'));
+    await tester.pumpAndSettle();
+    expect(find.text('0 produktů'), findsOneWidget);
+    var order = (await db.collection('settings').doc('venue').get())
+        .data()!['categoryOrder'];
+    expect(order, ['Káva', 'Dezerty', 'Nápoje', 'Snídaně']);
+
+    // Přejmenuje Dezerty na Sladké – změní se i u produktů.
+    await tester.tap(find.byTooltip('Přejmenovat').at(1));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField), 'Sladké');
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Přejmenovat'));
+    await tester.pumpAndSettle();
+    final sweets = await db
+        .collection('products')
+        .where('category', isEqualTo: 'Sladké')
+        .get();
+    expect(sweets.docs.length, 2);
+    order = (await db.collection('settings').doc('venue').get())
+        .data()!['categoryOrder'];
+    expect(order, ['Káva', 'Sladké', 'Nápoje', 'Snídaně']);
+
+    // Smazat jde jen prázdnou kategorii (Snídaně je poslední).
+    await tester.tap(find.byTooltip('Smazat').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Smazat'));
+    await tester.pumpAndSettle();
+    expect(find.text('Snídaně'), findsNothing);
+    order = (await db.collection('settings').doc('venue').get())
+        .data()!['categoryOrder'];
+    expect(order, ['Káva', 'Sladké', 'Nápoje']);
   });
 }

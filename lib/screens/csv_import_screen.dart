@@ -97,7 +97,7 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
 
   // Návod: jak má soubor vypadat a jak ho uložit z Excelu.
   Widget buildInstructions() {
-    const textStyle = TextStyle(height: 1.4, color: AppColors.darkCoffee);
+    final textStyle = TextStyle(height: 1.4, color: context.colors.dark);
 
     return Card(
       margin: EdgeInsets.zero,
@@ -106,22 +106,22 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.info_outline, color: AppColors.coffee),
+                Icon(Icons.info_outline, color: context.colors.primary),
                 SizedBox(width: 8),
                 Text(
                   'Jak má soubor vypadat',
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.darkCoffee,
+                    color: context.colors.dark,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               '• Každý řádek = jeden produkt.\n'
               '• Sloupce v tomto pořadí: název, cena, kategorie, popis.\n'
               '• První řádek může být záhlaví (název;cena;kategorie;popis).\n'
@@ -138,7 +138,7 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.cream,
+                color: context.colors.background,
                 borderRadius: BorderRadius.circular(AppRadius.small),
               ),
               child: const SelectableText(
@@ -147,7 +147,7 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'V Excelu: v řádcích produkty, ve sloupcích A–D název, cena, '
               'kategorie a popis. Pak Soubor → Uložit jako → typ '
               '„CSV UTF-8 (s oddělovači)“.',
@@ -170,16 +170,16 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
       children: [
         Text(
           fileName ?? '',
-          style: const TextStyle(color: AppColors.muted),
+          style: TextStyle(color: context.colors.muted),
         ),
         const SizedBox(height: 4),
         Text(
           'V pořádku: ${products.length}'
           '${result.errors.isEmpty ? '' : ' • Chyby: ${result.errors.length}'}',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.bold,
-            color: AppColors.darkCoffee,
+            color: context.colors.dark,
           ),
         ),
 
@@ -212,9 +212,9 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
             subtitle: Text(product.category),
             trailing: Text(
               formatPrice(product.price),
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w600,
-                color: AppColors.coffee,
+                color: context.colors.primary,
               ),
             ),
           ),

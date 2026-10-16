@@ -79,14 +79,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                const Icon(Icons.table_restaurant, color: AppColors.coffee),
+                Icon(Icons.table_restaurant, color: context.colors.primary),
                 const SizedBox(width: 12),
                 Text(
                   'Stůl ${order.tableNumber}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.darkCoffee,
+                    color: context.colors.dark,
                   ),
                 ),
                 const Spacer(),
@@ -109,9 +109,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       children: [
                         Text(
                           '${item.quantity}×',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: AppColors.coffee,
+                            color: context.colors.primary,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -133,10 +133,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     const Spacer(),
                     Text(
                       formatPrice(order.totalPrice),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.coffee,
+                        color: context.colors.primary,
                       ),
                     ),
                   ],

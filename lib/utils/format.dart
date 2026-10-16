@@ -15,3 +15,10 @@ String formatItemCount(int count) {
   if (count >= 2 && count <= 4) return '$count položky';
   return '$count položek';
 }
+
+// Správný český tvar: 1 produkt, 2–4 produkty, 0 nebo 5 a víc produktů.
+String formatProductCount(int count) {
+  if (count == 1) return '1 produkt';
+  if (count >= 2 && count <= 4) return '$count produkty';
+  return '$count produktů';
+}

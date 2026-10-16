@@ -178,16 +178,16 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                   children: [
                     Text(
                       'Objednávka #${order.number}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.darkCoffee,
+                        color: context.colors.dark,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Stůl ${order.tableNumber} • ${formatItemCount(order.items.length)}',
-                      style: const TextStyle(color: AppColors.muted),
+                      style: TextStyle(color: context.colors.muted),
                     ),
                   ],
                 ),
@@ -199,9 +199,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                   const SizedBox(height: 8),
                   Text(
                     formatPrice(order.totalPrice),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.coffee,
+                      color: context.colors.primary,
                     ),
                   ),
                 ],

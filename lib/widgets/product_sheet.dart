@@ -46,12 +46,12 @@ class _ProductSheetState extends State<ProductSheet> {
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
-                    color: AppColors.coffee.withValues(alpha: 0.12),
+                    color: context.colors.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(AppRadius.large),
                   ),
                   child: Icon(
                     categoryIcon(product.category),
-                    color: AppColors.coffee,
+                    color: context.colors.primary,
                     size: 36,
                   ),
                 ),
@@ -62,16 +62,16 @@ class _ProductSheetState extends State<ProductSheet> {
                     children: [
                       Text(
                         product.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.darkCoffee,
+                          color: context.colors.dark,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         product.category,
-                        style: const TextStyle(color: AppColors.muted),
+                        style: TextStyle(color: context.colors.muted),
                       ),
                     ],
                   ),
@@ -81,10 +81,10 @@ class _ProductSheetState extends State<ProductSheet> {
             const SizedBox(height: 16),
             Text(
               product.description,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 height: 1.4,
-                color: AppColors.darkCoffee,
+                color: context.colors.dark,
               ),
             ),
             const SizedBox(height: 24),
@@ -94,10 +94,10 @@ class _ProductSheetState extends State<ProductSheet> {
               children: [
                 Text(
                   formatPrice(product.price),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.coffee,
+                    color: context.colors.primary,
                   ),
                 ),
                 const Spacer(),

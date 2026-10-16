@@ -3,19 +3,35 @@ import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
+import '../utils/text.dart';
 
-// Vrátí ikonu podle kategorie produktu.
+// Vrátí ikonu podle kategorie produktu. Hledá části slov bez diakritiky,
+// takže "Káva", "Kávy s sebou" i "Pivo točené" dostanou správnou ikonu.
+// Hodí se pro kavárnu, bar i restauraci.
 IconData categoryIcon(String category) {
-  switch (category) {
-    case 'Káva':
-      return Icons.coffee;
-    case 'Dezerty':
-      return Icons.cake;
-    case 'Nápoje':
-      return Icons.local_drink;
-    default:
-      return Icons.restaurant;
+  final text = normalizeText(category);
+  const icons = {
+    'kav': Icons.coffee,
+    'caj': Icons.emoji_food_beverage,
+    'dezert': Icons.cake,
+    'dort': Icons.cake,
+    'zakusk': Icons.cake,
+    'snidan': Icons.egg_alt,
+    'piv': Icons.sports_bar,
+    'vin': Icons.wine_bar,
+    'koktej': Icons.local_bar,
+    'drink': Icons.local_bar,
+    'polevk': Icons.soup_kitchen,
+    'salat': Icons.eco,
+    'pizz': Icons.local_pizza,
+    'burger': Icons.lunch_dining,
+    'napoj': Icons.local_drink,
+    'limonad': Icons.local_drink,
+  };
+  for (final entry in icons.entries) {
+    if (text.contains(entry.key)) return entry.value;
   }
+  return Icons.restaurant;
 }
 
 // Karta jednoho produktu v menu: ikona, název, popis, cena a tlačítko +.
@@ -53,7 +69,7 @@ class ProductCard extends StatelessWidget {
               Expanded(
                 child: Opacity(
                   opacity: isAvailable ? 1 : 0.45,
-                  child: buildInfo(),
+                  child: buildInfo(context),
                 ),
               ),
               const SizedBox(width: 8),
@@ -71,19 +87,19 @@ class ProductCard extends StatelessWidget {
   }
 
   // Čtvereček s ikonou kategorie, název, popis a cena (případně "Vyprodáno").
-  Widget buildInfo() {
+  Widget buildInfo(BuildContext context) {
     return Row(
       children: [
         Container(
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: AppColors.coffee.withValues(alpha: 0.12),
+            color: context.colors.primary.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(AppRadius.medium),
           ),
           child: Icon(
             categoryIcon(product.category),
-            color: AppColors.coffee,
+            color: context.colors.primary,
             size: 28,
           ),
         ),
@@ -94,10 +110,10 @@ class ProductCard extends StatelessWidget {
             children: [
               Text(
                 product.name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.darkCoffee,
+                  color: context.colors.dark,
                 ),
               ),
               const SizedBox(height: 2),
@@ -105,9 +121,9 @@ class ProductCard extends StatelessWidget {
                 product.description,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.muted,
+                  color: context.colors.muted,
                 ),
               ),
               const SizedBox(height: 6),
@@ -115,10 +131,10 @@ class ProductCard extends StatelessWidget {
                 product.isAvailable
                     ? formatPrice(product.price)
                     : '${formatPrice(product.price)} • Vyprodáno',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.coffee,
+                  color: context.colors.primary,
                 ),
               ),
             ],

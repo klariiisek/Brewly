@@ -103,13 +103,13 @@ class _TableServiceCardState extends State<TableServiceCard> {
               children: [
                 Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'Potřebujete něco?',
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.darkCoffee,
+                          color: context.colors.dark,
                         ),
                       ),
                     ),
