@@ -1,4 +1,5 @@
 import 'cart_item.dart';
+import 'product.dart';
 
 class Cart {
   // Počet stolů v kavárně.
@@ -35,6 +36,31 @@ class Cart {
 
     items.add(item);
   }
+
+  // Porovná košík s aktuálním menu z databáze: u každé položky použije
+  // aktuální cenu a dostupnost. Když produkt v menu už není, označí ho.
+  void syncWithMenu(List<Product> menu) {
+    for (final item in items) {
+      Product? current;
+      for (final product in menu) {
+        // Produkty z databáze mají ID; starší data porovnáme podle názvu.
+        final isSame = item.product.id.isNotEmpty
+            ? product.id == item.product.id
+            : product.name == item.product.name;
+        if (isSame) {
+          current = product;
+          break;
+        }
+      }
+      item.isInMenu = current != null;
+      if (current != null) {
+        item.product = current;
+      }
+    }
+  }
+
+  // Je v košíku něco, co už nejde objednat (vyprodané nebo smazané)?
+  bool get hasUnavailableItems => items.any((item) => !item.canOrder);
 
   // Celkový počet kusů v košíku (např. 2× Espresso + 1× Latte = 3).
   int get itemCount {

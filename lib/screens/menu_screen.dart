@@ -53,14 +53,21 @@ class _MenuScreenState extends State<MenuScreen> {
     ];
   }
 
-  // Produkty podle vybrané kategorie.
+  // Produkty podle vybrané kategorie. Vyprodané jsou až na konci,
+  // aby nepřekážely. Když se zase prodávají, vrátí se na své místo.
   List<Product> filterProducts(List<Product> products) {
-    if (selectedCategory == allCategories) {
-      return products;
-    }
-    return products
-        .where((product) => product.category == selectedCategory)
-        .toList();
+    final filtered = selectedCategory == allCategories
+        ? products
+        : products
+            .where((product) => product.category == selectedCategory)
+            .toList();
+
+    // Nejdřív dostupné, pak vyprodané – v obou skupinách zůstane
+    // původní pořadí (podle kategorie a názvu).
+    return [
+      ...filtered.where((product) => product.isAvailable),
+      ...filtered.where((product) => !product.isAvailable),
+    ];
   }
 
   // Pozdrav podle denní doby.
@@ -152,7 +159,11 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   // Hnědá hlavička s přechodem barev a pozdravem.
+  // Jakmile má zákazník něco v košíku, hlavička se zmenší na úzký pruh,
+  // aby zbylo víc místa pro menu.
   Widget buildHeader() {
+    final isCompact = widget.cart.itemCount > 0;
+
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(
@@ -167,40 +178,72 @@ class _MenuScreenState extends State<MenuScreen> {
       ),
       child: SafeArea(
         bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 24, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Šipka zpět na úvodní obrazovku.
-              const BackButton(color: Colors.white),
-              Padding(
-                padding: const EdgeInsets.only(left: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$greeting ☕',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Co si dnes dáte?',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white.withValues(alpha: 0.85),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        // AnimatedSize plynule změní výšku hlavičky, aby neposkočila.
+        child: AnimatedSize(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+          alignment: Alignment.topCenter,
+          child: isCompact ? buildCompactHeader() : buildFullHeader(),
         ),
+      ),
+    );
+  }
+
+  // Velká hlavička: šipka zpět, pozdrav a otázka.
+  Widget buildFullHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 8, 24, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Šipka zpět na úvodní obrazovku.
+          const BackButton(color: Colors.white),
+          Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$greeting ☕',
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Co si dnes dáte?',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Úzká hlavička: šipka zpět a nadpis vedle sebe v jednom řádku.
+  Widget buildCompactHeader() {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(8, 4, 24, 8),
+      child: Row(
+        children: [
+          BackButton(color: Colors.white),
+          SizedBox(width: 4),
+          Text(
+            'Menu ☕',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,13 +1,21 @@
 import 'product.dart';
 
 class CartItem {
-  final Product product;
+  // Produkt není "final": košík ho nahradí aktuální verzí z menu,
+  // když admin změní cenu nebo ho označí jako vyprodaný.
+  Product product;
   int quantity;
+
+  // false = produkt mezitím admin z menu smazal.
+  bool isInMenu = true;
 
   CartItem({
     required this.product,
     this.quantity = 1,
   });
+
+  // Dá se položka objednat? (Je v menu a není vyprodaná.)
+  bool get canOrder => isInMenu && product.isAvailable;
 
   // Vytvoří položku z dat uložených v objednávce v databázi.
   factory CartItem.fromMap(Map<String, dynamic> data) {

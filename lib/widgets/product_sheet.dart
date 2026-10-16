@@ -132,10 +132,16 @@ class _ProductSheetState extends State<ProductSheet> {
             // Přidání do košíku: okno se zavře a vrátí vybrané množství.
             SizedBox(
               width: double.infinity,
+              // Vyprodaný produkt nejde přidat – tlačítko je zešedlé.
               child: ElevatedButton(
-                onPressed: () => Navigator.pop(context, quantity),
+                onPressed: product.isAvailable
+                    ? () => Navigator.pop(context, quantity)
+                    : null,
                 child: Text(
-                  'Přidat do košíku · ${formatPrice(product.price * quantity)}',
+                  product.isAvailable
+                      ? 'Přidat do košíku · '
+                          '${formatPrice(product.price * quantity)}'
+                      : 'Momentálně vyprodáno',
                 ),
               ),
             ),

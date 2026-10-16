@@ -13,11 +13,20 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Má přihlášený uživatel v profilu roli "obsluha"?
+    // Role přihlášeného uživatele z jeho profilu (bez profilu = prázdný text).
+    function myRole() {
+      let profilePath = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(profilePath) ? get(profilePath).data.get('role', '') : '';
+    }
+
+    // Smí vyřizovat objednávky a požadavky? (obsluha i admin)
     function isStaff() {
-      return isSignedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'obsluha';
+      return isSignedIn() && myRole() in ['obsluha', 'admin'];
+    }
+
+    // Je to admin (vedoucí podniku)? Jen ten smí měnit menu.
+    function isAdmin() {
+      return isSignedIn() && myRole() == 'admin';
     }
 
     // Odpovídá kód stolu v novém dokumentu tajnému kódu stolu v databázi?
@@ -36,10 +45,23 @@ service cloud.firestore {
 
     // ---------- Menu ----------
     // Menu si může prohlédnout kdokoli (i nepřihlášený návštěvník).
-    // Měnit ho z aplikace nejde – produkty se upravují ve Firebase konzoli.
+    // Přidávat, upravovat a mazat produkty smí jen admin.
     match /products/{productId} {
       allow read: if true;
-      allow write: if false;
+
+      // Má produkt všechny údaje ve správném tvaru?
+      function isValidProduct() {
+        let product = request.resource.data;
+        return product.keys().hasOnly(['name', 'price', 'category', 'description', 'available'])
+          && product.name is string && product.name.size() > 0
+          && product.price is number && product.price > 0
+          && product.category is string && product.category.size() > 0
+          && product.description is string
+          && product.get('available', true) is bool;
+      }
+
+      allow create, update: if isAdmin() && isValidProduct();
+      allow delete: if isAdmin();
     }
 
     // ---------- Uživatelé ----------

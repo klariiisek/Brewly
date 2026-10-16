@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/cart.dart';
 import '../models/cart_item.dart';
+import '../models/product.dart';
 import '../services/app_services.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
@@ -40,6 +41,15 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
+  // Živé menu z databáze – košík podle něj hlídá ceny a vyprodané produkty.
+  late final Stream<List<Product>> productsStream;
+
+  @override
+  void initState() {
+    super.initState();
+    productsStream = widget.services.products.watchProducts();
+  }
+
   void increase(CartItem item) {
     setState(() {
       item.quantity++;
@@ -48,9 +58,10 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   // Sníží množství. Když je jen 1 kus, položku z košíku odebere.
+  // Vyprodanou nebo smazanou položku odebere celou najednou.
   void decrease(CartItem item) {
     setState(() {
-      if (item.quantity > 1) {
+      if (item.quantity > 1 && item.canOrder) {
         item.quantity--;
       } else {
         widget.cart.items.remove(item);
@@ -63,6 +74,12 @@ class _CartScreenState extends State<CartScreen> {
   bool isSending = false;
 
   Future<void> placeOrder() async {
+    // Pojistka: s vyprodaným produktem v košíku nejde objednat.
+    if (widget.cart.hasUnavailableItems) {
+      showAppMessage(context, 'Nejdřív odeberte z košíku vyprodané produkty');
+      return;
+    }
+
     // Bez stolu (z QR kódu) nelze objednat – zeptáme se na kód stolu.
     if (!widget.cart.hasTable) {
       final hasTable = await askForTableCode(context, widget.cart);
@@ -135,11 +152,25 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final items = widget.cart.items;
-
     return Scaffold(
       appBar: AppBar(title: const Text('Košík')),
-      body: items.isEmpty
+      // Při každé změně menu (cena, vyprodáno, smazání) se košík překreslí.
+      body: StreamBuilder<List<Product>>(
+        stream: productsStream,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            widget.cart.syncWithMenu(snapshot.data!);
+          }
+          return buildBody();
+        },
+      ),
+    );
+  }
+
+  Widget buildBody() {
+    final items = widget.cart.items;
+
+    return items.isEmpty
           ? EmptyState(
               icon: Icons.shopping_bag_outlined,
               title: 'Košík je prázdný',
@@ -160,16 +191,78 @@ class _CartScreenState extends State<CartScreen> {
                 ),
                 buildOrderPanel(),
               ],
-            ),
-    );
+            );
   }
 
   // Karta jedné položky: ikona, název, cena a tlačítka − / +.
+  // Vyprodaná nebo smazaná položka je zešedlá, s upozorněním a košem.
   Widget buildCartItem(CartItem item) {
+    final problem = !item.isInMenu
+        ? 'Už není v nabídce – odeberte ji'
+        : !item.product.isAvailable
+            ? 'Vyprodáno – odeberte z košíku'
+            : null;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Row(
+          children: [
+            Expanded(
+              child: Opacity(
+                opacity: problem == null ? 1 : 0.5,
+                child: buildItemInfo(item),
+              ),
+            ),
+            if (problem != null)
+              // Jen tlačítko pro odebrání a krátké vysvětlení.
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: 'Odebrat',
+                    onPressed: () => decrease(item),
+                  ),
+                  Text(
+                    problem,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+              )
+            else ...[
+              IconButton(
+                // U posledního kusu se místo "−" ukáže koš.
+                icon: Icon(
+                  item.quantity > 1 ? Icons.remove : Icons.delete_outline,
+                ),
+                tooltip: item.quantity > 1 ? 'Snížit množství' : 'Odebrat',
+                onPressed: () => decrease(item),
+              ),
+              Text(
+                '${item.quantity}',
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add),
+                tooltip: 'Zvýšit množství',
+                onPressed: () => increase(item),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Ikona kategorie, název a cena položky.
+  Widget buildItemInfo(CartItem item) {
+    return Row(
           children: [
             Container(
               width: 48,
@@ -207,26 +300,7 @@ class _CartScreenState extends State<CartScreen> {
                 ],
               ),
             ),
-            IconButton(
-              // U posledního kusu se místo "−" ukáže koš.
-              icon: Icon(
-                item.quantity > 1 ? Icons.remove : Icons.delete_outline,
-              ),
-              tooltip: item.quantity > 1 ? 'Snížit množství' : 'Odebrat',
-              onPressed: () => decrease(item),
-            ),
-            Text(
-              '${item.quantity}',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            IconButton(
-              icon: const Icon(Icons.add),
-              tooltip: 'Zvýšit množství',
-              onPressed: () => increase(item),
-            ),
           ],
-        ),
-      ),
     );
   }
 
@@ -287,13 +361,25 @@ class _CartScreenState extends State<CartScreen> {
               ),
             ],
           ),
+          // Upozornění, proč teď nejde objednat.
+          if (widget.cart.hasUnavailableItems) ...[
+            const SizedBox(height: 12),
+            Text(
+              'V košíku je vyprodaný produkt. Odeberte ho, prosím.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               // Během odesílání je tlačítko neaktivní (null), aby se
-              // objednávka neodeslala dvakrát.
-              onPressed: isSending ? null : placeOrder,
+              // objednávka neodeslala dvakrát. Neaktivní je i tehdy,
+              // když je v košíku něco vyprodaného.
+              onPressed: isSending || widget.cart.hasUnavailableItems
+                  ? null
+                  : placeOrder,
               child: Text(isSending ? 'Odesílám…' : 'Objednat'),
             ),
           ),

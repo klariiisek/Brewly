@@ -16,7 +16,7 @@ class UserService {
 
   // Živě sleduje roli uživatele. Když profil v databázi ještě není
   // (první přihlášení), založí ho s rolí "zakaznik".
-  // Roli "obsluha" může nastavit jen správce ve Firebase konzoli.
+  // Role "obsluha" a "admin" se nastavují jen ručně ve Firebase konzoli.
   Stream<UserRole> watchRole(User user) {
     final profile = _users.doc(user.uid);
 

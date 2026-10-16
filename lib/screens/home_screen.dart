@@ -7,6 +7,7 @@ import '../services/app_services.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
+import 'admin_menu_screen.dart';
 import 'login_screen.dart';
 import 'main_screen.dart';
 import 'staff_screen.dart';
@@ -157,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: const Text('Odhlásit se'),
                 ),
         ),
-        // Vstup pro obsluhu vidí jen přihlášený uživatel s rolí "obsluha".
+        // Vstupy pro zaměstnance vidí jen přihlášený s rolí obsluha nebo admin.
         if (user != null) buildStaffEntry(user),
       ],
     );
@@ -167,26 +168,46 @@ class _HomeScreenState extends State<HomeScreen> {
     return StreamBuilder<UserRole>(
       stream: roleFor(user),
       builder: (context, snapshot) {
-        if (snapshot.data != UserRole.obsluha) {
-          return const SizedBox.shrink(); // nic nezobrazí
+        final role = snapshot.data ?? UserRole.zakaznik;
+        if (!role.canServe) {
+          return const SizedBox.shrink(); // zákazník nic nevidí
         }
         return Padding(
           padding: const EdgeInsets.only(top: 8),
-          child: TextButton.icon(
-            icon: const Icon(Icons.badge_outlined, size: 18),
-            label: const Text('Vstup pro obsluhu'),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      StaffScreen(services: widget.services),
+          // Wrap = tlačítka vedle sebe, a když se nevejdou, pod sebe.
+          child: Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 8,
+            children: [
+              TextButton.icon(
+                icon: const Icon(Icons.badge_outlined, size: 18),
+                label: const Text('Vstup pro obsluhu'),
+                onPressed: () => openScreen(
+                  StaffScreen(services: widget.services),
                 ),
-              );
-            },
+              ),
+              // Správa menu jen pro admina.
+              if (role.isAdmin)
+                TextButton.icon(
+                  icon: const Icon(Icons.edit_note, size: 20),
+                  label: const Text('Správa menu'),
+                  onPressed: () => openScreen(
+                    AdminMenuScreen(
+                      productService: widget.services.products,
+                    ),
+                  ),
+                ),
+            ],
           ),
         );
       },
+    );
+  }
+
+  void openScreen(Widget screen) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => screen),
     );
   }
 }

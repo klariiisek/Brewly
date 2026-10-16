@@ -19,20 +19,27 @@ IconData categoryIcon(String category) {
 }
 
 // Karta jednoho produktu v menu: ikona, název, popis, cena a tlačítko +.
+// Vyprodaný produkt je zešedlý a tlačítko + nejde zmáčknout.
 class ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback onTap;
-  final VoidCallback onAdd;
+  final VoidCallback? onAdd;
+
+  // Volitelně něco jiného místo tlačítka + (ve správě menu přepínač).
+  final Widget? trailing;
 
   const ProductCard({
     super.key,
     required this.product,
     required this.onTap,
-    required this.onAdd,
+    this.onAdd,
+    this.trailing,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isAvailable = product.isAvailable;
+
     return Card(
       // Aby efekt po kliknutí (InkWell) nepřečníval přes kulaté rohy.
       clipBehavior: Clip.antiAlias,
@@ -42,67 +49,82 @@ class ProductCard extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              // Čtvereček s ikonou kategorie.
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: AppColors.coffee.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppRadius.medium),
-                ),
-                child: Icon(
-                  categoryIcon(product.category),
-                  color: AppColors.coffee,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: 12),
-
-              // Název, popis a cena.
+              // Vyprodaný produkt je poloprůhledný.
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product.name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.darkCoffee,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      product.description,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AppColors.muted,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      formatPrice(product.price),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.coffee,
-                      ),
-                    ),
-                  ],
+                child: Opacity(
+                  opacity: isAvailable ? 1 : 0.45,
+                  child: buildInfo(),
                 ),
               ),
-
-              IconButton.filled(
-                icon: const Icon(Icons.add),
-                tooltip: 'Přidat do košíku',
-                onPressed: onAdd,
-              ),
+              const SizedBox(width: 8),
+              trailing ??
+                  IconButton.filled(
+                    icon: const Icon(Icons.add),
+                    tooltip: 'Přidat do košíku',
+                    onPressed: isAvailable ? onAdd : null,
+                  ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  // Čtvereček s ikonou kategorie, název, popis a cena (případně "Vyprodáno").
+  Widget buildInfo() {
+    return Row(
+      children: [
+        Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            color: AppColors.coffee.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(AppRadius.medium),
+          ),
+          child: Icon(
+            categoryIcon(product.category),
+            color: AppColors.coffee,
+            size: 28,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                product.name,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.darkCoffee,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                product.description,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.muted,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                product.isAvailable
+                    ? formatPrice(product.price)
+                    : '${formatPrice(product.price)} • Vyprodáno',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.coffee,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

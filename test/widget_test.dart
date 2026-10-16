@@ -9,6 +9,7 @@ import 'package:brewly/models/cart.dart';
 import 'package:brewly/models/cart_item.dart';
 import 'package:brewly/models/order.dart';
 import 'package:brewly/models/service_request.dart';
+import 'package:brewly/models/user_role.dart';
 import 'package:brewly/services/app_services.dart';
 import 'package:brewly/services/auth_service.dart';
 import 'package:brewly/services/order_service.dart';
@@ -17,6 +18,7 @@ import 'package:brewly/services/request_service.dart';
 import 'package:brewly/services/table_service.dart';
 import 'package:brewly/services/user_service.dart';
 import 'package:brewly/utils/format.dart';
+import 'package:brewly/widgets/product_card.dart';
 
 // Testovací zákaznice, která je v testech "přihlášená".
 final testUser = MockUser(uid: 'klara-123', email: 'klara@test.cz', displayName: 'Klára');
@@ -121,6 +123,20 @@ void main() {
     await tester.tap(find.text('Přejít do menu'));
     await tester.pumpAndSettle();
     expect(find.text('Co si dnes dáte?'), findsOneWidget);
+  });
+
+  testWidgets('Hlavička menu se po přidání do košíku zmenší',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(await buildTestApp());
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+    expect(find.text('Co si dnes dáte?'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Přidat do košíku').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Co si dnes dáte?'), findsNothing);
+    expect(find.text('Menu ☕'), findsOneWidget);
   });
 
   testWidgets('Kategorie v menu filtrují produkty', (WidgetTester tester) async {
@@ -334,6 +350,8 @@ void main() {
 
     await tester.pumpWidget(await buildTestApp(db: db));
     await tester.pumpAndSettle();
+    // Obsluha nevidí správu menu – ta je jen pro admina.
+    expect(find.text('Správa menu'), findsNothing);
     await tester.tap(find.text('Vstup pro obsluhu'));
     await tester.pumpAndSettle();
 
@@ -446,5 +464,139 @@ void main() {
 
     expect(find.text('Požadavky (0)'), findsOneWidget);
     expect(find.text('Žádné požadavky'), findsOneWidget);
+  });
+
+  testWidgets('Košík hlídá změny v menu: cenu i vyprodání',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await tester.pumpWidget(await buildTestApp(db: db));
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+
+    // Zákazník si dá do košíku Cappuccino (65 Kč) a otevře košík.
+    await tester.tap(find.byTooltip('Přidat do košíku').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Košík').last);
+    await tester.pumpAndSettle();
+
+    // Admin mezitím zdraží Cappuccino na 80 Kč – košík se přepočítá.
+    final cappuccino = (await db
+            .collection('products')
+            .where('name', isEqualTo: 'Cappuccino')
+            .get())
+        .docs
+        .single
+        .reference;
+    await cappuccino.update({'price': 80});
+    await tester.pumpAndSettle();
+    expect(find.text(formatPrice(80)), findsWidgets);
+
+    // Admin ho označí jako vyprodaný – objednat nejde, jen odebrat.
+    await cappuccino.update({'available': false});
+    await tester.pumpAndSettle();
+    expect(find.text('Vyprodáno – odeberte z košíku'), findsOneWidget);
+    final orderButton = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'Objednat'));
+    expect(orderButton.onPressed, isNull);
+
+    await tester.tap(find.byTooltip('Odebrat'));
+    await tester.pumpAndSettle();
+    expect(find.text('Košík je prázdný'), findsOneWidget);
+  });
+
+  test('Role z databáze: neznámý text je zákazník', () {
+    expect(userRoleFromText('admin'), UserRole.admin);
+    expect(userRoleFromText('obsluha'), UserRole.obsluha);
+    expect(userRoleFromText('cokoli'), UserRole.zakaznik);
+    expect(UserRole.admin.canServe, true);
+    expect(UserRole.obsluha.isAdmin, false);
+  });
+
+  testWidgets('Admin přidá do menu nový produkt', (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
+
+    await tester.pumpWidget(await buildTestApp(db: db));
+    await tester.pumpAndSettle();
+    // Admin vidí oba vstupy.
+    expect(find.text('Vstup pro obsluhu'), findsOneWidget);
+    await tester.tap(find.text('Správa menu'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Přidat produkt'));
+    await tester.pumpAndSettle();
+
+    // Prázdný formulář neprojde kontrolou.
+    await tester.ensureVisible(find.text('Uložit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Uložit'));
+    await tester.pumpAndSettle();
+    expect(find.text('Zadejte název'), findsOneWidget);
+
+    await tester.enterText(
+        find.widgetWithText(TextFormField, 'Název'), 'Flat white');
+    await tester.enterText(find.widgetWithText(TextFormField, 'Cena'), '72,5');
+    // Kategorie kliknutím na existující štítek.
+    await tester.tap(find.widgetWithText(ActionChip, 'Káva'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Uložit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Uložit'));
+    await tester.pumpAndSettle();
+
+    final saved = await db
+        .collection('products')
+        .where('name', isEqualTo: 'Flat white')
+        .get();
+    expect(saved.docs.single.data()['price'], 72.5);
+    expect(saved.docs.single.data()['category'], 'Káva');
+    expect(saved.docs.single.data()['available'], true);
+  });
+
+  testWidgets('Vyprodaný produkt zákazník vidí, ale nemůže ho přidat',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
+
+    await tester.pumpWidget(await buildTestApp(db: db));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Správa menu'));
+    await tester.pumpAndSettle();
+
+    // Admin přepne první produkt (Cappuccino) na vyprodaný.
+    await tester.tap(find.byType(Switch).first);
+    await tester.pumpAndSettle();
+    final cappuccino = await db
+        .collection('products')
+        .where('name', isEqualTo: 'Cappuccino')
+        .get();
+    expect(cappuccino.docs.single.data()['available'], false);
+
+    // V menu pro zákazníky je označený a tlačítko + nejde zmáčknout.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+
+    // Vyprodané Cappuccino je až na konci, první je teď Espresso.
+    List<ProductCard> cards() =>
+        tester.widgetList<ProductCard>(find.byType(ProductCard)).toList();
+    String firstProductName() => cards().first.product.name;
+    expect(firstProductName(), 'Espresso');
+
+    // V kategorii Káva (vejde se celá na obrazovku) je Cappuccino poslední,
+    // označené jako vyprodané a jeho tlačítko + nejde zmáčknout.
+    await tester.tap(find.text('Káva'));
+    await tester.pumpAndSettle();
+    expect(cards().last.product.name, 'Cappuccino');
+    expect(find.text('${formatPrice(65)} • Vyprodáno'), findsOneWidget);
+    final addButton = tester
+        .widget<IconButton>(find.widgetWithIcon(IconButton, Icons.add).last);
+    expect(addButton.onPressed, isNull);
+
+    // Když se Cappuccino zase prodává, vrátí se nahoru.
+    await cappuccino.docs.single.reference.update({'available': true});
+    await tester.pumpAndSettle();
+    expect(firstProductName(), 'Cappuccino');
   });
 }

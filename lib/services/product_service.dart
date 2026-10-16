@@ -19,7 +19,7 @@ class ProductService {
   Stream<List<Product>> watchProducts() {
     return _products.snapshots().map((snapshot) {
       final products = snapshot.docs
-          .map((doc) => Product.fromMap(doc.data()))
+          .map((doc) => Product.fromMap(doc.data(), id: doc.id))
           .toList();
 
       // Seřadí produkty podle kategorie a pak podle názvu.
@@ -42,6 +42,37 @@ class ProductService {
   int _categoryRank(String category) {
     final index = _categoryOrder.indexOf(category);
     return index == -1 ? _categoryOrder.length : index;
+  }
+
+  // ---------- Správa menu (jen admin – hlídají to pravidla databáze) ----------
+
+  // Data produktu pro uložení do menu (včetně dostupnosti).
+  Map<String, dynamic> _menuData(Product product) {
+    return {
+      ...product.toMap(),
+      'available': product.isAvailable,
+    };
+  }
+
+  // Přidá nový produkt. Firestore mu sám vymyslí ID.
+  Future<void> addProduct(Product product) {
+    return _products.add(_menuData(product));
+  }
+
+  // Uloží změny existujícího produktu (podle jeho ID).
+  Future<void> updateProduct(Product product) {
+    return _products.doc(product.id).set(_menuData(product));
+  }
+
+  // Smaže produkt z menu. Staré objednávky to neovlivní,
+  // protože mají údaje o produktu uložené u sebe.
+  Future<void> deleteProduct(String id) {
+    return _products.doc(id).delete();
+  }
+
+  // Rychlé přepnutí "vyprodáno" / "k dispozici".
+  Future<void> setAvailable(String id, bool isAvailable) {
+    return _products.doc(id).update({'available': isAvailable});
   }
 
   // Nahraje ukázkové menu (z menu_data.dart), ale jen když je databáze prázdná.
