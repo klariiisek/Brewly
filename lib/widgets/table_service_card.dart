@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../models/cart.dart';
 import '../models/service_request.dart';
+import '../models/venue_settings.dart';
 import '../services/app_services.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
@@ -86,6 +87,9 @@ class _TableServiceCardState extends State<TableServiceCard> {
   @override
   Widget build(BuildContext context) {
     final table = widget.cart.tableNumber;
+    // Když má podnik zavřeno, obsluhu přivolat nejde (zaplatit ano –
+    // hosté, kteří ještě sedí, musí mít jak zaplatit).
+    final isOpen = VenueScope.of(context).isOpen;
 
     return Card(
       child: Padding(
@@ -134,6 +138,7 @@ class _TableServiceCardState extends State<TableServiceCard> {
                         icon: Icons.notifications_active_outlined,
                         label: 'Přivolat obsluhu',
                         waiting: isWaiting(RequestType.obsluha),
+                        enabled: isOpen,
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -147,6 +152,14 @@ class _TableServiceCardState extends State<TableServiceCard> {
                     ),
                   ],
                 ),
+                if (!isOpen) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Teď máme zavřeno, obsluhu nejde přivolat. '
+                    'Zaplatit můžete.',
+                    style: TextStyle(color: context.colors.muted),
+                  ),
+                ],
               ],
             );
           },
@@ -160,10 +173,11 @@ class _TableServiceCardState extends State<TableServiceCard> {
     required IconData icon,
     required String label,
     required bool waiting,
+    bool enabled = true,
   }) {
     return FilledButton.tonalIcon(
-      // Když už požadavek čeká, tlačítko je neaktivní (null).
-      onPressed: waiting ? null : () => sendRequest(type),
+      // Když už požadavek čeká (nebo je zavřeno), tlačítko je neaktivní.
+      onPressed: waiting || !enabled ? null : () => sendRequest(type),
       icon: Icon(waiting ? Icons.hourglass_top : icon, size: 18),
       label: Text(
         waiting ? 'Obsluha o vás ví…' : label,

@@ -37,6 +37,12 @@ service cloud.firestore {
         && request.resource.data.tableCode == get(tablePath).data.code;
     }
 
+    // Má podnik otevřeno? (Dokud nastavení neexistuje, je otevřeno.)
+    function isVenueOpen() {
+      let settingsPath = /databases/$(database)/documents/settings/venue;
+      return !exists(settingsPath) || get(settingsPath).data.get('isOpen', true) == true;
+    }
+
     // ---------- Stoly ----------
     // Tajné kódy stolů vidí a mění jen obsluha (generuje je a tiskne QR kódy).
     match /tables/{tableId} {
@@ -70,17 +76,40 @@ service cloud.firestore {
     match /settings/venue {
       allow read: if true;
 
+      // Je text nejvýš "max" znaků dlouhý? (Když pole chybí, je to v pořádku.)
+      function isShortText(field, max) {
+        let value = request.resource.data.get(field, '');
+        return value is string && value.size() <= max;
+      }
+
       function isValidSettings() {
         let settings = request.resource.data;
-        return settings.keys().hasOnly(['name', 'slogan', 'color', 'type', 'categoryOrder'])
+        return settings.keys().hasOnly(['name', 'slogan', 'color', 'type', 'categoryOrder',
+            'isOpen', 'announcement', 'address', 'openingHours', 'wifiName', 'wifiPassword'])
           && settings.name is string && settings.name.size() > 0 && settings.name.size() <= 40
           && settings.slogan is string && settings.slogan.size() <= 80
           && settings.color in ['kava', 'bordo', 'terakota', 'olivova', 'lesni', 'namornicka', 'levandulova', 'grafitova']
           && settings.type in ['kavarna', 'cukrarna', 'bar', 'pivnice', 'restaurace']
-          && settings.categoryOrder is list && settings.categoryOrder.size() <= 50;
+          && settings.categoryOrder is list && settings.categoryOrder.size() <= 50
+          && settings.get('isOpen', true) is bool
+          && isShortText('announcement', 120)
+          && isShortText('address', 100)
+          && isShortText('openingHours', 300)
+          && isShortText('wifiName', 50)
+          && isShortText('wifiPassword', 50);
       }
 
+      // Admin smí měnit vše (ve správném tvaru).
       allow create, update: if isAdmin() && isValidSettings();
+
+      // Obsluha smí jen přepnout Otevřeno / Zavřeno – nic jiného.
+      allow update: if isStaff()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isOpen'])
+        && request.resource.data.isOpen is bool;
+      allow create: if isStaff()
+        && request.resource.data.keys().hasOnly(['isOpen'])
+        && request.resource.data.isOpen is bool;
+
       allow delete: if false;
     }
 
@@ -105,12 +134,32 @@ service cloud.firestore {
 
     // ---------- Počítadlo objednávek ----------
     // Kvůli pořadovým číslům ho čte a zvyšuje každý, kdo objednává.
-    // Zvýšit ho jde vždy jen přesně o 1.
+    // Čísla začínají každý den od 1. Den se bere z hodin serveru
+    // (request.time), ne z telefonu – nikdo si tak čísla nevynuluje sám.
     match /counters/orders {
+      // Dnešní den jako číslo, např. 20261016 (v čase UTC).
+      function today() {
+        return request.time.year() * 10000 + request.time.month() * 100 + request.time.day();
+      }
+
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.last == 1;
+
+      // První objednávka vůbec: číslo 1, dnešní den.
+      allow create: if isSignedIn()
+        && request.resource.data.last == 1
+        && request.resource.data.day == today();
+
+      // Další objednávka: ve stejný den přesně o 1 víc,
+      // v nový den znovu od 1.
       allow update: if isSignedIn()
-        && request.resource.data.last == resource.data.last + 1;
+        && request.resource.data.day == today()
+        && (
+          (resource.data.get('day', 0) == today()
+            && request.resource.data.last == resource.data.last + 1)
+          || (resource.data.get('day', 0) != today()
+            && request.resource.data.last == 1)
+        );
+
       allow delete: if false;
     }
 
@@ -122,7 +171,8 @@ service cloud.firestore {
         && (resource.data.get('userId', '') == request.auth.uid || isStaff());
 
       // Objednávku může vytvořit jen přihlášený uživatel, a to jen sám za sebe,
-      // ve stavu "prijata", ke stolu 1–10 a se správným kódem stolu (z QR kódu).
+      // ve stavu "prijata", ke stolu 1–10, se správným kódem stolu (z QR kódu)
+      // a jen když má podnik otevřeno.
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'prijata'
@@ -132,7 +182,8 @@ service cloud.firestore {
         && request.resource.data.items is list
         && request.resource.data.items.size() > 0
         && request.resource.data.totalPrice is number
-        && hasValidTableCode();
+        && hasValidTableCode()
+        && isVenueOpen();
 
       // Stav objednávky může měnit jen obsluha – a nic jiného než stav.
       allow update: if isStaff()
@@ -159,7 +210,9 @@ service cloud.firestore {
           && request.resource.data.tableNumber is int
           && request.resource.data.tableNumber >= 1
           && request.resource.data.tableNumber <= 10
-          && hasValidTableCode();
+          && hasValidTableCode()
+          // Při zavřeno jde jen zaplatit, obsluhu přivolat ne.
+          && (request.resource.data.type == 'platba' || isVenueOpen());
       }
 
       // Ochrana proti spamu: ID dokumentu musí být "uživatel_typ"

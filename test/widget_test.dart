@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart' show Timestamp;
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter/material.dart';
@@ -60,6 +61,12 @@ Future<Widget> buildTestApp({
   );
 }
 
+// Spustí aplikaci a počká, až se načte (nastavení podniku z databáze).
+Future<void> pumpApp(WidgetTester tester, Widget app) async {
+  await tester.pumpWidget(app);
+  await tester.pumpAndSettle();
+}
+
 // Zadá v okně ručně kód stolu (jako když zákazník opíše kód pod QR kódem).
 Future<void> enterTableCode(WidgetTester tester, String code) async {
   await tester.enterText(find.byType(TextFormField).last, code);
@@ -82,7 +89,7 @@ Future<String> createTestOrder(OrderService orderService, {int table = 1}) {
 void main() {
   testWidgets('Úvodní obrazovka zobrazuje název a tlačítko menu',
       (WidgetTester tester) async {
-    await tester.pumpWidget(await buildTestApp());
+    await pumpApp(tester, await buildTestApp());
 
     // Ověří, že je vidět název kavárny a tlačítko pro menu.
     expect(find.text('Brewly'), findsOneWidget);
@@ -109,7 +116,7 @@ void main() {
 
   testWidgets('Prázdná databáze ukáže prázdné menu',
       (WidgetTester tester) async {
-    await tester.pumpWidget(await buildTestApp(withMenu: false));
+    await pumpApp(tester, await buildTestApp(withMenu: false));
     await tester.tap(find.text('Prohlédnout menu'));
     await tester.pumpAndSettle();
 
@@ -118,7 +125,7 @@ void main() {
 
   testWidgets('Prázdný košík ukáže tlačítko zpět do menu',
       (WidgetTester tester) async {
-    await tester.pumpWidget(await buildTestApp());
+    await pumpApp(tester, await buildTestApp());
     await tester.tap(find.text('Prohlédnout menu'));
     await tester.pumpAndSettle();
 
@@ -134,7 +141,7 @@ void main() {
 
   testWidgets('Hlavička menu se po přidání do košíku zmenší',
       (WidgetTester tester) async {
-    await tester.pumpWidget(await buildTestApp());
+    await pumpApp(tester, await buildTestApp());
     await tester.tap(find.text('Prohlédnout menu'));
     await tester.pumpAndSettle();
     expect(find.text('Co si dnes dáte?'), findsOneWidget);
@@ -147,7 +154,7 @@ void main() {
   });
 
   testWidgets('Kategorie v menu filtrují produkty', (WidgetTester tester) async {
-    await tester.pumpWidget(await buildTestApp());
+    await pumpApp(tester, await buildTestApp());
     await tester.tap(find.text('Prohlédnout menu'));
     await tester.pumpAndSettle();
 
@@ -161,7 +168,7 @@ void main() {
 
   testWidgets('Detail zespodu přidá vybrané množství do košíku',
       (WidgetTester tester) async {
-    await tester.pumpWidget(await buildTestApp());
+    await pumpApp(tester, await buildTestApp());
     await tester.tap(find.text('Prohlédnout menu'));
     await tester.pumpAndSettle();
 
@@ -186,7 +193,7 @@ void main() {
 
   testWidgets('Objednávka přes spodní lištu: menu → košík → objednávky',
       (WidgetTester tester) async {
-    await tester.pumpWidget(await buildTestApp());
+    await pumpApp(tester, await buildTestApp());
 
     // Otevře menu.
     await tester.tap(find.text('Prohlédnout menu'));
@@ -246,7 +253,7 @@ void main() {
       (WidgetTester tester) async {
     // Zákazník přišel z QR kódu stolu 2 (stůl je v košíku už nastavený).
     final cart = Cart()..setTable(2, 'ABCDEF');
-    await tester.pumpWidget(await buildTestApp(signedIn: false, cart: cart));
+    await pumpApp(tester, await buildTestApp(signedIn: false, cart: cart));
     await tester.tap(find.text('Prohlédnout menu'));
     await tester.pumpAndSettle();
 
@@ -275,7 +282,7 @@ void main() {
 
   testWidgets('Přihlášení přes Google přihlásí uživatele',
       (WidgetTester tester) async {
-    await tester.pumpWidget(await buildTestApp(signedIn: false));
+    await pumpApp(tester, await buildTestApp(signedIn: false));
     await tester.tap(find.text('Přihlásit se'));
     await tester.pumpAndSettle();
 
@@ -289,7 +296,7 @@ void main() {
 
   testWidgets('Registrace kontroluje, že se hesla shodují',
       (WidgetTester tester) async {
-    await tester.pumpWidget(await buildTestApp(signedIn: false));
+    await pumpApp(tester, await buildTestApp(signedIn: false));
     await tester.tap(find.text('Přihlásit se'));
     await tester.pumpAndSettle();
     // Odkaz na registraci je dole – stránka se musí nejdřív posunout.
@@ -317,7 +324,7 @@ void main() {
 
   testWidgets('Moje objednávky vyzvou nepřihlášeného k přihlášení',
       (WidgetTester tester) async {
-    await tester.pumpWidget(await buildTestApp(signedIn: false));
+    await pumpApp(tester, await buildTestApp(signedIn: false));
     await tester.tap(find.text('Prohlédnout menu'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Objednávky').last);
@@ -329,7 +336,7 @@ void main() {
   testWidgets('Zákazník nevidí vstup pro obsluhu a dostane profil zákazníka',
       (WidgetTester tester) async {
     final db = FakeFirebaseFirestore();
-    await tester.pumpWidget(await buildTestApp(db: db));
+    await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
 
     expect(find.text('Vstup pro obsluhu'), findsNothing);
@@ -341,7 +348,7 @@ void main() {
 
   testWidgets('Nepřihlášený návštěvník nevidí vstup pro obsluhu',
       (WidgetTester tester) async {
-    await tester.pumpWidget(await buildTestApp(signedIn: false));
+    await pumpApp(tester, await buildTestApp(signedIn: false));
     await tester.pumpAndSettle();
 
     expect(find.text('Vstup pro obsluhu'), findsNothing);
@@ -355,7 +362,7 @@ void main() {
     // Testovací uživatelka má v profilu roli obsluha.
     await db.collection('users').doc(testUser.uid).set({'role': 'obsluha'});
 
-    await tester.pumpWidget(await buildTestApp(db: db));
+    await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
     // Obsluha nevidí správu menu – ta je jen pro admina.
     expect(find.text('Správa menu'), findsNothing);
@@ -384,7 +391,7 @@ void main() {
   testWidgets('Zákazník přivolá obsluhu – nejdřív zadá kód stolu',
       (WidgetTester tester) async {
     final db = FakeFirebaseFirestore();
-    await tester.pumpWidget(await buildTestApp(db: db));
+    await pumpApp(tester, await buildTestApp(db: db));
     await tester.tap(find.text('Prohlédnout menu'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Objednávky').last);
@@ -427,7 +434,7 @@ void main() {
     final db = FakeFirebaseFirestore();
     await db.collection('users').doc(testUser.uid).set({'role': 'obsluha'});
 
-    await tester.pumpWidget(await buildTestApp(db: db));
+    await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Vstup pro obsluhu'));
     await tester.pumpAndSettle();
@@ -458,7 +465,7 @@ void main() {
       customerName: 'Pavel',
     );
 
-    await tester.pumpWidget(await buildTestApp(db: db));
+    await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Vstup pro obsluhu'));
     await tester.pumpAndSettle();
@@ -476,7 +483,7 @@ void main() {
   testWidgets('Košík hlídá změny v menu: cenu i vyprodání',
       (WidgetTester tester) async {
     final db = FakeFirebaseFirestore();
-    await tester.pumpWidget(await buildTestApp(db: db));
+    await pumpApp(tester, await buildTestApp(db: db));
     await tester.tap(find.text('Prohlédnout menu'));
     await tester.pumpAndSettle();
 
@@ -523,7 +530,7 @@ void main() {
     final db = FakeFirebaseFirestore();
     await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
 
-    await tester.pumpWidget(await buildTestApp(db: db));
+    await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
     // Admin vidí oba vstupy.
     expect(find.text('Vstup pro obsluhu'), findsOneWidget);
@@ -565,7 +572,7 @@ void main() {
     final db = FakeFirebaseFirestore();
     await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
 
-    await tester.pumpWidget(await buildTestApp(db: db));
+    await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Správa menu'));
     await tester.pumpAndSettle();
@@ -676,7 +683,7 @@ void main() {
     final db = FakeFirebaseFirestore();
     await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
 
-    await tester.pumpWidget(await buildTestApp(db: db));
+    await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Správa menu'));
     await tester.pumpAndSettle();
@@ -726,7 +733,7 @@ void main() {
       'categoryOrder': ['Nápoje', 'Dezerty', 'Káva'],
     });
 
-    await tester.pumpWidget(await buildTestApp(db: db));
+    await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Prohlédnout menu'));
     await tester.pumpAndSettle();
@@ -741,7 +748,7 @@ void main() {
     final db = FakeFirebaseFirestore();
     await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
 
-    await tester.pumpWidget(await buildTestApp(db: db));
+    await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Nastavení podniku'));
     await tester.pumpAndSettle();
@@ -787,7 +794,7 @@ void main() {
     final db = FakeFirebaseFirestore();
     await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
 
-    await tester.pumpWidget(await buildTestApp(db: db));
+    await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Správa menu'));
     await tester.pumpAndSettle();
@@ -836,5 +843,159 @@ void main() {
     order = (await db.collection('settings').doc('venue').get())
         .data()!['categoryOrder'];
     expect(order, ['Káva', 'Sladké', 'Nápoje']);
+  });
+
+  testWidgets('Zavřeno: menu to ukáže a objednat nejde',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('settings').doc('venue').set({
+      'isOpen': false,
+      'announcement': 'Dnes −20 % na dezerty',
+    });
+
+    await pumpApp(tester, await buildTestApp(db: db));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Teď máme zavřeno'), findsOneWidget);
+    expect(find.text('Dnes −20 % na dezerty'), findsOneWidget);
+
+    // Do košíku přidat jde, ale tlačítko Objednat je neaktivní.
+    await tester.tap(find.byTooltip('Přidat do košíku').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Košík').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Teď máme zavřeno, objednat zatím nejde.'), findsOneWidget);
+    final orderButton = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'Objednat'));
+    expect(orderButton.onPressed, isNull);
+  });
+
+  testWidgets('Obsluha přepne podnik na Zavřeno', (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set({'role': 'obsluha'});
+
+    await pumpApp(tester, await buildTestApp(db: db));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Vstup pro obsluhu'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Otevřeno'), findsOneWidget);
+    await tester.tap(find.byType(Switch));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Zavřeno'), findsOneWidget);
+    final saved = (await db.collection('settings').doc('venue').get()).data()!;
+    expect(saved, {'isOpen': false});
+  });
+
+  testWidgets('Zákazník uvidí informace o podniku a heslo k Wi-Fi',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('settings').doc('venue').set({
+      'address': 'Lipová 12, Praha',
+      'wifiName': 'Brewly-host',
+      'wifiPassword': 'kafe1234',
+    });
+
+    await pumpApp(tester, await buildTestApp(db: db));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Informace o podniku'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Lipová 12, Praha'), findsOneWidget);
+    expect(find.text('Heslo: kafe1234'), findsOneWidget);
+    expect(find.text('● Teď máme otevřeno'), findsOneWidget);
+  });
+
+  test('Uložení nastavení nesmaže otevřeno ani informace', () {
+    const settings = VenueSettings(
+      name: 'Bistro',
+      slogan: '',
+      colorKey: 'kava',
+      type: VenueType.restaurace,
+      categoryOrder: [],
+      isOpen: false,
+      wifiName: 'Bistro',
+    );
+    final changed = settings.copyWith(name: 'Bistro Na Rohu');
+    expect(changed.isOpen, false);
+    expect(changed.wifiName, 'Bistro');
+    expect(VenueSettings.fromMap(changed.toMap()).name, 'Bistro Na Rohu');
+  });
+
+  testWidgets('Zavřeno: obsluhu přivolat nejde, zaplatit ano',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('settings').doc('venue').set({'isOpen': false});
+
+    await pumpApp(tester, await buildTestApp(db: db));
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Objednávky').last);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('obsluhu nejde přivolat'), findsOneWidget);
+    ButtonStyleButton button(String label) => tester.widget<ButtonStyleButton>(
+        find.ancestor(
+            of: find.text(label),
+            matching: find.byWidgetPredicate((w) => w is ButtonStyleButton)));
+    expect(button('Přivolat obsluhu').onPressed, isNull);
+    expect(button('Chci zaplatit').onPressed, isNotNull);
+  });
+
+  test('Čísla objednávek začínají každý den od 1', () async {
+    expect(OrderService.dayKey(DateTime.utc(2026, 10, 16, 15)), 20261016);
+    expect(OrderService.nextNumber(null, 20261016), 1);
+    expect(OrderService.nextNumber({'last': 7, 'day': 20261016}, 20261016), 8);
+    expect(OrderService.nextNumber({'last': 57, 'day': 20261015}, 20261016), 1);
+    // Staré počítadlo bez dne (před touto změnou) = taky od 1.
+    expect(OrderService.nextNumber({'last': 120}, 20261016), 1);
+
+    // Včera skončili na #57 – dnešní první objednávka má #1, další #2.
+    final db = FakeFirebaseFirestore();
+    final yesterday = OrderService.dayKey(
+        DateTime.now().subtract(const Duration(days: 1)));
+    await db
+        .collection('counters')
+        .doc('orders')
+        .set({'last': 57, 'day': yesterday});
+    final orderService = OrderService(db);
+    final first = await createTestOrder(orderService);
+    final second = await createTestOrder(orderService);
+    expect((await db.collection('orders').doc(first).get()).data()!['number'], 1);
+    expect((await db.collection('orders').doc(second).get()).data()!['number'], 2);
+  });
+
+  testWidgets('Obsluha vidí v Dokončených jen dnešní objednávky',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set({'role': 'obsluha'});
+    final base = {
+      'items': [],
+      'totalPrice': 90,
+      'tableNumber': 2,
+      'status': 'dokoncena',
+      'userId': 'host',
+      'customerName': 'Pavel',
+    };
+    await db.collection('orders').add({
+      ...base,
+      'number': 5,
+      'createdAt': Timestamp.fromDate(
+          DateTime.now().subtract(const Duration(days: 1))),
+    });
+    await db.collection('orders').add({
+      ...base,
+      'number': 1,
+      'createdAt': Timestamp.now(),
+    });
+
+    await pumpApp(tester, await buildTestApp(db: db));
+    await tester.tap(find.text('Vstup pro obsluhu'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dokončené (1)'), findsOneWidget);
   });
 }

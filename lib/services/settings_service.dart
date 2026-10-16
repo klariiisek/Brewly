@@ -23,8 +23,14 @@ class SettingsService {
     return _venue.set(settings.toMap());
   }
 
+  // Otevřeno / zavřeno. Mění jen tento jeden údaj (merge = ostatní zůstane),
+  // proto to smí i obsluha – pravidla jí dovolí změnit jen "isOpen".
+  Future<void> setOpen(bool isOpen) {
+    return _venue.set({'isOpen': isOpen}, SetOptions(merge: true));
+  }
+
   // Uloží jen nové pořadí kategorií (ostatní nastavení zůstane, jak je).
   Future<void> saveCategoryOrder(VenueSettings current, List<String> order) {
-    return saveSettings(current.withCategoryOrder(order));
+    return saveSettings(current.copyWith(categoryOrder: order));
   }
 }

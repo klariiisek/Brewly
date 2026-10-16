@@ -10,6 +10,7 @@ import '../widgets/app_message.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_sheet.dart';
+import '../widgets/venue_info_sheet.dart';
 
 class MenuScreen extends StatefulWidget {
   final Cart cart;
@@ -140,8 +141,25 @@ class _MenuScreenState extends State<MenuScreen> {
     final allProducts = VenueScope.of(context).sortProducts(menuProducts);
     final products = filterProducts(allProducts);
 
+    final venue = VenueScope.of(context);
+
     return Column(
       children: [
+        // Když má podnik zavřeno, zákazník to uvidí hned nahoře.
+        if (!venue.isOpen)
+          buildBanner(
+            icon: Icons.door_front_door_outlined,
+            text: 'Teď máme zavřeno. Menu si můžete prohlédnout, '
+                'objednat ale zatím nejde.',
+            color: Theme.of(context).colorScheme.error,
+          ),
+        // Oznámení od podniku (např. akce dne).
+        if (venue.announcement.isNotEmpty)
+          buildBanner(
+            icon: Icons.campaign_outlined,
+            text: venue.announcement,
+            color: context.colors.accent,
+          ),
         buildCategoryChips(categoriesOf(allProducts)),
         Expanded(
           child: ListView.builder(
@@ -161,7 +179,48 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  // Hnědá hlavička s přechodem barev a pozdravem.
+  // Barevný pruh s ikonou a textem (zavřeno, oznámení).
+  Widget buildBanner({
+    required IconData icon,
+    required String text,
+    required Color color,
+  }) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(AppRadius.medium),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: context.colors.dark,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Tlačítko ⓘ v hlavičce: informace o podniku (adresa, Wi-Fi...).
+  Widget buildInfoButton() {
+    return IconButton(
+      icon: const Icon(Icons.info_outline, color: Colors.white),
+      tooltip: 'Informace o podniku',
+      onPressed: () => showVenueInfo(context),
+    );
+  }
+
+  // Hlavička s přechodem barev a pozdravem.
   // Jakmile má zákazník něco v košíku, hlavička se zmenší na úzký pruh,
   // aby zbylo víc místa pro menu.
   Widget buildHeader() {
@@ -195,12 +254,18 @@ class _MenuScreenState extends State<MenuScreen> {
   // Velká hlavička: šipka zpět, pozdrav a otázka.
   Widget buildFullHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 24, 24),
+      padding: const EdgeInsets.fromLTRB(8, 8, 8, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Šipka zpět na úvodní obrazovku.
-          const BackButton(color: Colors.white),
+          // Šipka zpět na úvodní obrazovku a vpravo informace o podniku.
+          Row(
+            children: [
+              const BackButton(color: Colors.white),
+              const Spacer(),
+              buildInfoButton(),
+            ],
+          ),
           Padding(
             padding: const EdgeInsets.only(left: 16),
             child: Column(
@@ -235,7 +300,7 @@ class _MenuScreenState extends State<MenuScreen> {
     // Emoji podle typu podniku (☕ kavárna, 🍸 bar...).
     final emoji = VenueScope.of(context).type.emoji;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 4, 24, 8),
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
       child: Row(
         children: [
           const BackButton(color: Colors.white),
@@ -248,6 +313,8 @@ class _MenuScreenState extends State<MenuScreen> {
               color: Colors.white,
             ),
           ),
+          const Spacer(),
+          buildInfoButton(),
         ],
       ),
     );

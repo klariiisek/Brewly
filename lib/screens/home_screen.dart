@@ -8,6 +8,7 @@ import '../services/app_services.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
+import '../widgets/venue_info_sheet.dart';
 import 'admin_menu_screen.dart';
 import 'login_screen.dart';
 import 'main_screen.dart';
@@ -177,6 +178,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: const Text('Odhlásit se'),
                 ),
         ),
+        // Adresa, otevírací doba, Wi-Fi – jen když je admin vyplnil.
+        if (VenueScope.of(context).hasInfo)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: TextButton.icon(
+              icon: const Icon(Icons.info_outline, size: 18),
+              label: const Text('Informace o podniku'),
+              onPressed: () => showVenueInfo(context),
+            ),
+          ),
         // Vstupy pro zaměstnance vidí jen přihlášený s rolí obsluha nebo admin.
         if (user != null) buildStaffEntry(user),
       ],

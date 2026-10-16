@@ -22,3 +22,15 @@ String formatProductCount(int count) {
   if (count >= 2 && count <= 4) return '$count produkty';
   return '$count produktů';
 }
+
+// Je datum dnes?
+bool isToday(DateTime time) {
+  final now = DateTime.now();
+  return time.year == now.year && time.month == now.month && time.day == now.day;
+}
+
+// Kdy byla objednávka vytvořena: "dnes 14:05", nebo "14. 10. 14:05".
+String formatOrderDate(DateTime time) {
+  final day = isToday(time) ? 'dnes' : '${time.day}. ${time.month}.';
+  return '$day ${formatTime(time)}';
+}

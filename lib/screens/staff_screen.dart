@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/order.dart';
 import '../models/service_request.dart';
+import '../models/venue_settings.dart';
 import '../services/app_services.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
@@ -55,6 +56,23 @@ class _StaffScreenState extends State<StaffScreen> {
     } catch (error) {
       if (!mounted) return;
       showAppMessage(context, 'Požadavek se nepodařilo vyřídit');
+    }
+  }
+
+  // Otevřeno / zavřeno. Když je zavřeno, zákazníci nemůžou objednávat.
+  Future<void> setOpen(bool isOpen) async {
+    try {
+      await widget.services.settings.setOpen(isOpen);
+      if (!mounted) return;
+      showAppMessage(
+        context,
+        isOpen
+            ? 'Otevřeno – zákazníci můžou objednávat'
+            : 'Zavřeno – nové objednávky nejdou odeslat',
+      );
+    } catch (error) {
+      if (!mounted) return;
+      showAppMessage(context, 'Změnu se nepodařilo uložit');
     }
   }
 
@@ -114,9 +132,10 @@ class _StaffScreenState extends State<StaffScreen> {
     // Aktivní: nejstarší nahoře, aby obsluha vyřizovala objednávky popořadě.
     final activeOrders =
         orders.where((order) => order.status != OrderStatus.dokoncena).toList();
-    // Dokončené: nejnovější nahoře.
+    // Dokončené: jen dnešní, nejnovější nahoře (starší jsou v historii).
     final doneOrders = orders
-        .where((order) => order.status == OrderStatus.dokoncena)
+        .where((order) =>
+            order.status == OrderStatus.dokoncena && isToday(order.time))
         .toList()
         .reversed
         .toList();
@@ -128,6 +147,7 @@ class _StaffScreenState extends State<StaffScreen> {
         appBar: AppBar(
           title: const Text('Obsluha'),
           actions: [
+            buildOpenSwitch(),
             IconButton(
               icon: const Icon(Icons.qr_code_2),
               tooltip: 'Stoly a QR kódy',
@@ -169,13 +189,36 @@ class _StaffScreenState extends State<StaffScreen> {
               doneOrders,
               emptyState: const EmptyState(
                 icon: Icons.task_alt,
-                title: 'Zatím nic dokončeného',
-                message: 'Vyřízené objednávky se přesunou sem.',
+                title: 'Dnes zatím nic dokončeného',
+                message: 'Dnešní vyřízené objednávky se přesunou sem.',
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // Přepínač v horní liště: "Otevřeno" / "Zavřeno".
+  Widget buildOpenSwitch() {
+    final isOpen = VenueScope.of(context).isOpen;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          isOpen ? 'Otevřeno' : 'Zavřeno',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: isOpen
+                ? AppColors.success
+                : Theme.of(context).colorScheme.error,
+          ),
+        ),
+        Switch(
+          value: isOpen,
+          onChanged: setOpen,
+        ),
+      ],
     );
   }
 
@@ -313,8 +356,10 @@ class _StaffScreenState extends State<StaffScreen> {
                       Text(
                         // Starší objednávky jméno zákazníka nemají.
                         order.customerName.isEmpty
-                            ? '#$orderNumber • ${formatPrice(order.totalPrice)}'
-                            : '#$orderNumber • ${order.customerName} • '
+                            ? '#$orderNumber • ${formatOrderDate(order.time)} • '
+                                '${formatPrice(order.totalPrice)}'
+                            : '#$orderNumber • ${formatOrderDate(order.time)} • '
+                                '${order.customerName} • '
                                 '${formatPrice(order.totalPrice)}',
                         style: TextStyle(color: context.colors.muted),
                       ),

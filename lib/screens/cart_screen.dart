@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/cart.dart';
 import '../models/cart_item.dart';
 import '../models/product.dart';
+import '../models/venue_settings.dart';
 import '../services/app_services.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
@@ -74,6 +75,12 @@ class _CartScreenState extends State<CartScreen> {
   bool isSending = false;
 
   Future<void> placeOrder() async {
+    // Pojistka: když má podnik zavřeno, objednat nejde.
+    if (!VenueScope.of(context).isOpen) {
+      showAppMessage(context, 'Teď máme zavřeno, objednat zatím nejde');
+      return;
+    }
+
     // Pojistka: s vyprodaným produktem v košíku nejde objednat.
     if (widget.cart.hasUnavailableItems) {
       showAppMessage(context, 'Nejdřív odeberte z košíku vyprodané produkty');
@@ -127,7 +134,10 @@ class _CartScreenState extends State<CartScreen> {
       widget.onOrderCreated();
     } on FirebaseException catch (error) {
       if (!mounted) return;
-      if (error.code == 'permission-denied') {
+      if (error.code == 'permission-denied' && !VenueScope.of(context).isOpen) {
+        // Podnik mezitím zavřel – databáze objednávku odmítla.
+        showAppMessage(context, 'Teď máme zavřeno, objednat zatím nejde');
+      } else if (error.code == 'permission-denied') {
         // Databáze odmítla kód stolu (špatně opsaný nebo už neplatný).
         setState(() => widget.cart.clearTable());
         showAppMessage(
@@ -306,6 +316,9 @@ class _CartScreenState extends State<CartScreen> {
 
   // Bílý panel dole: výběr stolu, celková cena a tlačítko Objednat.
   Widget buildOrderPanel() {
+    // Otevřeno / zavřeno podle nastavení podniku (přepíná obsluha).
+    final isOpen = VenueScope.of(context).isOpen;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       decoration: BoxDecoration(
@@ -362,7 +375,14 @@ class _CartScreenState extends State<CartScreen> {
             ],
           ),
           // Upozornění, proč teď nejde objednat.
-          if (widget.cart.hasUnavailableItems) ...[
+          if (!isOpen) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Teď máme zavřeno, objednat zatím nejde.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ] else if (widget.cart.hasUnavailableItems) ...[
             const SizedBox(height: 12),
             Text(
               'V košíku je vyprodaný produkt. Odeberte ho, prosím.',
@@ -377,9 +397,10 @@ class _CartScreenState extends State<CartScreen> {
               // Během odesílání je tlačítko neaktivní (null), aby se
               // objednávka neodeslala dvakrát. Neaktivní je i tehdy,
               // když je v košíku něco vyprodaného.
-              onPressed: isSending || widget.cart.hasUnavailableItems
-                  ? null
-                  : placeOrder,
+              onPressed:
+                  isSending || !isOpen || widget.cart.hasUnavailableItems
+                      ? null
+                      : placeOrder,
               child: Text(isSending ? 'Odesílám…' : 'Objednat'),
             ),
           ),

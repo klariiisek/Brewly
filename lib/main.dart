@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -67,10 +69,24 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   late final Stream<VenueSettings> settingsStream;
 
+  // Pojistka: když nastavení nedorazí do 3 sekund (např. bez internetu),
+  // použije se výchozí vzhled, aby aplikace nezůstala na načítání.
+  bool waitedTooLong = false;
+  Timer? waitTimer;
+
   @override
   void initState() {
     super.initState();
     settingsStream = widget.services.settings.watchSettings();
+    waitTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => waitedTooLong = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    waitTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -80,6 +96,13 @@ class _MyAppState extends State<MyApp> {
     return StreamBuilder<VenueSettings>(
       stream: settingsStream,
       builder: (context, snapshot) {
+        // Dokud nastavení nedorazí, ukážeme neutrální načítání – jinak by
+        // na půl sekundy problikl výchozí hnědý vzhled "Brewly".
+        if (!snapshot.hasData && !snapshot.hasError && !waitedTooLong) {
+          return const LoadingApp();
+        }
+        // Nastavení dorazilo – pojistku už nepotřebujeme.
+        if (snapshot.hasData) waitTimer?.cancel();
         final settings = snapshot.data ?? VenueSettings.defaults;
         return VenueScope(
           settings: settings,
@@ -92,6 +115,31 @@ class _MyAppState extends State<MyApp> {
           ),
         );
       },
+    );
+  }
+}
+
+// Neutrální obrazovka načítání (bez barev a názvu podniku).
+class LoadingApp extends StatelessWidget {
+  const LoadingApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: Color(0xFFBDBDBD),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

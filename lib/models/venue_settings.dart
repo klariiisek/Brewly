@@ -26,6 +26,16 @@ class VenueSettings {
   final VenueType type;
   final List<String> categoryOrder; // pořadí kategorií v menu
 
+  // Provoz podniku.
+  final bool isOpen; // false = zavřeno, objednávat nejde
+  final String announcement; // oznámení nahoře v menu (prázdné = žádné)
+
+  // Informace pro zákazníky (prázdné = nezobrazí se).
+  final String address;
+  final String openingHours;
+  final String wifiName;
+  final String wifiPassword;
+
   // Výchozí nastavení (než ho admin poprvé uloží) – kavárna Brewly.
   static const defaults = VenueSettings(
     name: 'Brewly',
@@ -41,15 +51,28 @@ class VenueSettings {
     required this.colorKey,
     required this.type,
     required this.categoryOrder,
+    this.isOpen = true,
+    this.announcement = '',
+    this.address = '',
+    this.openingHours = '',
+    this.wifiName = '',
+    this.wifiPassword = '',
   });
+
+  // Vyplnil admin nějaké informace pro zákazníky?
+  bool get hasInfo =>
+      address.isNotEmpty || openingHours.isNotEmpty || wifiName.isNotEmpty;
 
   // Z dat v databázi. Co chybí, doplní se z výchozího nastavení.
   factory VenueSettings.fromMap(Map<String, dynamic>? data) {
     if (data == null) return defaults;
+    String text(String key, String fallback) =>
+        data[key] as String? ?? fallback;
+
     return VenueSettings(
-      name: data['name'] as String? ?? defaults.name,
-      slogan: data['slogan'] as String? ?? defaults.slogan,
-      colorKey: data['color'] as String? ?? defaults.colorKey,
+      name: text('name', defaults.name),
+      slogan: text('slogan', defaults.slogan),
+      colorKey: text('color', defaults.colorKey),
       type: VenueType.values.firstWhere(
         (type) => type.name == data['type'],
         orElse: () => defaults.type,
@@ -58,20 +81,43 @@ class VenueSettings {
               ?.whereType<String>()
               .toList() ??
           defaults.categoryOrder,
+      isOpen: data['isOpen'] as bool? ?? true,
+      announcement: text('announcement', ''),
+      address: text('address', ''),
+      openingHours: text('openingHours', ''),
+      wifiName: text('wifiName', ''),
+      wifiPassword: text('wifiPassword', ''),
     );
   }
 
-  // Kopie nastavení s jiným pořadím kategorií (ostatní zůstane stejné).
-  VenueSettings withCategoryOrder(List<String> order) {
+  // Kopie nastavení, ve které se změní jen zadané údaje.
+  VenueSettings copyWith({
+    String? name,
+    String? slogan,
+    String? colorKey,
+    VenueType? type,
+    List<String>? categoryOrder,
+    bool? isOpen,
+    String? announcement,
+    String? address,
+    String? openingHours,
+    String? wifiName,
+    String? wifiPassword,
+  }) {
     return VenueSettings(
-      name: name,
-      slogan: slogan,
-      colorKey: colorKey,
-      type: type,
-      categoryOrder: order,
+      name: name ?? this.name,
+      slogan: slogan ?? this.slogan,
+      colorKey: colorKey ?? this.colorKey,
+      type: type ?? this.type,
+      categoryOrder: categoryOrder ?? this.categoryOrder,
+      isOpen: isOpen ?? this.isOpen,
+      announcement: announcement ?? this.announcement,
+      address: address ?? this.address,
+      openingHours: openingHours ?? this.openingHours,
+      wifiName: wifiName ?? this.wifiName,
+      wifiPassword: wifiPassword ?? this.wifiPassword,
     );
   }
-
   // Všechny kategorie: ty, které mají produkty, i ty, které admin
   // založil dopředu (jsou zatím jen v pořadí). Seřazené podle pořadí.
   List<String> allCategories(List<Product> products) {
@@ -88,6 +134,12 @@ class VenueSettings {
       'color': colorKey,
       'type': type.name,
       'categoryOrder': categoryOrder,
+      'isOpen': isOpen,
+      'announcement': announcement,
+      'address': address,
+      'openingHours': openingHours,
+      'wifiName': wifiName,
+      'wifiPassword': wifiPassword,
     };
   }
 

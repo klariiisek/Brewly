@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart' show Timestamp;
+
 import 'cart_item.dart';
 
 enum OrderStatus {
@@ -38,7 +40,8 @@ OrderStatus nextOrderStatus(OrderStatus status) {
 class Order {
   // ID dokumentu v databázi (Firestore).
   final String id;
-  // Pořadové číslo objednávky (#1, #2, ...), přiděluje ho databáze.
+  // Pořadové číslo objednávky (#1, #2, ...). Každý den začíná od 1,
+  // slouží jen lidem ("dvanáctka je hotová"). Aplikace pozná objednávku podle id.
   final int number;
   final List<CartItem> items;
   final double totalPrice;
@@ -47,6 +50,10 @@ class Order {
   // Kdo objednávku vytvořil: ID účtu a jméno (jméno uvidí obsluha).
   final String userId;
   final String customerName;
+
+  // Kdy byla objednávka vytvořena (čas serveru). Těsně po odeslání ho
+  // databáze ještě nedoplnila – pak je null.
+  final DateTime? createdAt;
 
   const Order({
     required this.id,
@@ -57,7 +64,11 @@ class Order {
     required this.status,
     required this.userId,
     required this.customerName,
+    this.createdAt,
   });
+
+  // Čas pro řazení a zobrazení. Bez času (právě odeslaná) = teď.
+  DateTime get time => createdAt ?? DateTime.now();
 
   // Vytvoří objednávku z dat načtených z databáze.
   factory Order.fromMap(String id, Map<String, dynamic> data) {
@@ -78,6 +89,7 @@ class Order {
       ),
       userId: data['userId'] as String? ?? '',
       customerName: data['customerName'] as String? ?? '',
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
   }
 }

@@ -22,6 +22,11 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
   final formKey = GlobalKey<FormState>();
   final nameController = TextEditingController();
   final sloganController = TextEditingController();
+  final announcementController = TextEditingController();
+  final addressController = TextEditingController();
+  final hoursController = TextEditingController();
+  final wifiNameController = TextEditingController();
+  final wifiPasswordController = TextEditingController();
   late String colorKey;
   late VenueType type;
 
@@ -38,6 +43,11 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
     final settings = VenueScope.of(context);
     nameController.text = settings.name;
     sloganController.text = settings.slogan;
+    announcementController.text = settings.announcement;
+    addressController.text = settings.address;
+    hoursController.text = settings.openingHours;
+    wifiNameController.text = settings.wifiName;
+    wifiPasswordController.text = settings.wifiPassword;
     colorKey = settings.colorKey;
     type = settings.type;
   }
@@ -46,18 +56,29 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
   void dispose() {
     nameController.dispose();
     sloganController.dispose();
+    announcementController.dispose();
+    addressController.dispose();
+    hoursController.dispose();
+    wifiNameController.dispose();
+    wifiPasswordController.dispose();
     super.dispose();
   }
 
   Future<void> save() async {
     if (!formKey.currentState!.validate()) return;
 
-    final settings = VenueSettings(
+    // Vezmeme současné nastavení a změníme jen to, co je na této obrazovce
+    // (pořadí kategorií a otevřeno/zavřeno zůstanou, jak jsou).
+    final settings = VenueScope.of(context).copyWith(
       name: nameController.text.trim(),
       slogan: sloganController.text.trim(),
       colorKey: colorKey,
       type: type,
-      categoryOrder: VenueScope.of(context).categoryOrder,
+      announcement: announcementController.text.trim(),
+      address: addressController.text.trim(),
+      openingHours: hoursController.text.trim(),
+      wifiName: wifiNameController.text.trim(),
+      wifiPassword: wifiPasswordController.text.trim(),
     );
 
     setState(() => isSaving = true);
@@ -113,6 +134,63 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
             const SizedBox(height: 24),
             buildSectionTitle('Barva aplikace'),
             buildPalettePicker(),
+            const SizedBox(height: 24),
+            buildSectionTitle('Oznámení v menu'),
+            TextFormField(
+              controller: announcementController,
+              decoration: const InputDecoration(
+                labelText: 'Oznámení (nepovinné)',
+                hintText: 'Např. Dnes −20 % na všechny dezerty',
+                prefixIcon: Icon(Icons.campaign_outlined),
+              ),
+              maxLength: 120,
+              textCapitalization: TextCapitalization.sentences,
+            ),
+            Text(
+              'Zobrazí se zákazníkům nahoře v menu. '
+              'Když pole vymažete, oznámení zmizí.',
+              style: TextStyle(color: context.colors.muted),
+            ),
+            const SizedBox(height: 24),
+            buildSectionTitle('Informace pro zákazníky'),
+            TextFormField(
+              controller: addressController,
+              decoration: const InputDecoration(
+                labelText: 'Adresa',
+                prefixIcon: Icon(Icons.place_outlined),
+              ),
+              maxLength: 100,
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: hoursController,
+              decoration: const InputDecoration(
+                labelText: 'Otevírací doba',
+                hintText: 'Po–Pá 8:00–20:00\nSo–Ne 9:00–18:00',
+                prefixIcon: Icon(Icons.schedule),
+              ),
+              minLines: 2,
+              maxLines: 5,
+              maxLength: 300,
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: wifiNameController,
+              decoration: const InputDecoration(
+                labelText: 'Název Wi-Fi',
+                prefixIcon: Icon(Icons.wifi),
+              ),
+              maxLength: 50,
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: wifiPasswordController,
+              decoration: const InputDecoration(
+                labelText: 'Heslo k Wi-Fi',
+                prefixIcon: Icon(Icons.key_outlined),
+              ),
+              maxLength: 50,
+            ),
             const SizedBox(height: 24),
             // Kategorie mají vlastní obrazovku (změny se tam ukládají hned).
             Card(

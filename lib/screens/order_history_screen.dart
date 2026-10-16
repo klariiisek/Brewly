@@ -186,7 +186,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Stůl ${order.tableNumber} • ${formatItemCount(order.items.length)}',
+                      // Kdy (dnes / datum), stůl a počet položek.
+                      '${formatOrderDate(order.time)} • Stůl ${order.tableNumber} • '
+                      '${formatItemCount(order.items.length)}',
                       style: TextStyle(color: context.colors.muted),
                     ),
                   ],
