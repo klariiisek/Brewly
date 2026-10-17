@@ -137,8 +137,8 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   Widget buildMenu(List<Product> menuProducts) {
-    // Pořadí kategorií podle nastavení podniku (určuje admin).
-    final allProducts = VenueScope.of(context).sortProducts(menuProducts);
+    // Produkty už jsou seřazené podle pořadí kategorií (určuje admin).
+    final allProducts = menuProducts;
     final products = filterProducts(allProducts);
 
     final venue = VenueScope.of(context);

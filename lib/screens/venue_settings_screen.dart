@@ -374,7 +374,7 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
                   ),
                   const SizedBox(height: 4),
                   SizedBox(
-                    width: 64,
+                    width: 76,
                     child: Text(
                       palette.label,
                       textAlign: TextAlign.center,

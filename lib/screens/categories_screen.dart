@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 
+import '../models/menu_category.dart';
 import '../models/product.dart';
-import '../models/venue_settings.dart';
 import '../services/app_services.dart';
+import '../services/category_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
-import '../utils/text.dart';
 import '../widgets/app_message.dart';
+import '../widgets/category_name_dialog.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/product_card.dart';
 
 // Správa kategorií pro admina: pořadí (přetažením), přidání,
 // přejmenování a smazání prázdné kategorie. Každá změna se hned uloží.
 //
-// Kategorie je údaj u produktu ("Káva"). Pořadí kategorií – a kategorie
-// založené dopředu, zatím bez produktů – jsou v nastavení podniku.
+// Kategorie jsou samostatná kolekce "categories" (název + pořadí)
+// a produkty na ně odkazují přes categoryId.
 class CategoriesScreen extends StatefulWidget {
   final AppServices services;
 
@@ -25,29 +26,32 @@ class CategoriesScreen extends StatefulWidget {
 }
 
 class _CategoriesScreenState extends State<CategoriesScreen> {
+  late final Stream<List<MenuCategory>> categoriesStream;
   late final Stream<List<Product>> productsStream;
 
-  // Poslední načtené produkty (kvůli počtům a přejmenování).
+  // Poslední načtené kategorie a produkty (kvůli počtům produktů).
+  List<MenuCategory> categories = [];
   List<Product> products = [];
+
+  CategoryService get categoryService => widget.services.products.categories;
 
   @override
   void initState() {
     super.initState();
+    categoriesStream = categoryService.watchCategories();
     productsStream = widget.services.products.watchProducts();
   }
 
-  VenueSettings get settings => VenueScope.of(context);
+  int productCount(MenuCategory category) =>
+      products.where((product) => product.categoryId == category.id).length;
 
-  // Kategorie v aktuálním pořadí.
-  List<String> get categories => settings.allCategories(products);
+  List<String> get names =>
+      categories.map((category) => category.name).toList();
 
-  int productCount(String category) =>
-      products.where((product) => product.category == category).length;
-
-  // Uloží nové pořadí kategorií do nastavení podniku.
-  Future<void> saveOrder(List<String> order, String message) async {
+  // Spustí změnu v databázi a ukáže hlášku (nebo chybu).
+  Future<void> run(Future<void> Function() action, String message) async {
     try {
-      await widget.services.settings.saveCategoryOrder(settings, order);
+      await action();
       if (!mounted) return;
       showAppMessage(context, message);
     } catch (error) {
@@ -60,103 +64,47 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     final order = [...categories];
     final category = order.removeAt(oldIndex);
     order.insert(newIndex, category);
-    saveOrder(order, 'Pořadí uloženo');
-  }
-
-  // Okno s textovým polem pro název kategorie. Vrátí název, nebo null.
-  // Hlídá, aby název nebyl prázdný a aby taková kategorie ještě nebyla.
-  Future<String?> askForName({
-    required String title,
-    required String buttonText,
-    String initialName = '',
-  }) {
-    final controller = TextEditingController(text: initialName);
-    final formKey = GlobalKey<FormState>();
-
-    return showDialog<String>(
-      context: context,
-      builder: (context) {
-        void submit() {
-          if (formKey.currentState!.validate()) {
-            Navigator.pop(context, controller.text.trim());
-          }
-        }
-
-        return AlertDialog(
-          title: Text(title),
-          content: Form(
-            key: formKey,
-            child: TextFormField(
-              controller: controller,
-              autofocus: true,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(labelText: 'Název kategorie'),
-              onFieldSubmitted: (_) => submit(),
-              validator: (value) {
-                final name = (value ?? '').trim();
-                if (name.isEmpty) return 'Zadejte název';
-                final isTaken = categories.any((category) =>
-                    normalizeText(category) == normalizeText(name) &&
-                    normalizeText(category) != normalizeText(initialName));
-                if (isTaken) return 'Taková kategorie už je';
-                return null;
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Zrušit'),
-            ),
-            ElevatedButton(onPressed: submit, child: Text(buttonText)),
-          ],
-        );
-      },
-    );
+    // Hned překreslíme v novém pořadí, databáze se uloží na pozadí.
+    setState(() => categories = order);
+    run(() => categoryService.saveOrder(order), 'Pořadí uloženo');
   }
 
   Future<void> addCategory() async {
-    final name = await askForName(
+    final name = await askForCategoryName(
+      context,
       title: 'Nová kategorie',
       buttonText: 'Přidat',
+      existingNames: names,
     );
     if (name == null) return;
-    await saveOrder(
-      [...categories, name],
+    await run(
+      () => categoryService.addCategory(name, order: categories.length),
       'Kategorie $name přidána – teď do ní přidejte produkty',
     );
   }
 
-  Future<void> renameCategory(String oldName) async {
-    final newName = await askForName(
+  // Přejmenování změní jen jeden dokument kategorie. Produkty se nemění,
+  // protože odkazují na ID kategorie – výhoda samostatné kolekce.
+  Future<void> renameCategory(MenuCategory category) async {
+    final name = await askForCategoryName(
+      context,
       title: 'Přejmenovat kategorii',
       buttonText: 'Přejmenovat',
-      initialName: oldName,
+      existingNames: names,
+      initialName: category.name,
     );
-    if (newName == null || newName == oldName) return;
-
-    // Nové pořadí: na stejném místě bude nový název.
-    final order = [
-      for (final category in categories)
-        category == oldName ? newName : category,
-    ];
-    try {
-      // Nejdřív produkty, pak pořadí v nastavení.
-      await widget.services.products.renameCategory(oldName, newName);
-      await widget.services.settings.saveCategoryOrder(settings, order);
-      if (!mounted) return;
-      showAppMessage(context, 'Přejmenováno na $newName');
-    } catch (error) {
-      if (!mounted) return;
-      showAppMessage(context, 'Kategorii se nepodařilo přejmenovat');
-    }
+    if (name == null || name == category.name) return;
+    await run(
+      () => categoryService.renameCategory(category.id, name),
+      'Přejmenováno na $name',
+    );
   }
 
-  Future<void> deleteCategory(String category) async {
+  Future<void> deleteCategory(MenuCategory category) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Smazat kategorii $category?'),
+        title: Text('Smazat kategorii ${category.name}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -170,9 +118,9 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       ),
     );
     if (confirmed != true) return;
-    await saveOrder(
-      categories.where((name) => name != category).toList(),
-      'Kategorie $category smazána',
+    await run(
+      () => categoryService.deleteCategory(category.id),
+      'Kategorie ${category.name} smazána',
     );
   }
 
@@ -185,35 +133,41 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Přidat kategorii'),
       ),
+      // Dva proudy: produkty (kvůli počtům) a kategorie.
       body: StreamBuilder<List<Product>>(
         stream: productsStream,
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return const EmptyState(
-              icon: Icons.cloud_off,
-              title: 'Kategorie se nepodařilo načíst',
-              message: 'Zkontrolujte připojení k internetu.',
-            );
-          }
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          products = snapshot.data!;
-          final list = categories;
-          if (list.isEmpty) {
-            return const EmptyState(
-              icon: Icons.category_outlined,
-              title: 'Zatím žádné kategorie',
-              message: 'Přidejte první kategorii tlačítkem dole.',
-            );
-          }
-          return buildList(list);
+        builder: (context, productSnapshot) {
+          products = productSnapshot.data ?? products;
+          return StreamBuilder<List<MenuCategory>>(
+            stream: categoriesStream,
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return const EmptyState(
+                  icon: Icons.cloud_off,
+                  title: 'Kategorie se nepodařilo načíst',
+                  message: 'Zkontrolujte připojení k internetu.',
+                );
+              }
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              categories = snapshot.data!;
+              if (categories.isEmpty) {
+                return const EmptyState(
+                  icon: Icons.category_outlined,
+                  title: 'Zatím žádné kategorie',
+                  message: 'Přidejte první kategorii tlačítkem dole.',
+                );
+              }
+              return buildList();
+            },
+          );
         },
       ),
     );
   }
 
-  Widget buildList(List<String> list) {
+  Widget buildList() {
     return ListView(
       // Dole místo navíc, aby poslední kategorii nezakrývalo tlačítko.
       padding: const EdgeInsets.only(top: 8, bottom: 96),
@@ -233,23 +187,24 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           buildDefaultDragHandles: false,
           onReorderItem: move,
           children: [
-            for (var i = 0; i < list.length; i++)
-              buildCategoryTile(list[i], i),
+            for (var i = 0; i < categories.length; i++)
+              buildCategoryTile(categories[i], i),
           ],
         ),
       ],
     );
   }
 
-  Widget buildCategoryTile(String category, int index) {
+  Widget buildCategoryTile(MenuCategory category, int index) {
     final count = productCount(category);
 
     return Card(
-      key: ValueKey(category),
+      key: ValueKey(category.id),
       child: ListTile(
-        leading: Icon(categoryIcon(category), color: context.colors.primary),
+        leading:
+            Icon(categoryIcon(category.name), color: context.colors.primary),
         title: Text(
-          category,
+          category.name,
           style: TextStyle(
             fontWeight: FontWeight.w600,
             color: context.colors.dark,

@@ -127,6 +127,7 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
               '• První řádek může být záhlaví (název;cena;kategorie;popis).\n'
               '• Cena je číslo v Kč, např. 72 nebo 72,50.\n'
               '• Popis není povinný.\n'
+              '• Kategorie, která v menu ještě není, se sama vytvoří.\n'
               '• Produkt se stejným názvem, jaký už v menu je, se jen '
               'aktualizuje (cena, kategorie, popis).',
               style: textStyle,

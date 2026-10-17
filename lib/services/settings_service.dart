@@ -28,9 +28,4 @@ class SettingsService {
   Future<void> setOpen(bool isOpen) {
     return _venue.set({'isOpen': isOpen}, SetOptions(merge: true));
   }
-
-  // Uloží jen nové pořadí kategorií (ostatní nastavení zůstane, jak je).
-  Future<void> saveCategoryOrder(VenueSettings current, List<String> order) {
-    return saveSettings(current.copyWith(categoryOrder: order));
-  }
 }

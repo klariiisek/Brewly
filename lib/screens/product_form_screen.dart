@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../models/menu_category.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
+import '../widgets/category_name_dialog.dart';
 
 // Formulář pro admina: nový produkt, nebo úprava existujícího.
 class ProductFormScreen extends StatefulWidget {
@@ -12,14 +14,10 @@ class ProductFormScreen extends StatefulWidget {
   // null = přidáváme nový produkt.
   final Product? product;
 
-  // Kategorie, které už v menu jsou (nabídnou se jako štítky).
-  final List<String> categories;
-
   const ProductFormScreen({
     super.key,
     required this.productService,
     this.product,
-    this.categories = const [],
   });
 
   @override
@@ -30,10 +28,14 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   final formKey = GlobalKey<FormState>();
   late final TextEditingController nameController;
   late final TextEditingController priceController;
-  late final TextEditingController categoryController;
   late final TextEditingController descriptionController;
   bool isAvailable = true;
   bool isSaving = false;
+
+  // Vybraná kategorie (ID z kolekce kategorií) a seznam všech kategorií.
+  String? categoryId;
+  late final Stream<List<MenuCategory>> categoriesStream;
+  List<MenuCategory> categories = [];
 
   bool get isEditing => widget.product != null;
 
@@ -46,17 +48,18 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     priceController = TextEditingController(
       text: product == null ? '' : formatPriceInput(product.price),
     );
-    categoryController = TextEditingController(text: product?.category ?? '');
     descriptionController =
         TextEditingController(text: product?.description ?? '');
     isAvailable = product?.isAvailable ?? true;
+    final currentCategory = product?.categoryId ?? '';
+    categoryId = currentCategory.isEmpty ? null : currentCategory;
+    categoriesStream = widget.productService.categories.watchCategories();
   }
 
   @override
   void dispose() {
     nameController.dispose();
     priceController.dispose();
-    categoryController.dispose();
     descriptionController.dispose();
     super.dispose();
   }
@@ -85,6 +88,26 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     return null;
   }
 
+  // Založí novou kategorii (na konec pořadí) a rovnou ji vybere.
+  Future<void> addCategory() async {
+    final name = await askForCategoryName(
+      context,
+      title: 'Nová kategorie',
+      buttonText: 'Přidat',
+      existingNames: categories.map((category) => category.name).toList(),
+    );
+    if (name == null) return;
+    try {
+      final id = await widget.productService.categories
+          .addCategory(name, order: categories.length);
+      if (!mounted) return;
+      setState(() => categoryId = id);
+    } catch (error) {
+      if (!mounted) return;
+      showAppMessage(context, 'Kategorii se nepodařilo přidat');
+    }
+  }
+
   Future<void> save() async {
     if (!formKey.currentState!.validate()) return;
 
@@ -92,7 +115,12 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       id: widget.product?.id ?? '',
       name: nameController.text.trim(),
       price: parsePrice(priceController.text)!,
-      category: categoryController.text.trim(),
+      categoryId: categoryId!,
+      category: categories
+          .firstWhere((category) => category.id == categoryId,
+              orElse: () =>
+                  MenuCategory(id: categoryId!, name: '', order: 0))
+          .name,
       description: descriptionController.text.trim(),
       isAvailable: isAvailable,
     );
@@ -151,6 +179,61 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     }
   }
 
+  // Výběr kategorie: štítky se všemi kategoriemi + "Nová kategorie".
+  // FormField = vlastní pole formuláře, aby šlo zkontrolovat, že je vybráno.
+  Widget buildCategoryPicker() {
+    return StreamBuilder<List<MenuCategory>>(
+      stream: categoriesStream,
+      builder: (context, snapshot) {
+        categories = snapshot.data ?? categories;
+        return FormField<String>(
+          validator: (_) => categoryId == null ? 'Vyberte kategorii' : null,
+          builder: (field) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Kategorie',
+                style: TextStyle(color: context.colors.muted),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final category in categories)
+                    ChoiceChip(
+                      label: Text(category.name),
+                      selected: category.id == categoryId,
+                      onSelected: (_) {
+                        setState(() => categoryId = category.id);
+                        field.didChange(category.id);
+                      },
+                    ),
+                  ActionChip(
+                    avatar: const Icon(Icons.add, size: 18),
+                    label: const Text('Nová kategorie'),
+                    onPressed: addCategory,
+                  ),
+                ],
+              ),
+              if (field.hasError)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    field.errorText!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -188,30 +271,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
               validator: validatePrice,
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: categoryController,
-              decoration: const InputDecoration(labelText: 'Kategorie'),
-              textCapitalization: TextCapitalization.sentences,
-              validator: (value) =>
-                  validateRequired(value, 'Zadejte kategorii'),
-            ),
-            // Štítky s existujícími kategoriemi – stačí kliknout.
-            if (widget.categories.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  for (final category in widget.categories)
-                    ActionChip(
-                      label: Text(category),
-                      onPressed: () => setState(() {
-                        categoryController.text = category;
-                      }),
-                    ),
-                ],
-              ),
-            ],
+            buildCategoryPicker(),
             const SizedBox(height: 16),
             TextFormField(
               controller: descriptionController,

@@ -61,6 +61,22 @@ Future<Widget> buildTestApp({
   );
 }
 
+// Názvy kategorií v databázi v jejich pořadí (podle pole order).
+Future<List<String>> categoryNames(FakeFirebaseFirestore db) async {
+  final docs = (await db.collection('categories').orderBy('order').get()).docs;
+  return docs.map((doc) => doc.data()['name'] as String).toList();
+}
+
+// ID kategorie podle názvu.
+Future<String> categoryIdOf(FakeFirebaseFirestore db, String name) async {
+  final docs = (await db
+          .collection('categories')
+          .where('name', isEqualTo: name)
+          .get())
+      .docs;
+  return docs.single.id;
+}
+
 // Spustí aplikaci a počká, až se načte (nastavení podniku z databáze).
 Future<void> pumpApp(WidgetTester tester, Widget app) async {
   await tester.pumpWidget(app);
@@ -550,8 +566,8 @@ void main() {
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Název'), 'Flat white');
     await tester.enterText(find.widgetWithText(TextFormField, 'Cena'), '72,5');
-    // Kategorie kliknutím na existující štítek.
-    await tester.tap(find.widgetWithText(ActionChip, 'Káva'));
+    // Kategorie kliknutím na štítek.
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Káva'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Uložit'));
     await tester.pumpAndSettle();
@@ -563,7 +579,9 @@ void main() {
         .where('name', isEqualTo: 'Flat white')
         .get();
     expect(saved.docs.single.data()['price'], 72.5);
-    expect(saved.docs.single.data()['category'], 'Káva');
+    // Produkt odkazuje na kategorii přes její ID (cizí klíč).
+    expect(saved.docs.single.data()['categoryId'],
+        await categoryIdOf(db, 'Káva'));
     expect(saved.docs.single.data()['available'], true);
   });
 
@@ -709,29 +727,28 @@ void main() {
     expect(find.text('Espresso'), findsOneWidget);
   });
 
-  test('Nastavení podniku: výchozí hodnoty a pořadí kategorií', () {
+  test('Nastavení podniku: výchozí hodnoty', () {
     final settings = VenueSettings.fromMap({
       'name': 'Bar U Lípy',
       'type': 'bar',
-      'categoryOrder': ['Koktejly', 'Pivo'],
     });
     expect(settings.name, 'Bar U Lípy');
     expect(settings.type, VenueType.bar);
     // Co v databázi chybí, doplní se z výchozího nastavení.
     expect(settings.colorKey, 'kava');
-    // Kategorie mimo pořadí jsou na konci podle abecedy.
-    expect(settings.sortCategories(['Víno', 'Pivo', 'Jídlo', 'Koktejly']),
-        ['Koktejly', 'Pivo', 'Jídlo', 'Víno']);
     // Neznámá paleta = kávová.
     expect(paletteFor('neexistuje').key, 'kava');
   });
 
-  testWidgets('Menu řadí kategorie podle nastavení podniku',
+  testWidgets('Menu řadí kategorie podle jejich pořadí',
       (WidgetTester tester) async {
     final db = FakeFirebaseFirestore();
-    await db.collection('settings').doc('venue').set({
-      'categoryOrder': ['Nápoje', 'Dezerty', 'Káva'],
-    });
+    await ProductService(db).uploadSampleMenu();
+    // Nápoje dáme na první místo.
+    await db
+        .collection('categories')
+        .doc(await categoryIdOf(db, 'Nápoje'))
+        .update({'order': -1});
 
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
@@ -777,7 +794,6 @@ void main() {
     expect(saved['name'], 'Bar U Lípy');
     expect(saved['type'], 'bar');
     expect(saved['color'], 'bordo');
-    expect(saved['categoryOrder'], ['Káva', 'Dezerty', 'Nápoje']);
 
     // Zpět na úvod: nový název, ikona baru a celá aplikace v barvě bordó.
     await tester.pageBack();
@@ -815,24 +831,23 @@ void main() {
     await tester.tap(find.text('Přidat'));
     await tester.pumpAndSettle();
     expect(find.text('0 produktů'), findsOneWidget);
-    var order = (await db.collection('settings').doc('venue').get())
-        .data()!['categoryOrder'];
-    expect(order, ['Káva', 'Dezerty', 'Nápoje', 'Snídaně']);
+    expect(await categoryNames(db), ['Káva', 'Dezerty', 'Nápoje', 'Snídaně']);
 
-    // Přejmenuje Dezerty na Sladké – změní se i u produktů.
+    // Přejmenuje Dezerty na Sladké. Změní se jen dokument kategorie –
+    // produkty na ni dál odkazují stejným ID.
+    final dessertsId = await categoryIdOf(db, 'Dezerty');
     await tester.tap(find.byTooltip('Přejmenovat').at(1));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField), 'Sladké');
     await tester.tap(find.widgetWithText(ElevatedButton, 'Přejmenovat'));
     await tester.pumpAndSettle();
+    expect(await categoryIdOf(db, 'Sladké'), dessertsId);
     final sweets = await db
         .collection('products')
-        .where('category', isEqualTo: 'Sladké')
+        .where('categoryId', isEqualTo: dessertsId)
         .get();
     expect(sweets.docs.length, 2);
-    order = (await db.collection('settings').doc('venue').get())
-        .data()!['categoryOrder'];
-    expect(order, ['Káva', 'Sladké', 'Nápoje', 'Snídaně']);
+    expect(await categoryNames(db), ['Káva', 'Sladké', 'Nápoje', 'Snídaně']);
 
     // Smazat jde jen prázdnou kategorii (Snídaně je poslední).
     await tester.tap(find.byTooltip('Smazat').last);
@@ -840,9 +855,7 @@ void main() {
     await tester.tap(find.widgetWithText(ElevatedButton, 'Smazat'));
     await tester.pumpAndSettle();
     expect(find.text('Snídaně'), findsNothing);
-    order = (await db.collection('settings').doc('venue').get())
-        .data()!['categoryOrder'];
-    expect(order, ['Káva', 'Sladké', 'Nápoje']);
+    expect(await categoryNames(db), ['Káva', 'Sladké', 'Nápoje']);
   });
 
   testWidgets('Zavřeno: menu to ukáže a objednat nejde',
@@ -915,7 +928,6 @@ void main() {
       slogan: '',
       colorKey: 'kava',
       type: VenueType.restaurace,
-      categoryOrder: [],
       isOpen: false,
       wifiName: 'Bistro',
     );
@@ -997,5 +1009,38 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Dokončené (1)'), findsOneWidget);
+  });
+
+  test('Převod starých produktů: kategorie z textu do kolekce', () async {
+    final db = FakeFirebaseFirestore();
+    // Starý formát: kategorie jako text, pořadí v nastavení podniku.
+    await db.collection('settings').doc('venue').set({
+      'categoryOrder': ['Dezerty', 'Káva'],
+    });
+    await db.collection('products').add(
+        {'name': 'Latte', 'price': 70, 'category': 'Káva', 'description': ''});
+    await db.collection('products').add(
+        {'name': 'Dort', 'price': 80, 'category': 'Dezerty', 'description': ''});
+
+    final productService = ProductService(db);
+    expect(await productService.migrateCategories(), 2);
+
+    expect(await categoryNames(db), ['Dezerty', 'Káva']);
+    final latte = (await db
+            .collection('products')
+            .where('name', isEqualTo: 'Latte')
+            .get())
+        .docs
+        .single
+        .data();
+    expect(latte['categoryId'], await categoryIdOf(db, 'Káva'));
+    expect(latte.containsKey('category'), false);
+    // Podruhé už není co převádět.
+    expect(await productService.migrateCategories(), 0);
+
+    // Menu spojí produkty s kategoriemi (jako JOIN) a seřadí je.
+    final menu = await productService.watchProducts().first;
+    expect(menu.map((p) => '${p.category}: ${p.name}'),
+        ['Dezerty: Dort', 'Káva: Latte']);
   });
 }

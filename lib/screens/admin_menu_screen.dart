@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/product.dart';
-import '../models/venue_settings.dart';
 import '../services/app_services.dart';
+import '../services/product_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
 import '../widgets/empty_state.dart';
@@ -28,8 +28,9 @@ class AdminMenuScreen extends StatefulWidget {
 class _AdminMenuScreenState extends State<AdminMenuScreen> {
   late final Stream<List<Product>> productsStream;
 
-  // Poslední načtené produkty – formulář z nich nabízí existující kategorie.
+  // Poslední načtené produkty.
   List<Product> products = [];
+  bool isMigrating = false;
 
   // Text z vyhledávacího pole.
   final searchController = TextEditingController();
@@ -69,9 +70,21 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
     );
   }
 
-  // Všechny kategorie (i ty založené dopředu bez produktů) v nastaveném pořadí.
-  List<String> get categories =>
-      VenueScope.of(context).allCategories(products);
+  // Převod starých produktů (kategorie jako text) na odkazy do kolekce
+  // kategorií. Stačí jednou – pak upozornění zmizí.
+  Future<void> migrateCategories() async {
+    setState(() => isMigrating = true);
+    try {
+      final count = await widget.services.products.migrateCategories();
+      if (!mounted) return;
+      showAppMessage(context, 'Převedeno produktů: $count');
+    } catch (error) {
+      if (!mounted) return;
+      showAppMessage(context, 'Převod se nepodařil');
+    } finally {
+      if (mounted) setState(() => isMigrating = false);
+    }
+  }
 
   Future<void> toggleAvailable(Product product, bool isAvailable) async {
     try {
@@ -97,7 +110,6 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
         builder: (context) => ProductFormScreen(
           productService: widget.services.products,
           product: product,
-          categories: categories,
         ),
       ),
     );
@@ -145,8 +157,8 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          // Seřazené podle pořadí kategorií z nastavení podniku.
-          products = VenueScope.of(context).sortProducts(snapshot.data!);
+          // Už seřazené podle pořadí kategorií (z kolekce kategorií).
+          products = snapshot.data!;
           if (products.isEmpty) {
             return EmptyState(
               icon: Icons.menu_book,
@@ -159,11 +171,47 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
           }
           return Column(
             children: [
+              if (ProductService.needsCategoryMigration(products))
+                buildMigrationBanner(),
               buildSearchField(),
               Expanded(child: buildList(filteredProducts)),
             ],
           );
         },
+      ),
+    );
+  }
+
+  // Upozornění: produkty mají ještě starý formát kategorií (text).
+  Widget buildMigrationBanner() {
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Kategorie mají nový formát',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: context.colors.dark,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Některé produkty mají kategorii uloženou postaru jako text. '
+              'Převeďte je, aby šly upravovat.',
+              style: TextStyle(color: context.colors.muted),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: isMigrating ? null : migrateCategories,
+              child: Text(isMigrating ? 'Převádím…' : 'Převést kategorie'),
+            ),
+          ],
+        ),
       ),
     );
   }

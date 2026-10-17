@@ -1,0 +1,91 @@
+// Databáze aplikace Brewly (Cloud Firestore) – zápis pro https://dbdiagram.io
+// Firestore je NoSQL databáze: "tabulky" jsou kolekce, "řádky" dokumenty.
+// Vztahy (ref) hlídají bezpečnostní pravidla Firestore (firestore.rules).
+
+Project brewly {
+  database_type: 'Cloud Firestore (NoSQL)'
+  Note: 'Maturitní projekt – aplikace pro kavárnu, bar nebo restauraci'
+}
+
+Table users {
+  uid varchar [pk, note: 'ID účtu z Firebase Authentication']
+  name varchar
+  email varchar
+  role varchar [note: 'zakaznik | obsluha | admin']
+  createdAt timestamp
+}
+
+Table categories {
+  id varchar [pk]
+  name varchar [note: 'např. Káva, Dezerty, Pivo']
+  "order" int [note: 'pořadí v menu (0 = první)']
+}
+
+Table products {
+  id varchar [pk]
+  name varchar
+  price decimal
+  categoryId varchar [ref: > categories.id]
+  description text
+  available boolean [note: 'false = vyprodáno']
+}
+
+Table orders {
+  id varchar [pk]
+  number int [note: 'číslo pro lidi, každý den od 1']
+  totalPrice decimal
+  tableNumber int [ref: > tables.number]
+  tableCode varchar [note: 'tajný kód stolu z QR kódu (ověří pravidla)']
+  status varchar [note: 'prijata | pripravujeSe | pripravena | dokoncena']
+  userId varchar [ref: > users.uid]
+  customerName varchar
+  createdAt timestamp [note: 'čas serveru']
+}
+
+Table order_items {
+  orderId varchar [ref: > orders.id]
+  name varchar
+  price decimal
+  category varchar
+  description text
+  quantity int
+  Note: '''Vnořený seznam "items" uvnitř dokumentu objednávky.
+Je to KOPIE produktu z doby objednání (záměrná denormalizace):
+pozdější změna ceny nebo smazání produktu historii nezmění.'''
+}
+
+Table requests {
+  id varchar [pk, note: 'uid_typ – každý zákazník max. 1 čekající požadavek od typu']
+  type varchar [note: 'obsluha | platba']
+  status varchar [note: 'cekajici | vyrizeno']
+  tableNumber int [ref: > tables.number]
+  tableCode varchar
+  userId varchar [ref: > users.uid]
+  customerName varchar
+  createdAt timestamp
+}
+
+Table tables {
+  number int [pk, note: '1–10 (ID dokumentu)']
+  code varchar [note: 'tajný kód v QR kódu na stole']
+}
+
+Table counters {
+  id varchar [pk, note: 'jediný dokument "orders"']
+  last int [note: 'poslední přidělené číslo objednávky']
+  day int [note: 'den YYYYMMDD – nový den = čísla od 1']
+}
+
+Table settings {
+  id varchar [pk, note: 'jediný dokument "venue"']
+  name varchar
+  slogan varchar
+  color varchar [note: 'klíč barevné palety, např. kava, bordo']
+  type varchar [note: 'kavarna | cukrarna | bar | pivnice | restaurace']
+  isOpen boolean
+  announcement varchar
+  address varchar
+  openingHours text
+  wifiName varchar
+  wifiPassword varchar
+}

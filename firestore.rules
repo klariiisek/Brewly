@@ -56,17 +56,36 @@ service cloud.firestore {
       allow read: if true;
 
       // Má produkt všechny údaje ve správném tvaru?
+      // categoryId musí odkazovat na existující kategorii – jako cizí klíč
+      // v relační databázi. (existsAfter = po zápisu, aby šlo kategorii
+      // a produkt založit v jednom hromadném zápisu.)
       function isValidProduct() {
         let product = request.resource.data;
-        return product.keys().hasOnly(['name', 'price', 'category', 'description', 'available'])
+        return product.keys().hasOnly(['name', 'price', 'categoryId', 'description', 'available'])
           && product.name is string && product.name.size() > 0
           && product.price is number && product.price > 0
-          && product.category is string && product.category.size() > 0
+          && product.categoryId is string
+          && existsAfter(/databases/$(database)/documents/categories/$(product.categoryId))
           && product.description is string
           && product.get('available', true) is bool;
       }
 
       allow create, update: if isAdmin() && isValidProduct();
+      allow delete: if isAdmin();
+    }
+
+    // ---------- Kategorie menu ----------
+    // Vidí je každý, měnit je smí jen admin. Kategorie má jen název a pořadí.
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['name', 'order'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 40
+        && request.resource.data.order is int;
+      // Že je kategorie prázdná (bez produktů), kontroluje aplikace –
+      // pravidla neumí prohledat jinou kolekci.
       allow delete: if isAdmin();
     }
 
