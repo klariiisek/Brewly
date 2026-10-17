@@ -143,10 +143,19 @@ service cloud.firestore {
         && request.auth.uid == userId
         && request.resource.data.role == 'zakaznik';
 
-      // Svůj profil může upravit, ale roli si změnit nesmí.
+      // Svůj profil může upravit (jméno a avatar), ale roli si změnit nesmí.
       allow update: if isSignedIn()
         && request.auth.uid == userId
-        && request.resource.data.role == resource.data.role;
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.keys().hasOnly(
+            ['name', 'email', 'role', 'createdAt', 'avatarIcon', 'avatarColor'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 40
+        && request.resource.data.get('avatarIcon', '') is string
+        && request.resource.data.get('avatarIcon', '').size() <= 20
+        && request.resource.data.get('avatarColor', '') is string
+        && request.resource.data.get('avatarColor', '').size() <= 20;
 
       allow delete: if false;
     }

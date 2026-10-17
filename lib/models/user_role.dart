@@ -13,6 +13,18 @@ enum UserRole {
 
   // Smí upravovat menu a nastavení podniku? (jen admin)
   bool get isAdmin => this == admin;
+
+  // Název role pro zobrazení v aplikaci.
+  String get label {
+    switch (this) {
+      case zakaznik:
+        return 'Zákazník';
+      case obsluha:
+        return 'Obsluha';
+      case admin:
+        return 'Admin';
+    }
+  }
 }
 
 // Převede text z databáze ("obsluha") na roli. Cokoli jiného = zákazník.

@@ -5,8 +5,9 @@ import '../services/app_services.dart';
 import 'cart_screen.dart';
 import 'menu_screen.dart';
 import 'order_history_screen.dart';
+import 'profile_screen.dart';
 
-// Hlavní obrazovka zákazníka se spodní lištou: Menu | Košík | Objednávky.
+// Hlavní obrazovka zákazníka se spodní lištou: Menu | Košík | Objednávky | Profil.
 class MainScreen extends StatefulWidget {
   final Cart cart;
   final AppServices services;
@@ -18,7 +19,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  // Která záložka je vybraná: 0 = Menu, 1 = Košík, 2 = Objednávky.
+  // Která záložka je vybraná: 0 = Menu, 1 = Košík, 2 = Objednávky, 3 = Profil.
   int selectedIndex = 0;
 
   // Překreslí obrazovku (hlavně číslo u košíku v liště).
@@ -63,6 +64,7 @@ class _MainScreenState extends State<MainScreen> {
             cart: cart,
             onGoToMenu: () => goToTab(0),
           ),
+          ProfileScreen(services: widget.services),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -91,6 +93,11 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.receipt_long_outlined),
             selectedIcon: Icon(Icons.receipt_long),
             label: 'Objednávky',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profil',
           ),
         ],
       ),
