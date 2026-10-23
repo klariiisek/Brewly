@@ -10,6 +10,7 @@ import 'models/cart.dart';
 import 'screens/home_screen.dart';
 import 'screens/main_screen.dart';
 import 'services/app_services.dart';
+import 'services/attendance_service.dart';
 import 'services/auth_service.dart';
 import 'services/order_service.dart';
 import 'services/product_service.dart';
@@ -62,6 +63,7 @@ Future<void> main() async {
     requests: RequestService(db),
     tables: TableService(db),
     settings: SettingsService(db),
+    attendance: AttendanceService(db),
   );
 
   // Košík se vytvoří jen jednou při spuštění aplikace a předává se obrazovkám.

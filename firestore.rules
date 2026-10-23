@@ -271,6 +271,80 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ---------- Docházka: kdo je právě v práci ----------
+    // activeShifts/{uid} = zaměstnanec dal Příchod a ještě nedal Odchod.
+    // Jeden dokument na člověka → Příchod nejde dát dvakrát.
+    match /activeShifts/{userId} {
+      // Svůj záznam vidí zaměstnanec, všechny vidí admin.
+      allow read: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+
+      // Příchod: jen obsluha, jen sama za sebe a s časem serveru
+      // (čas příchodu si nikdo nemůže posunout).
+      allow create: if isStaff()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['userId', 'userName', 'start'])
+        && request.resource.data.userId == userId
+        && request.resource.data.userName is string
+        && request.resource.data.userName.size() > 0
+        && request.resource.data.userName.size() <= 100
+        && request.resource.data.start == request.time;
+
+      // Čas příchodu se nedá změnit.
+      allow update: if false;
+
+      // Odchod (zaměstnanec sám) nebo ukončení zapomenuté směny (admin).
+      allow delete: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+    }
+
+    // ---------- Docházka: hotové směny ----------
+    match /shifts/{shiftId} {
+      // Své směny vidí zaměstnanec, všechny vidí admin.
+      allow read: if isSignedIn()
+        && (resource.data.get('userId', '') == request.auth.uid || isAdmin());
+
+      function activeShiftPath(userId) {
+        return /databases/$(database)/documents/activeShifts/$(userId);
+      }
+
+      // Hotová směna vzniká jen spolu s odchodem: příchod musí být přesně
+      // ten zapsaný v activeShifts a ten záznam se ve stejném zápisu smaže
+      // (existsAfter = stav po zápisu). Směny si tak nikdo nevymyslí.
+      function isValidShift() {
+        let shift = request.resource.data;
+        return shift.keys().hasOnly(['userId', 'userName', 'start', 'end', 'edited'])
+          && shift.userName is string
+          && shift.userName.size() <= 100
+          && exists(activeShiftPath(shift.userId))
+          && shift.start == get(activeShiftPath(shift.userId)).data.start
+          && !existsAfter(activeShiftPath(shift.userId));
+      }
+
+      // Odchod: obsluha sama za sebe, čas odchodu = čas serveru.
+      function isOwnClockOut() {
+        let shift = request.resource.data;
+        return isStaff()
+          && shift.userId == request.auth.uid
+          && shift.end == request.time
+          && shift.edited == false;
+      }
+
+      // Admin ukončí zapomenutou směnu: odchod zadá sám, ale musí být
+      // po příchodu a ne v budoucnosti. Směna se označí jako upravená.
+      function isAdminClose() {
+        let shift = request.resource.data;
+        return isAdmin()
+          && shift.end is timestamp
+          && shift.end > shift.start
+          && shift.end <= request.time
+          && shift.edited == true;
+      }
+
+      allow create: if isValidShift() && (isOwnClockOut() || isAdminClose());
+
+      // Hotové směny se nemění ani nemažou (jsou podkladem pro výplatu).
+      allow update, delete: if false;
+    }
+
     // ---------- Požadavky na obsluhu ----------
     // "Přivolat obsluhu" a "Chci zaplatit".
     match /requests/{requestId} {

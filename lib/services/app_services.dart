@@ -1,3 +1,4 @@
+import 'attendance_service.dart';
 import 'auth_service.dart';
 import 'order_service.dart';
 import 'product_service.dart';
@@ -16,6 +17,7 @@ class AppServices {
   final RequestService requests;
   final TableService tables;
   final SettingsService settings;
+  final AttendanceService attendance;
 
   const AppServices({
     required this.auth,
@@ -25,5 +27,6 @@ class AppServices {
     required this.requests,
     required this.tables,
     required this.settings,
+    required this.attendance,
   });
 }

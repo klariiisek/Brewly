@@ -8,6 +8,7 @@ import 'package:brewly/data/menu_data.dart';
 import 'package:brewly/models/cart.dart';
 import 'package:brewly/models/cart_item.dart';
 import 'package:brewly/services/app_services.dart';
+import 'package:brewly/services/attendance_service.dart';
 import 'package:brewly/services/auth_service.dart';
 import 'package:brewly/services/order_service.dart';
 import 'package:brewly/services/product_service.dart';
@@ -46,6 +47,7 @@ Future<Widget> buildTestApp({
       requests: RequestService(database),
       tables: TableService(database),
       settings: SettingsService(database),
+      attendance: AttendanceService(database),
     ),
   );
 }

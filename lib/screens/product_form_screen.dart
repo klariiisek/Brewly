@@ -206,7 +206,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
         borderRadius: BorderRadius.circular(AppRadius.medium),
         onTap: onTap,
         child: Container(
-          width: 76,
+          width: 82,
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
             color: selected
@@ -222,11 +222,15 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             children: [
               SizedBox(width: 44, height: 44, child: icon),
               const SizedBox(height: 4),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                style: TextStyle(fontSize: 11, color: context.colors.dark),
+              // Název na jeden řádek – dlouhý (Cappuccino) se jen trochu
+              // zmenší, místo aby se rozdělil uprostřed slova.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(fontSize: 11, color: context.colors.dark),
+                ),
               ),
             ],
           ),

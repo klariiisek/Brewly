@@ -23,6 +23,13 @@ String formatProductCount(int count) {
   return '$count produktů';
 }
 
+// Správný český tvar: 1 směna, 2–4 směny, 0 nebo 5 a víc směn.
+String formatShiftCount(int count) {
+  if (count == 1) return '1 směna';
+  if (count >= 2 && count <= 4) return '$count směny';
+  return '$count směn';
+}
+
 // Je datum dnes?
 bool isToday(DateTime time) {
   final now = DateTime.now();
@@ -33,4 +40,28 @@ bool isToday(DateTime time) {
 String formatOrderDate(DateTime time) {
   final day = isToday(time) ? 'dnes' : '${time.day}. ${time.month}.';
   return '$day ${formatTime(time)}';
+}
+// Délka ve tvaru "8 h 05 min", krátká jen "45 min".
+String formatDuration(Duration duration) {
+  final hours = duration.inHours;
+  final minutes = duration.inMinutes.remainder(60);
+  if (hours == 0) return '$minutes min';
+  return '$hours h ${minutes.toString().padLeft(2, '0')} min';
+}
+
+const _monthNames = [
+  'leden', 'únor', 'březen', 'duben', 'květen', 'červen',
+  'červenec', 'srpen', 'září', 'říjen', 'listopad', 'prosinec',
+];
+
+const _weekdayNames = ['po', 'út', 'st', 'čt', 'pá', 'so', 'ne'];
+
+// Měsíc a rok, např. "říjen 2026".
+String formatMonth(DateTime date) {
+  return '${_monthNames[date.month - 1]} ${date.year}';
+}
+
+// Den s názvem, např. "čt 23. 10.".
+String formatDay(DateTime date) {
+  return '${_weekdayNames[date.weekday - 1]} ${date.day}. ${date.month}.';
 }

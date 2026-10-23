@@ -57,4 +57,9 @@ class AppConfig {
   static const int maxWifiLength = 50; // [pravidla]
   static const int maxCategoryNameLength = 40; // [pravidla]
   static const int maxUserNameLength = 40;
+
+  // ---------- Docházka ----------
+
+  // Po kolika hodinách v práci upozorníme admina na možná zapomenutý odchod.
+  static const int forgottenShiftHours = 12;
 }

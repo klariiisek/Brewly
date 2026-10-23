@@ -64,7 +64,8 @@ Aplikace rozlišuje čtyři typy uživatelů. Co kdo smí, nehlídá jen aplikac
 - posouvání objednávek do dalšího stavu jedním tlačítkem,
 - vyřizování požadavků zákazníků,
 - přepínač **Otevřeno / Zavřeno** (když je zavřeno, nejde objednat),
-- **QR kódy stolů** k vytištění a jejich obnovení, kdyby kód unikl.
+- **QR kódy stolů** k vytištění a jejich obnovení, kdyby kód unikl,
+- **docházka** (jako v pokladním systému Dotykačka): tlačítka **Příchod** a **Odchod**, běžící čas směny a **odpracované hodiny za měsíc** se seznamem směn.
 
 ### 🧑‍💼 Admin (vedoucí podniku)
 Umí všechno co obsluha, a navíc:
@@ -75,9 +76,30 @@ Umí všechno co obsluha, a navíc:
   - název, slogan a typ podniku (kavárna, cukrárna, bar, pivnice, restaurace),
   - **barva aplikace** z 8 palet: celá aplikace se přebarví živě, i zákazníkům,
   - **oznámení v menu** (např. „Dnes −20 % na dezerty“),
-  - informace pro zákazníky: adresa, otevírací doba, Wi-Fi.
+  - informace pro zákazníky: adresa, otevírací doba, Wi-Fi,
+- **docházka zaměstnanců**: kdo je právě v práci, odpracované hodiny každého za měsíc a **ukončení zapomenuté směny** (po 12 hodinách aplikace upozorní na možná zapomenutý odchod).
 
 ### 📸 Ukázky
+
+**Úvodní obrazovka podle typu podniku.** Admin zvolí typ podniku a barvu: změní se ilustrace (u kavárny s animovanou párou) i vzor v pozadí celé aplikace. Kavárna má kávová zrnka, cukrárna posypky, bar hvězdičky a pivnice bublinky.
+
+![Úvodní obrazovka pro kavárnu, cukrárnu, bar a pivnici](docs/screenshots/uvod-typy-podniku.png)
+
+**Menu s vlastními ikonami nápojů.** Každý druh kávy má svůj šálek nebo sklenici, aplikace je kreslí sama. Dole plovoucí lišta košíku.
+
+![Menu s ikonami](docs/screenshots/menu-ikony.png)
+
+**Výběr ikony produktu.** Admin ikonu vybere, nebo nechá „Automaticky“ a aplikace ji odhadne podle názvu.
+
+<img src="docs/screenshots/vyber-ikony.png" alt="Výběr ikony produktu" width="500">
+
+**Docházka.** Vpravo obsluha: Příchod / Odchod a odpracované hodiny za měsíc. Vlevo admin: kdo je v práci a kolik kdo odpracoval.
+
+![Docházka obsluhy a přehled pro admina](docs/screenshots/dochazka.png)
+
+**Zapomenutý odchod.** Admin zadá čas odchodu (čas v budoucnosti aplikace nepřijme). Směna pak má poznámku „Odchod doplnil admin“.
+
+![Ukončení zapomenuté směny adminem](docs/screenshots/dochazka-oprava-adminem.png)
 
 **Košík a správa menu.** Vlevo košík zákazníka: produkt, který admin mezitím označil jako vyprodaný, se zešedí a objednat nejde, dokud ho zákazník neodebere. Vpravo správa menu s vyhledáváním a přepínačem vyprodáno.
 
@@ -192,6 +214,8 @@ flowchart TB
     tables[("tables<br/>stoly a tajné kódy")]
     products[("products<br/>produkty")]
     categories[("categories<br/>kategorie menu")]
+    active[("activeShifts<br/>kdo je právě v práci")]
+    shifts[("shifts<br/>hotové směny")]
 
     numbers -. "přidělí číslo" .-> orders
     orders --- items
@@ -201,11 +225,14 @@ flowchart TB
     requests -- "userId" --> users
     orders -- "tableNumber" --> tables
     requests -- "tableNumber" --> tables
+    active -- "userId" --> users
+    shifts -- "userId" --> users
+    active -. "při odchodu se přesune" .-> shifts
 
     classDef kolekce fill:#F3E9DF,stroke:#6F4E37,color:#3E2723
     classDef dokument fill:#FFF6D6,stroke:#C8894B,color:#3E2723
     classDef vnorene fill:#FFFFFF,stroke:#8D7B6F,stroke-dasharray:4 3,color:#3E2723
-    class users,categories,products,orders,requests,tables kolekce
+    class users,categories,products,orders,requests,tables,active,shifts kolekce
     class numbers,settings dokument
     class items vnorene
 ```
@@ -299,6 +326,22 @@ Transakce zaručí, že když objednají dva zákazníci ve stejnou chvíli, jed
 | `number` | číslo (ID dokumentu) | 1–10 |
 | `code` | text | tajný kód, který je v QR kódu na stole |
 
+#### `activeShifts`: kdo je právě v práci
+| Pole | Typ | Popis |
+|---|---|---|
+| `id` | text (ID dokumentu) | `uid` zaměstnance: každý má nejvýš jeden záznam, takže Příchod nejde dát dvakrát |
+| `userId`, `userName` | text | kdo je v práci |
+| `start` | čas | příchod, čas serveru |
+
+#### `shifts`: hotové směny (docházka)
+| Pole | Typ | Popis |
+|---|---|---|
+| `userId`, `userName` | text | čí je směna |
+| `start`, `end` | čas | příchod a odchod |
+| `edited` | ano/ne | `true` = odchod doplnil admin (zaměstnanec se zapomněl odhlásit) |
+
+Při **Odchodu** se v jednom hromadném zápisu (**batch**) vytvoří hotová směna a smaže záznam v `activeShifts`: buď se povede obojí, nebo nic. Odpracované hodiny za měsíc se nikam neukládají, aplikace je sečte ze směn (jako `SUM` v SQL).
+
 #### `orderNumbers/today`: čísla objednávek (náhrada AUTO_INCREMENT)
 | Pole | Typ | Popis |
 |---|---|---|
@@ -319,6 +362,7 @@ Jediný dokument s tím, co **mění admin přímo v aplikaci**: `name`, `slogan
 ### Vztahy
 - **uživatel 1 : N objednávky** (`orders.userId` → `users.uid`)
 - **uživatel 1 : N požadavky** (`requests.userId` → `users.uid`)
+- **zaměstnanec 1 : N směny** (`shifts.userId` → `users.uid`), **1 : 0..1 právě běžící směna** (`activeShifts/{uid}`)
 - **kategorie 1 : N produkty** (`products.categoryId` → `categories.id`)
 - **stůl 1 : N objednávky a požadavky** (`tableNumber` → `tables`)
 - **objednávka 1 : N položky** (položky jsou vnořené přímo v objednávce)
@@ -344,6 +388,7 @@ Pravidla v souboru [`firestore.rules`](firestore.rules) běží na serveru Fireb
 - **požadavky:** ochrana proti spamu, další požadavek jde poslat až po vyřízení předchozího,
 - **menu a nastavení** mění jen admin. Obsluha smí přepnout jen Otevřeno / Zavřeno,
 - **čísla objednávek** se nulují jen v opravdu novém dni podle hodin serveru,
+- **docházka:** čas příchodu i odchodu je **čas serveru**, ne telefonu. Hotová směna vznikne jen spolu s odchodem a se stejným časem příchodu, jaký byl zapsaný. Směny už pak nejde změnit ani smazat. Admin smí zadat čas zapomenutého odchodu, ale jen po příchodu a ne v budoucnosti,
 - všechna data se kontrolují i **tvarem** (typy, délky textů, povolené hodnoty).
 
 ### Kontrola ceny objednávky
@@ -400,22 +445,21 @@ firebase deploy --only hosting
 flutter test
 ```
 
-Projekt má **56 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
+Projekt má **60 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
 - objednávku od menu přes košík až po stav u obsluhy,
 - role (zákazník nevidí obsluhu, obsluha nevidí správu menu),
 - čtení CSV souboru a hlášení chybných řádků,
 - denní nulování čísel objednávek,
 - zavřený podnik (nejde objednat),
-- převod starých dat kategorií.
+- převod starých dat kategorií,
+- docházku (příchod, odchod, ukončení zapomenuté směny, noční směna přes půlnoc).
 
 ---
 
 ## 🗺️ Plánované funkce
 
 - 🎟️ **razítková karta**: každá 10. káva zdarma,
-- 💳 **volba platby** (kartou / hotově) a **sleva 3 % za platbu kartou**,
-- 📊 **statistiky pro admina**: tržby, počet objednávek, nejprodávanější produkty,
-- 🎨 **vlastní ikony nápojů** podle tvaru šálku a sklenice.
+- 📊 **statistiky pro admina**: tržby, počet objednávek, nejprodávanější produkty.
 
 ---
 

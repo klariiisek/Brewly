@@ -11,6 +11,8 @@ import '../widgets/app_message.dart';
 import '../widgets/venue_hero.dart';
 import '../widgets/venue_info_sheet.dart';
 import 'admin_menu_screen.dart';
+import 'attendance_overview_screen.dart';
+import 'attendance_screen.dart';
 import 'login_screen.dart';
 import 'main_screen.dart';
 import 'staff_screen.dart';
@@ -335,6 +337,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 label: const Text('Vstup pro obsluhu'),
                 onPressed: () =>
                     openScreen(StaffScreen(services: widget.services)),
+              ),
+              // Docházku si zapisuje obsluha, admin vidí přehled všech.
+              TextButton.icon(
+                icon: const Icon(Icons.schedule, size: 18),
+                label: Text(role.isAdmin ? 'Docházka zaměstnanců' : 'Docházka'),
+                onPressed: () => openScreen(
+                  role.isAdmin
+                      ? AttendanceOverviewScreen(services: widget.services)
+                      : AttendanceScreen(services: widget.services, user: user),
+                ),
               ),
               // Správa menu a nastavení podniku jen pro admina.
               if (role.isAdmin) ...[
