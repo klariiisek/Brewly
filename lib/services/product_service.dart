@@ -1,10 +1,9 @@
-import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../data/menu_data.dart';
 import '../models/menu_category.dart';
 import '../models/product.dart';
+import '../utils/streams.dart';
 import '../utils/text.dart';
 import 'category_service.dart';
 
@@ -27,42 +26,11 @@ class ProductService {
   // ke každému produktu dohledá podle categoryId název kategorie
   // a seřadí produkty podle pořadí kategorií a pak podle názvu.
   Stream<List<Product>> watchProducts() {
-    late final StreamController<List<Product>> controller;
-    StreamSubscription<dynamic>? productsSubscription;
-    StreamSubscription<dynamic>? categoriesSubscription;
-    QuerySnapshot<Map<String, dynamic>>? productDocs;
-    List<MenuCategory>? categoryList;
-
-    // Nový seznam pošleme, až máme obojí: produkty i kategorie.
-    void emit() {
-      if (productDocs != null && categoryList != null) {
-        controller.add(_joinWithCategories(productDocs!, categoryList!));
-      }
-    }
-
-    controller = StreamController<List<Product>>(
-      onListen: () {
-        categoriesSubscription = categories.watchCategories().listen(
-          (list) {
-            categoryList = list;
-            emit();
-          },
-          onError: controller.addError,
-        );
-        productsSubscription = _products.snapshots().listen(
-          (snapshot) {
-            productDocs = snapshot;
-            emit();
-          },
-          onError: controller.addError,
-        );
-      },
-      onCancel: () async {
-        await productsSubscription?.cancel();
-        await categoriesSubscription?.cancel();
-      },
+    return combineStreams(
+      _products.snapshots(),
+      categories.watchCategories(),
+      _joinWithCategories,
     );
-    return controller.stream;
   }
 
   List<Product> _joinWithCategories(

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 
 import '../models/cart_item.dart';
 import '../models/order.dart';
+import '../utils/streams.dart';
 
 // Služba, která se stará o objednávky v databázi Firestore.
 class OrderService {
@@ -79,12 +80,37 @@ class OrderService {
     return orders;
   }
 
-  // Živý proud všech objednávek, seřazených podle času.
-  Stream<List<Order>> watchAllOrders() {
-    return _orders.snapshots().map((snapshot) {
-      return _sortByTime(snapshot.docs
-          .map((doc) => Order.fromMap(doc.id, doc.data()))
-          .toList());
+  static List<Order> _ordersFrom(QuerySnapshot<Map<String, dynamic>> snapshot) {
+    return snapshot.docs
+        .map((doc) => Order.fromMap(doc.id, doc.data()))
+        .toList();
+  }
+
+  // Živý proud objednávek pro obsluhu: jen ty, které potřebuje vidět –
+  // všechny nedokončené (i ze včerejška) a všechny dnešní.
+  // Nestahuje celou historii, takže zůstane rychlý i po roce provozu.
+  Stream<List<Order>> watchStaffOrders() {
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+
+    final active = _orders.where('status', whereIn: [
+      OrderStatus.prijata.name,
+      OrderStatus.pripravujeSe.name,
+      OrderStatus.pripravena.name,
+    ]).snapshots();
+    final today = _orders
+        .where('createdAt',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfToday))
+        .snapshots();
+
+    // Dnešní nedokončené objednávky jsou v obou seznamech – podle ID
+    // je spojíme, aby tam nebyly dvakrát.
+    return combineStreams(active, today, (activeSnap, todaySnap) {
+      final byId = {
+        for (final order in _ordersFrom(todaySnap)) order.id: order,
+        for (final order in _ordersFrom(activeSnap)) order.id: order,
+      };
+      return _sortByTime(byId.values.toList());
     });
   }
 

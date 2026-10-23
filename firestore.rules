@@ -141,7 +141,14 @@ service cloud.firestore {
       // (Nikdo si tedy nemůže sám dát roli "obsluha".)
       allow create: if isSignedIn()
         && request.auth.uid == userId
-        && request.resource.data.role == 'zakaznik';
+        && request.resource.data.keys().hasOnly(['name', 'email', 'role', 'createdAt'])
+        && request.resource.data.role == 'zakaznik'
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 100
+        && request.resource.data.createdAt == request.time;
 
       // Svůj profil může upravit (jméno a avatar), ale roli si změnit nesmí.
       allow update: if isSignedIn()
@@ -151,7 +158,7 @@ service cloud.firestore {
             ['name', 'email', 'role', 'createdAt', 'avatarIcon', 'avatarColor'])
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
-        && request.resource.data.name.size() <= 40
+        && request.resource.data.name.size() <= 100
         && request.resource.data.get('avatarIcon', '') is string
         && request.resource.data.get('avatarIcon', '').size() <= 20
         && request.resource.data.get('avatarColor', '') is string
@@ -198,24 +205,60 @@ service cloud.firestore {
       allow read: if isSignedIn()
         && (resource.data.get('userId', '') == request.auth.uid || isStaff());
 
+      // Číslo objednávky musí být to, které ve stejné transakci dostalo
+      // počítadlo – a počítadlo se v ní opravdu muselo změnit.
+      // (getAfter = stav po zápisu, get = stav před zápisem.)
+      function hasNumberFromCounter() {
+        let counterPath = /databases/$(database)/documents/counters/orders;
+        let after = getAfter(counterPath).data;
+        return request.resource.data.number == after.last
+          && (!exists(counterPath)
+            || get(counterPath).data.last != after.last
+            || get(counterPath).data.get('day', 0) != after.day);
+      }
+
       // Objednávku může vytvořit jen přihlášený uživatel, a to jen sám za sebe,
-      // ve stavu "prijata", ke stolu 1–10, se správným kódem stolu (z QR kódu)
-      // a jen když má podnik otevřeno.
+      // ve stavu "prijata", ke stolu 1–10, se správným kódem stolu (z QR kódu),
+      // s číslem z počítadla, s časem serveru a jen když má podnik otevřeno.
+      // Objednávka smí mít jen tato pole – nic navíc.
       allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['number', 'items', 'totalPrice',
+            'tableNumber', 'tableCode', 'status', 'userId', 'customerName', 'createdAt'])
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'prijata'
         && request.resource.data.tableNumber is int
         && request.resource.data.tableNumber >= 1
         && request.resource.data.tableNumber <= 10
+        && request.resource.data.tableCode is string
         && request.resource.data.items is list
         && request.resource.data.items.size() > 0
+        && request.resource.data.items.size() <= 50
         && request.resource.data.totalPrice is number
+        && request.resource.data.totalPrice > 0
+        && request.resource.data.totalPrice <= 100000
+        && request.resource.data.customerName is string
+        && request.resource.data.customerName.size() <= 100
+        && request.resource.data.createdAt == request.time
+        && hasNumberFromCounter()
         && hasValidTableCode()
         && isVenueOpen();
 
       // Stav objednávky může měnit jen obsluha – a nic jiného než stav.
+      // Stav jde jen o jeden krok dopředu:
+      // prijata → pripravujeSe → pripravena → dokoncena.
+      function isNextStatus() {
+        let next = {
+          'prijata': 'pripravujeSe',
+          'pripravujeSe': 'pripravena',
+          'pripravena': 'dokoncena'
+        };
+        return resource.data.status in next
+          && request.resource.data.status == next[resource.data.status];
+      }
+
       allow update: if isStaff()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && isNextStatus();
 
       // Objednávky se nemažou (zůstávají jako historie).
       allow delete: if false;

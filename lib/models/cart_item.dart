@@ -20,7 +20,7 @@ class CartItem {
   // Vytvoří položku z dat uložených v objednávce v databázi.
   factory CartItem.fromMap(Map<String, dynamic> data) {
     return CartItem(
-      product: Product.fromMap(data),
+      product: Product.fromMap(data, id: data['productId'] as String? ?? ''),
       quantity: data['quantity'] as int? ?? 1,
     );
   }
@@ -31,6 +31,8 @@ class CartItem {
   Map<String, dynamic> toMap() {
     return {
       ...product.toMap(),
+      // ID produktu v menu – obsluha podle něj porovná cenu s aktuálním menu.
+      'productId': product.id,
       'quantity': quantity,
     };
   }

@@ -26,9 +26,11 @@ class Cart {
     tableCode = null;
   }
 
+  // Přidá položku. Stejný produkt (podle ID) se jen sečte s tím, co už
+  // v košíku je.
   void addItem(CartItem item) {
     for (final existingItem in items) {
-      if (existingItem.product.name == item.product.name) {
+      if (isSameProduct(existingItem.product, item.product)) {
         existingItem.quantity += item.quantity;
         return;
       }
@@ -37,17 +39,19 @@ class Cart {
     items.add(item);
   }
 
+  // Je to stejný produkt? Podle ID; produkty bez ID (ukázková data) podle názvu.
+  static bool isSameProduct(Product a, Product b) {
+    if (a.id.isNotEmpty || b.id.isNotEmpty) return a.id == b.id;
+    return a.name == b.name;
+  }
+
   // Porovná košík s aktuálním menu z databáze: u každé položky použije
   // aktuální cenu a dostupnost. Když produkt v menu už není, označí ho.
   void syncWithMenu(List<Product> menu) {
     for (final item in items) {
       Product? current;
       for (final product in menu) {
-        // Produkty z databáze mají ID; starší data porovnáme podle názvu.
-        final isSame = item.product.id.isNotEmpty
-            ? product.id == item.product.id
-            : product.name == item.product.name;
-        if (isSame) {
+        if (isSameProduct(item.product, product)) {
           current = product;
           break;
         }

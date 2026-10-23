@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/order.dart';
+import '../models/product.dart';
 import '../models/service_request.dart';
 import '../models/venue_settings.dart';
 import '../services/app_services.dart';
@@ -25,6 +26,36 @@ String nextStatusAction(OrderStatus status) {
   }
 }
 
+// Kontrola ceny objednávky. Vrátí seznam upozornění (prázdný = v pořádku):
+// - součet položek nesedí s celkovou cenou,
+// - cena položky se liší od ceny v aktuálním menu.
+// Pravidla databáze neumí projít všechny položky, proto kontroluje obsluha.
+List<String> orderPriceWarnings(Order order, List<Product> menu) {
+  final warnings = <String>[];
+  var itemsTotal = 0.0;
+  for (final item in order.items) {
+    itemsTotal += item.product.price * item.quantity;
+  }
+  if ((itemsTotal - order.totalPrice).abs() > 0.01) {
+    warnings.add('Zkontrolujte cenu: položky dávají ${formatPrice(itemsTotal)}, '
+        'objednávka je za ${formatPrice(order.totalPrice)}.');
+  }
+  // U dokončených objednávek už porovnání s menu nemá smysl
+  // (ceny v menu se mohly mezitím změnit).
+  if (order.status == OrderStatus.dokoncena) return warnings;
+  for (final item in order.items) {
+    for (final product in menu) {
+      if (item.product.id.isNotEmpty &&
+          product.id == item.product.id &&
+          (product.price - item.product.price).abs() > 0.01) {
+        warnings.add('${item.product.name}: v menu ${formatPrice(product.price)}, '
+            'v objednávce ${formatPrice(item.product.price)}.');
+      }
+    }
+  }
+  return warnings;
+}
+
 // Obrazovka pro obsluhu: požadavky zákazníků, aktivní a dokončené objednávky.
 class StaffScreen extends StatefulWidget {
   final AppServices services;
@@ -40,10 +71,15 @@ class _StaffScreenState extends State<StaffScreen> {
   late final Stream<List<Order>> ordersStream;
   late final Stream<List<ServiceRequest>> requestsStream;
 
+  // Aktuální menu – podle něj obsluha pozná, že cena objednávky nesedí.
+  late final Stream<List<Product>> menuStream;
+  List<Product> menu = [];
+
   @override
   void initState() {
     super.initState();
-    ordersStream = widget.services.orders.watchAllOrders();
+    ordersStream = widget.services.orders.watchStaffOrders();
+    menuStream = widget.services.products.watchProducts();
     requestsStream = widget.services.requests.watchPendingRequests();
   }
 
@@ -95,6 +131,18 @@ class _StaffScreenState extends State<StaffScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Menu načítáme jen kvůli kontrole cen – když ještě nedorazilo,
+    // kontroluje se jen součet položek.
+    return StreamBuilder<List<Product>>(
+      stream: menuStream,
+      builder: (context, menuSnapshot) {
+        menu = menuSnapshot.data ?? menu;
+        return buildOrders();
+      },
+    );
+  }
+
+  Widget buildOrders() {
     return StreamBuilder<List<Order>>(
       stream: ordersStream,
       builder: (context, snapshot) {
@@ -372,6 +420,33 @@ class _StaffScreenState extends State<StaffScreen> {
             const Divider(height: 24),
 
             // Položky objednávky.
+            // Upozornění, když cena objednávky nesedí (např. kdyby někdo
+            // obešel aplikaci a poslal objednávku s vymyšlenou cenou).
+            for (final warning in orderPriceWarnings(order, menu))
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .error
+                      .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.small),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 18,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(warning)),
+                  ],
+                ),
+              ),
             for (final item in order.items)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3),

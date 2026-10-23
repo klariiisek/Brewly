@@ -1,6 +1,6 @@
 # ☕ Brewly
 
-**Brewly** je webová a mobilní aplikace pro objednávání přímo ke stolu. Je to můj maturitní projekt ve **Flutteru** s databází **Firebase**.
+**Brewly** je webová aplikace pro objednávání přímo ke stolu: zákazník ji otevře v mobilu přes QR kód, bez instalace. Je to můj maturitní projekt ve **Flutteru** s databází **Firebase**.
 
 Zákazník naskenuje QR kód na stole, prohlédne si menu, objedná a sleduje, jak se jeho objednávka připravuje. Obsluha vidí objednávky i požadavky zákazníků živě. Vedoucí podniku (admin) si v aplikaci sám spravuje menu, vzhled i provoz. Aplikace je navržená pro kavárnu, ale díky nastavení ji může používat i bar, cukrárna nebo restaurace.
 
@@ -52,6 +52,7 @@ Aplikace rozlišuje čtyři typy uživatelů. Co kdo smí, nehlídá jen aplikac
 - **košík**: změna množství, hlídání vyprodaných produktů a změn cen,
 - **objednávka ke stolu** a její **živý stav**: Přijata → Připravuje se → Připravena → Dokončena,
 - historie objednávek s detailem,
+- **profil**: avatar (ikonka a barva, nebo fotka z Google), změna jména a hesla,
 - tlačítka **Přivolat obsluhu** a **Chci zaplatit**.
 
 ### 👩‍🍳 Obsluha
@@ -96,7 +97,7 @@ Umí všechno co obsluha, a navíc:
 
 | Technologie | K čemu ji používám |
 |---|---|
-| **Flutter / Dart** | celá aplikace (běží v prohlížeči i na mobilu) |
+| **Flutter / Dart** | celá aplikace (webová aplikace, funguje v prohlížeči na počítači i v mobilu) |
 | **Firebase Authentication** | registrace a přihlášení (e-mail + heslo, Google) |
 | **Cloud Firestore** | databáze s živými aktualizacemi |
 | **Firestore Security Rules** | kdo smí co číst a měnit (zabezpečení na straně serveru) |
@@ -204,12 +205,19 @@ Diagram je vytvořený v [dbdiagram.io](https://dbdiagram.io). Jeho zápis je v 
 Pravidla v souboru [`firestore.rules`](firestore.rules) běží na serveru Firebase, takže je nejde obejít ani mimo aplikaci:
 
 - **role:** zákazník si nemůže sám přidělit roli obsluhy nebo admina,
-- **objednávky:** zákazník vytvoří objednávku jen sám za sebe, se správným **kódem stolu** a jen když má podnik otevřeno. Stav objednávky mění jen obsluha,
+- **objednávky:** zákazník vytvoří objednávku jen sám za sebe, se správným **kódem stolu** a jen když má podnik otevřeno. Objednávka smí mít jen povolená pole, **číslo musí pocházet z počítadla** ve stejné transakci a **čas je čas serveru**,
+- **stav objednávky** mění jen obsluha, a to jen o jeden krok dopředu (Přijata → Připravuje se → Připravena → Dokončena),
 - **QR kódy:** tajné kódy stolů vidí jen obsluha. Kdo u stolu nesedí, nemůže k němu objednat ani přivolat obsluhu,
 - **požadavky:** ochrana proti spamu, další požadavek jde poslat až po vyřízení předchozího,
 - **menu a nastavení** mění jen admin. Obsluha smí přepnout jen Otevřeno / Zavřeno,
 - **čísla objednávek** se nulují jen v opravdu novém dni podle hodin serveru,
 - všechna data se kontrolují i **tvarem** (typy, délky textů, povolené hodnoty).
+
+### Kontrola ceny objednávky
+Cenu počítá aplikace v mobilu zákazníka. Bezpečnostní pravidla Firestore neumí projít seznam položek a sečíst je, takže úplnou kontrolu by musela dělat serverová funkce (**Cloud Functions**). Ta ale vyžaduje placený tarif Firebase. Proto:
+- pravidla pohlídají, že cena je kladná, v rozumné výši a položek je rozumný počet,
+- **obsluha u každé objednávky vidí výrazné upozornění**, když součet položek nesedí s celkovou cenou nebo když se cena položky liší od aktuálního menu,
+- obsluha objednávku vždy předává osobně a platba probíhá u ní, takže podvod s cenou neprojde bez povšimnutí.
 
 ---
 
@@ -258,7 +266,7 @@ firebase deploy --only hosting
 flutter test
 ```
 
-Projekt má **42 automatických testů**. Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
+Projekt má **50 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
 - objednávku od menu přes košík až po stav u obsluhy,
 - role (zákazník nevidí obsluhu, obsluha nevidí správu menu),
 - čtení CSV souboru a hlášení chybných řádků,
@@ -270,7 +278,6 @@ Projekt má **42 automatických testů**. Používají falešnou databázi a fal
 
 ## 🗺️ Plánované funkce
 
-- 👤 **profil zákazníka**: avatar, jméno, změna hesla,
 - 🎟️ **razítková karta**: každá 10. káva zdarma,
 - 💳 **volba platby** (kartou / hotově) a **sleva 3 % za platbu kartou**,
 - 📊 **statistiky pro admina**: tržby, počet objednávek, nejprodávanější produkty,
