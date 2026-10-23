@@ -74,6 +74,8 @@ class AppRadius {
 class AppTheme {
   static ThemeData build(AppColors colors) {
     return ThemeData(
+      // Písmo celé aplikace (přibalené v assets/fonts, viz pubspec.yaml).
+      fontFamily: 'Lexend',
       extensions: [colors],
       colorScheme: ColorScheme.fromSeed(
         seedColor: colors.primary,

@@ -14,6 +14,10 @@ class Product {
 
   final String description;
 
+  // Ikona vybraná adminem (např. "latte"). Prázdná = aplikace ji odhadne
+  // podle názvu (viz drink_icon.dart).
+  final String icon;
+
   // false = vyprodáno: zákazník produkt vidí, ale nemůže ho objednat.
   final bool isAvailable;
 
@@ -24,6 +28,7 @@ class Product {
     this.categoryId = '',
     required this.category,
     required this.description,
+    this.icon = '',
     this.isAvailable = true,
   });
 
@@ -43,6 +48,7 @@ class Product {
       categoryId: data['categoryId'] as String? ?? '',
       category: categoryName ?? data['category'] as String? ?? 'Ostatní',
       description: data['description'] as String? ?? '',
+      icon: data['icon'] as String? ?? '',
       isAvailable: data['available'] as bool? ?? true,
     );
   }
@@ -66,6 +72,7 @@ class Product {
       'price': price,
       'categoryId': categoryId,
       'description': description,
+      'icon': icon,
       'available': isAvailable,
     };
   }

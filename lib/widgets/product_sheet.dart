@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
-import 'product_card.dart';
+import 'drink_icon.dart';
 
 // Otevře detail produktu jako okno vysunuté zespodu.
 // Vrátí vybrané množství, nebo null, když zákazník okno zavře bez přidání.
@@ -41,20 +41,8 @@ class _ProductSheetState extends State<ProductSheet> {
           children: [
             Row(
               children: [
-                // Velká ikona kategorie.
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: context.colors.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppRadius.large),
-                  ),
-                  child: Icon(
-                    categoryIcon(product.category),
-                    color: context.colors.primary,
-                    size: 36,
-                  ),
-                ),
+                // Velká nakreslená ikona nápoje.
+                ProductIcon(product: product, size: 88),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(

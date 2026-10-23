@@ -64,6 +64,20 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  # Písmo Lexend (navržené pro snadné čtení), přibalené přímo v aplikaci.
+  # Licence: assets/fonts/OFL.txt
+  fonts:
+    - family: Lexend
+      fonts:
+        - asset: assets/fonts/Lexend-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Lexend-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Lexend-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Lexend-Bold.ttf
+          weight: 700
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

@@ -4,6 +4,7 @@ import '../models/product.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../utils/text.dart';
+import 'drink_icon.dart';
 
 // Vrátí ikonu podle kategorie produktu. Hledá části slov bez diakritiky,
 // takže "Káva", "Kávy s sebou" i "Pivo točené" dostanou správnou ikonu.
@@ -90,19 +91,8 @@ class ProductCard extends StatelessWidget {
   Widget buildInfo(BuildContext context) {
     return Row(
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: context.colors.primary.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(AppRadius.medium),
-          ),
-          child: Icon(
-            categoryIcon(product.category),
-            color: context.colors.primary,
-            size: 28,
-          ),
-        ),
+        // Nakreslená ikona nápoje (nebo ikona kategorie).
+        ProductIcon(product: product, size: 64),
         const SizedBox(width: 12),
         Expanded(
           child: Column(

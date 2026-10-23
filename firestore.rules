@@ -61,12 +61,14 @@ service cloud.firestore {
       // a produkt založit v jednom hromadném zápisu.)
       function isValidProduct() {
         let product = request.resource.data;
-        return product.keys().hasOnly(['name', 'price', 'categoryId', 'description', 'available'])
+        return product.keys().hasOnly(['name', 'price', 'categoryId', 'description', 'icon', 'available'])
           && product.name is string && product.name.size() > 0
           && product.price is number && product.price > 0
           && product.categoryId is string
           && existsAfter(/databases/$(database)/documents/categories/$(product.categoryId))
           && product.description is string
+          && product.get('icon', '') is string
+          && product.get('icon', '').size() <= 20
           && product.get('available', true) is bool;
       }
 

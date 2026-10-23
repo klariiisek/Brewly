@@ -11,7 +11,7 @@ import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../widgets/app_message.dart';
 import '../widgets/empty_state.dart';
-import '../widgets/product_card.dart';
+import '../widgets/drink_icon.dart';
 import '../widgets/table_code_sheet.dart';
 import 'login_screen.dart';
 
@@ -274,18 +274,7 @@ class _CartScreenState extends State<CartScreen> {
   Widget buildItemInfo(CartItem item) {
     return Row(
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: context.colors.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppRadius.medium),
-              ),
-              child: Icon(
-                categoryIcon(item.product.category),
-                color: context.colors.primary,
-              ),
-            ),
+            ProductIcon(product: item.product, size: 52),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

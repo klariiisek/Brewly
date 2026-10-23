@@ -106,6 +106,8 @@ Umí všechno co obsluha, a navíc:
 | **Cloud Firestore** | databáze s živými aktualizacemi |
 | **Firestore Security Rules** | kdo smí co číst a měnit (zabezpečení na straně serveru) |
 | **Firebase Hosting** | zveřejnění aplikace na webu |
+| **CustomPainter** (Flutter) | vlastní ikony nápojů, které aplikace sama kreslí a přebarvuje podle barvy podniku |
+| písmo **Lexend** | písmo navržené pro snadné čtení, přibalené přímo v aplikaci |
 | `qr_flutter` | generování QR kódů stolů |
 | `file_picker` | výběr CSV souboru s menu |
 | `fake_cloud_firestore`, `firebase_auth_mocks` | falešná databáze a přihlášení pro testy |

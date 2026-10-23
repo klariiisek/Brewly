@@ -8,10 +8,17 @@ import 'package:brewly/config/palettes.dart';
 import 'package:brewly/services/product_service.dart';
 import 'package:brewly/utils/csv_import.dart';
 
+import 'package:brewly/models/product.dart';
+import 'package:brewly/widgets/drink_icon.dart';
+
 import 'helpers.dart';
 
 void main() {
   testWidgets('Admin přidá do menu nový produkt', (WidgetTester tester) async {
+    // Formulář je dlouhý (výběr ikon) – testujeme na vyšší obrazovce.
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
     final db = FakeFirebaseFirestore();
     await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
 
@@ -241,5 +248,53 @@ void main() {
     final menu = await productService.watchProducts().first;
     expect(menu.map((p) => '${p.category}: ${p.name}'),
         ['Dezerty: Dort', 'Káva: Latte']);
+  });
+
+  test('Ikona nápoje se odhadne podle názvu', () {
+    expect(guessDrinkIcon('Cappuccino', 'Káva'), DrinkIcon.cappuccino);
+    expect(guessDrinkIcon('Ledové latte', 'Káva'), DrinkIcon.frappe);
+    expect(guessDrinkIcon('Latte macchiato', 'Káva'), DrinkIcon.latte);
+    expect(guessDrinkIcon('Domácí limonáda', 'Nápoje'), DrinkIcon.lemonade);
+    expect(guessDrinkIcon('Tiramisu', 'Dezerty'), DrinkIcon.cake);
+    expect(guessDrinkIcon('Zelený čaj', 'Nápoje'), DrinkIcon.tea);
+    // Neznámý produkt v kávové kategorii = šálek kávy.
+    expect(guessDrinkIcon('Specialita dne', 'Káva'), DrinkIcon.espresso);
+    // Jídlo nakreslenou ikonu nemá (použije se ikona kategorie).
+    expect(guessDrinkIcon('Burger', 'Jídlo'), isNull);
+
+    // Ikona vybraná adminem má přednost před odhadem.
+    const product = Product(
+        name: 'Cappuccino', price: 65, category: 'Káva', description: '',
+        icon: 'takeaway');
+    expect(drinkIconOf(product), DrinkIcon.takeaway);
+  });
+
+  testWidgets('Admin vybere produktu ikonu', (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
+
+    await pumpApp(tester, await buildTestApp(db: db));
+    await tester.tap(find.text('Správa menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Espresso'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(find.text('S sebou'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('S sebou'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Uložit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Uložit'));
+    await tester.pumpAndSettle();
+
+    final espresso = (await db
+            .collection('products')
+            .where('name', isEqualTo: 'Espresso')
+            .get())
+        .docs
+        .single
+        .data();
+    expect(espresso['icon'], 'takeaway');
   });
 }

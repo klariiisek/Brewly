@@ -7,6 +7,7 @@ import '../services/product_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
 import '../widgets/category_name_dialog.dart';
+import '../widgets/drink_icon.dart';
 
 // Formulář pro admina: nový produkt, nebo úprava existujícího.
 class ProductFormScreen extends StatefulWidget {
@@ -35,6 +36,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
   // Vybraná kategorie (ID z kolekce kategorií) a seznam všech kategorií.
   String? categoryId;
+
+  // Vybraná ikona (klíč, např. "latte"). Prázdná = automaticky podle názvu.
+  String iconKey = '';
   late final Stream<List<MenuCategory>> categoriesStream;
   List<MenuCategory> categories = [];
 
@@ -54,6 +58,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     isAvailable = product?.isAvailable ?? true;
     final currentCategory = product?.categoryId ?? '';
     categoryId = currentCategory.isEmpty ? null : currentCategory;
+    iconKey = product?.icon ?? '';
     categoriesStream = widget.productService.categories.watchCategories();
   }
 
@@ -123,6 +128,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
                   MenuCategory(id: categoryId!, name: '', order: 0))
           .name,
       description: descriptionController.text.trim(),
+      icon: iconKey,
       isAvailable: isAvailable,
     );
 
@@ -182,6 +188,83 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
 
   // Výběr kategorie: štítky se všemi kategoriemi + "Nová kategorie".
   // FormField = vlastní pole formuláře, aby šlo zkontrolovat, že je vybráno.
+  // Výběr ikony: "Automaticky" (podle názvu) nebo konkrétní ikona.
+  Widget buildIconPicker() {
+    String categoryName = '';
+    for (final category in categories) {
+      if (category.id == categoryId) categoryName = category.name;
+    }
+    final guessed = guessDrinkIcon(nameController.text, categoryName);
+
+    Widget option({
+      required bool selected,
+      required String label,
+      required Widget icon,
+      required VoidCallback onTap,
+    }) {
+      return InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.medium),
+        onTap: onTap,
+        child: Container(
+          width: 76,
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: selected
+                ? context.colors.primary.withValues(alpha: 0.15)
+                : Colors.transparent,
+            border: Border.all(
+              color: selected ? context.colors.primary : Colors.transparent,
+              width: 2,
+            ),
+            borderRadius: BorderRadius.circular(AppRadius.medium),
+          ),
+          child: Column(
+            children: [
+              SizedBox(width: 44, height: 44, child: icon),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                style: TextStyle(fontSize: 11, color: context.colors.dark),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Ikona', style: TextStyle(color: context.colors.muted)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            // Automaticky: ukáže, jakou ikonu by aplikace podle názvu vybrala.
+            option(
+              selected: iconKey.isEmpty,
+              label: 'Automaticky',
+              icon: guessed == null
+                  ? Icon(Icons.auto_awesome, color: context.colors.primary)
+                  : DrinkIconView(icon: guessed),
+              onTap: () => setState(() => iconKey = ''),
+            ),
+            for (final drink in DrinkIcon.values)
+              option(
+                selected: iconKey == drink.name,
+                label: drink.label,
+                icon: DrinkIconView(icon: drink),
+                onTap: () => setState(() => iconKey = drink.name),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget buildCategoryPicker() {
     return StreamBuilder<List<MenuCategory>>(
       stream: categoriesStream,
@@ -257,6 +340,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             TextFormField(
               controller: nameController,
               decoration: const InputDecoration(labelText: 'Název'),
+              // Při psaní se aktualizuje automaticky odhadnutá ikona.
+              onChanged: (_) => setState(() {}),
               textCapitalization: TextCapitalization.sentences,
               validator: (value) => validateRequired(value, 'Zadejte název'),
             ),
@@ -273,6 +358,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             ),
             const SizedBox(height: 16),
             buildCategoryPicker(),
+            const SizedBox(height: 16),
+            buildIconPicker(),
             const SizedBox(height: 16),
             TextFormField(
               controller: descriptionController,
