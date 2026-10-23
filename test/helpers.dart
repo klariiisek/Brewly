@@ -68,6 +68,11 @@ Future<String> categoryIdOf(FakeFirebaseFirestore db, String name) async {
 
 // Spustí aplikaci a počká, až se načte (nastavení podniku z databáze).
 Future<void> pumpApp(WidgetTester tester, Widget app) async {
+  // Pára nad šálkem na úvodu se vlní dokola – v testech ji zastavíme
+  // (jako když má uživatel v telefonu zapnuté „omezit animace“).
+  tester.platformDispatcher.accessibilityFeaturesTestValue =
+      const FakeAccessibilityFeatures(disableAnimations: true);
+  addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
   await tester.pumpWidget(app);
   await tester.pumpAndSettle();
 }
@@ -89,4 +94,14 @@ Future<String> createTestOrder(OrderService orderService, {int table = 1}) {
     userId: testUser.uid,
     customerName: 'Klára',
   );
+}
+
+// Posune obrazovku k prvku (když je mimo viditelnou část) a klepne na něj.
+// Úvodní obrazovka je delší než testovací "telefon", odkazy pro obsluhu
+// a admina jsou dole.
+Future<void> scrollAndTap(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
+  await tester.pumpAndSettle();
 }

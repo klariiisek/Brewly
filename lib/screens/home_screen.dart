@@ -8,6 +8,7 @@ import '../services/app_services.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
+import '../widgets/venue_hero.dart';
 import '../widgets/venue_info_sheet.dart';
 import 'admin_menu_screen.dart';
 import 'login_screen.dart';
@@ -56,82 +57,192 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Pozadí se vzorem podle typu podniku dostává každá stránka z tématu
+    // (viz venue_pattern.dart).
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          // Obrazovka se překreslí, když se někdo přihlásí nebo odhlásí.
-          child: StreamBuilder<User?>(
-            stream: userStream,
-            // Než proud pošle první hodnotu, použije se aktuálně přihlášený uživatel.
-            initialData: widget.services.auth.currentUser,
-            builder: (context, snapshot) {
-              final user = snapshot.data;
-              return Column(
-                children: [
-                  // Horní část: logo, název a uvítání.
-                  Expanded(child: buildWelcome(user)),
-                  // Spodní část: tlačítka.
-                  buildButtons(user),
-                ],
-              );
-            },
-          ),
+        // Obrazovka se překreslí, když se někdo přihlásí nebo odhlásí.
+        child: StreamBuilder<User?>(
+          stream: userStream,
+          // Než proud pošle první hodnotu, použije se aktuálně přihlášený uživatel.
+          initialData: widget.services.auth.currentUser,
+          builder: (context, snapshot) {
+            final user = snapshot.data;
+            // Na velké obrazovce (počítač) zůstane obsah úzký uprostřed,
+            // na malé se dá posouvat.
+            return Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 440),
+                  child: Column(
+                    children: [
+                      buildWelcome(user),
+                      const SizedBox(height: 28),
+                      buildButtons(user),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
+  // Horní část: ilustrace v kruhu, název, slogan, stav a oznámení.
+  // Při otevření obrazovky plynule „vyjede“ (průhlednost + posun).
   Widget buildWelcome(User? user) {
-    // Název, slogan a ikona podle nastavení podniku (mění je admin).
+    // Název, slogan a ilustrace podle nastavení podniku (mění je admin).
     final venue = VenueScope.of(context);
+    final colors = context.colors;
 
-    return Center(
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.translate(
+          offset: Offset(0, 24 * (1 - value)),
+          child: child,
+        ),
+      ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          // Logo: barevný čtverec s kulatými rohy a ikonou podle typu podniku.
+          // Ilustrace v měkkém kruhu – jako na talířku.
           Container(
-            width: 96,
-            height: 96,
+            width: 230,
+            height: 230,
             decoration: BoxDecoration(
-              color: context.colors.primary,
-              borderRadius: BorderRadius.circular(28),
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                center: const Alignment(0, -0.2),
+                colors: [
+                  Colors.white,
+                  Color.alphaBlend(
+                    colors.primary.withValues(alpha: 0.12),
+                    colors.background,
+                  ),
+                ],
+                stops: const [0.25, 1],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: colors.primary.withValues(alpha: 0.10),
+                  blurRadius: 30,
+                  offset: const Offset(0, 12),
+                ),
+              ],
             ),
-            child: Icon(venue.type.icon, size: 52, color: Colors.white),
+            alignment: Alignment.center,
+            child: VenueHero(type: venue.type, size: 178),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 22),
           Text(
             venue.name,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: 40,
+              fontSize: 36,
               fontWeight: FontWeight.bold,
-              color: context.colors.dark,
+              color: colors.dark,
+              height: 1.15,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
-            user == null
-                ? venue.slogan
-                : 'Vítejte, ${userDisplayName(user)}',
+            venue.slogan,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 17, color: context.colors.muted),
+            style: TextStyle(fontSize: 16, color: colors.muted),
           ),
-          // Když má podnik vlastní název, připomeneme, na čem aplikace běží.
-          if (venue.name != 'Brewly') ...[
-            const SizedBox(height: 16),
+          if (user != null) ...[
+            const SizedBox(height: 6),
             Text(
-              'powered by Brewly',
+              'Vítejte, ${userDisplayName(user)}',
+              textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 12,
-                letterSpacing: 1,
-                color: context.colors.muted.withValues(alpha: 0.7),
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: colors.primary,
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          buildStatusRow(venue),
+          // Oznámení od podniku (např. sleva dne) – vidět hned na úvodu.
+          if (venue.announcement.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+              decoration: BoxDecoration(
+                color: colors.accent.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(AppRadius.medium),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.campaign_outlined, color: colors.accent),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      venue.announcement,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: colors.dark,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ],
       ),
+    );
+  }
+
+  // Štítek Otevřeno / Zavřeno a vedle první řádek otevírací doby.
+  Widget buildStatusRow(VenueSettings venue) {
+    final color = venue.isOpen
+        ? AppColors.success
+        : Theme.of(context).colorScheme.error;
+    final hours = venue.openingHours.split('\n').first.trim();
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 10,
+      runSpacing: 6,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.circle, size: 8, color: color),
+              const SizedBox(width: 6),
+              Text(
+                venue.isOpen ? 'Otevřeno' : 'Zavřeno',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (hours.isNotEmpty)
+          Text(
+            hours,
+            style: TextStyle(fontSize: 13, color: context.colors.muted),
+          ),
+      ],
     );
   }
 
@@ -146,10 +257,8 @@ class _HomeScreenState extends State<HomeScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => MainScreen(
-                    cart: widget.cart,
-                    services: widget.services,
-                  ),
+                  builder: (context) =>
+                      MainScreen(cart: widget.cart, services: widget.services),
                 ),
               );
             },
@@ -190,6 +299,18 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         // Vstupy pro zaměstnance vidí jen přihlášený s rolí obsluha nebo admin.
         if (user != null) buildStaffEntry(user),
+        // Když má podnik vlastní název, připomeneme, na čem aplikace běží.
+        if (VenueScope.of(context).name != 'Brewly') ...[
+          const SizedBox(height: 16),
+          Text(
+            'powered by Brewly',
+            style: TextStyle(
+              fontSize: 11,
+              letterSpacing: 1.6,
+              color: context.colors.muted.withValues(alpha: 0.8),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -212,18 +333,16 @@ class _HomeScreenState extends State<HomeScreen> {
               TextButton.icon(
                 icon: const Icon(Icons.badge_outlined, size: 18),
                 label: const Text('Vstup pro obsluhu'),
-                onPressed: () => openScreen(
-                  StaffScreen(services: widget.services),
-                ),
+                onPressed: () =>
+                    openScreen(StaffScreen(services: widget.services)),
               ),
               // Správa menu a nastavení podniku jen pro admina.
               if (role.isAdmin) ...[
                 TextButton.icon(
                   icon: const Icon(Icons.edit_note, size: 20),
                   label: const Text('Správa menu'),
-                  onPressed: () => openScreen(
-                    AdminMenuScreen(services: widget.services),
-                  ),
+                  onPressed: () =>
+                      openScreen(AdminMenuScreen(services: widget.services)),
                 ),
                 TextButton.icon(
                   icon: const Icon(Icons.storefront_outlined, size: 18),
@@ -241,9 +360,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void openScreen(Widget screen) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => screen),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
 }

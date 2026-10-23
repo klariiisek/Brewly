@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/venue_pattern.dart';
+
 // Barvy aplikace (paleta). Admin si v nastavení podniku vybere jednu
 // z připravených palet (viz palettes.dart) a celá aplikace se přebarví.
 //
@@ -62,6 +64,10 @@ extension AppColorsContext on BuildContext {
   AppColors get colors => Theme.of(this).extension<AppColors>()!;
 }
 
+// Písmo celé aplikace. Uvádí se i u jednotlivých stylů v tématu níže –
+// styly tlačítek, horní a spodní lišty se totiž z tématu nedědí.
+const String appFont = 'Lexend';
+
 // Zaoblení rohů, aby všude vypadalo stejně.
 class AppRadius {
   static const double small = 8;
@@ -75,7 +81,7 @@ class AppTheme {
   static ThemeData build(AppColors colors) {
     return ThemeData(
       // Písmo celé aplikace (přibalené v assets/fonts, viz pubspec.yaml).
-      fontFamily: 'Lexend',
+      fontFamily: appFont,
       extensions: [colors],
       colorScheme: ColorScheme.fromSeed(
         seedColor: colors.primary,
@@ -83,15 +89,24 @@ class AppTheme {
         secondary: colors.accent,
         surface: Colors.white,
       ),
-      scaffoldBackgroundColor: colors.background,
+      // Obrazovky jsou průhledné – pozadí s barvou a vzorem podniku jim
+      // dává přechod mezi stránkami (PatternedPageTransitionsBuilder).
+      scaffoldBackgroundColor: Colors.transparent,
+      pageTransitionsTheme: PageTransitionsTheme(
+        builders: {
+          for (final platform in TargetPlatform.values)
+            platform: const PatternedPageTransitionsBuilder(),
+        },
+      ),
 
       // Horní lišta: barva pozadí s tmavým nadpisem.
       appBarTheme: AppBarTheme(
-        backgroundColor: colors.background,
+        backgroundColor: Colors.transparent,
         foregroundColor: colors.dark,
         elevation: 0,
         scrolledUnderElevation: 0,
         titleTextStyle: TextStyle(
+          fontFamily: appFont,
           fontSize: 20,
           fontWeight: FontWeight.bold,
           color: colors.dark,
@@ -116,7 +131,11 @@ class AppTheme {
           backgroundColor: colors.primary,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(
+            fontFamily: appFont,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.medium),
           ),
@@ -164,7 +183,10 @@ class AppTheme {
         labelColor: colors.primary,
         unselectedLabelColor: colors.muted,
         indicatorColor: colors.primary,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+        labelStyle: const TextStyle(
+          fontFamily: appFont,
+          fontWeight: FontWeight.w600,
+        ),
       ),
 
       // Okna vysunutá zespodu (detail produktu).
@@ -190,12 +212,17 @@ class AppTheme {
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return TextStyle(
+              fontFamily: appFont,
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: colors.primary,
             );
           }
-          return TextStyle(fontSize: 12, color: colors.muted);
+          return TextStyle(
+            fontFamily: appFont,
+            fontSize: 12,
+            color: colors.muted,
+          );
         }),
       ),
 
@@ -204,7 +231,10 @@ class AppTheme {
         behavior: SnackBarBehavior.floating,
         width: 320,
         backgroundColor: colors.dark,
-        contentTextStyle: const TextStyle(color: Colors.white),
+        contentTextStyle: const TextStyle(
+          fontFamily: appFont,
+          color: Colors.white,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.medium),
         ),

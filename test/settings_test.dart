@@ -59,8 +59,7 @@ void main() {
 
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Informace o podniku'));
-    await tester.pumpAndSettle();
+    await scrollAndTap(tester, find.text('Informace o podniku'));
 
     expect(find.text('Lipová 12, Praha'), findsOneWidget);
     expect(find.text('Heslo: kafe1234'), findsOneWidget);

@@ -87,8 +87,7 @@ void main() {
 
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Správa menu'));
-    await tester.pumpAndSettle();
+    await scrollAndTap(tester, find.text('Správa menu'));
 
     // Admin přepne první produkt (Cappuccino) na vyprodaný.
     await tester.tap(find.byType(Switch).first);

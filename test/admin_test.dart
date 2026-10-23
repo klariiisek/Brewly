@@ -9,7 +9,9 @@ import 'package:brewly/services/product_service.dart';
 import 'package:brewly/utils/csv_import.dart';
 
 import 'package:brewly/models/product.dart';
+import 'package:brewly/models/venue_settings.dart';
 import 'package:brewly/widgets/drink_icon.dart';
+import 'package:brewly/widgets/venue_hero.dart';
 
 import 'helpers.dart';
 
@@ -26,8 +28,7 @@ void main() {
     await tester.pumpAndSettle();
     // Admin vidí oba vstupy.
     expect(find.text('Vstup pro obsluhu'), findsOneWidget);
-    await tester.tap(find.text('Správa menu'));
-    await tester.pumpAndSettle();
+    await scrollAndTap(tester, find.text('Správa menu'));
 
     await tester.tap(find.text('Přidat produkt'));
     await tester.pumpAndSettle();
@@ -95,8 +96,7 @@ void main() {
 
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Správa menu'));
-    await tester.pumpAndSettle();
+    await scrollAndTap(tester, find.text('Správa menu'));
 
     // "tira" najde Tiramisu, nic jiného.
     await tester.enterText(find.byType(TextField), 'tira');
@@ -126,8 +126,7 @@ void main() {
 
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Nastavení podniku'));
-    await tester.pumpAndSettle();
+    await scrollAndTap(tester, find.text('Nastavení podniku'));
 
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Název podniku'), 'Bar U Lípy');
@@ -136,7 +135,7 @@ void main() {
     expect(find.text('Bar U Lípy'), findsNWidgets(2));
 
     // Posune obrazovku dolů, dokud není prvek vidět, a klikne na něj.
-    Future<void> scrollAndTap(Finder finder) async {
+    Future<void> scrollToAndTap(Finder finder) async {
       await tester.scrollUntilVisible(finder, 200,
           scrollable: find.byType(Scrollable).first);
       await tester.pumpAndSettle();
@@ -144,9 +143,9 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    await scrollAndTap(find.widgetWithText(ChoiceChip, 'Bar'));
-    await scrollAndTap(find.byTooltip('Bordó'));
-    await scrollAndTap(find.text('Uložit nastavení'));
+    await scrollToAndTap(find.widgetWithText(ChoiceChip, 'Bar'));
+    await scrollToAndTap(find.byTooltip('Bordó'));
+    await scrollToAndTap(find.text('Uložit nastavení'));
     await tester.pumpAndSettle();
 
     final saved = (await db.collection('settings').doc('venue').get()).data()!;
@@ -159,7 +158,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Bar U Lípy'), findsOneWidget);
     expect(find.text('powered by Brewly'), findsOneWidget);
-    expect(find.byIcon(Icons.local_bar), findsOneWidget);
+    // Úvod ukazuje ilustraci baru (koktejl).
+    expect(
+        find.byWidgetPredicate(
+            (widget) => widget is VenueHero && widget.type == VenueType.bar),
+        findsOneWidget);
     final context = tester.element(find.text('Bar U Lípy'));
     expect(context.colors.primary, paletteFor('bordo').colors.primary);
   });
@@ -171,8 +174,7 @@ void main() {
 
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Správa menu'));
-    await tester.pumpAndSettle();
+    await scrollAndTap(tester, find.text('Správa menu'));
     await tester.tap(find.byTooltip('Kategorie'));
     await tester.pumpAndSettle();
 
@@ -274,8 +276,7 @@ void main() {
     await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
 
     await pumpApp(tester, await buildTestApp(db: db));
-    await tester.tap(find.text('Správa menu'));
-    await tester.pumpAndSettle();
+    await scrollAndTap(tester, find.text('Správa menu'));
     await tester.tap(find.text('Espresso'));
     await tester.pumpAndSettle();
 

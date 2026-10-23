@@ -27,8 +27,7 @@ void main() {
     await tester.pumpAndSettle();
     // Obsluha nevidí správu menu – ta je jen pro admina.
     expect(find.text('Správa menu'), findsNothing);
-    await tester.tap(find.text('Vstup pro obsluhu'));
-    await tester.pumpAndSettle();
+    await scrollAndTap(tester, find.text('Vstup pro obsluhu'));
 
     // První je záložka Požadavky – přepne na Aktivní.
     await tester.tap(find.text('Aktivní (1)'));
@@ -97,8 +96,7 @@ void main() {
 
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Vstup pro obsluhu'));
-    await tester.pumpAndSettle();
+    await scrollAndTap(tester, find.text('Vstup pro obsluhu'));
     await tester.tap(find.byTooltip('Stoly a QR kódy'));
     await tester.pumpAndSettle();
 
@@ -128,8 +126,7 @@ void main() {
 
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Vstup pro obsluhu'));
-    await tester.pumpAndSettle();
+    await scrollAndTap(tester, find.text('Vstup pro obsluhu'));
 
     expect(find.text('Požadavky (1)'), findsOneWidget);
     expect(find.text('Stůl 3 • Chce zaplatit'), findsOneWidget);
@@ -147,8 +144,7 @@ void main() {
 
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Vstup pro obsluhu'));
-    await tester.pumpAndSettle();
+    await scrollAndTap(tester, find.text('Vstup pro obsluhu'));
 
     expect(find.text('Otevřeno'), findsOneWidget);
     await tester.tap(find.byType(Switch));
@@ -204,8 +200,7 @@ void main() {
     });
 
     await pumpApp(tester, await buildTestApp(db: db));
-    await tester.tap(find.text('Vstup pro obsluhu'));
-    await tester.pumpAndSettle();
+    await scrollAndTap(tester, find.text('Vstup pro obsluhu'));
 
     expect(find.text('Dokončené (1)'), findsOneWidget);
   });
@@ -271,8 +266,7 @@ void main() {
     });
 
     await pumpApp(tester, await buildTestApp(db: db));
-    await tester.tap(find.text('Vstup pro obsluhu'));
-    await tester.pumpAndSettle();
+    await scrollAndTap(tester, find.text('Vstup pro obsluhu'));
     await tester.tap(find.text('Aktivní (1)'));
     await tester.pumpAndSettle();
 

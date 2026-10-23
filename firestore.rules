@@ -111,7 +111,9 @@ service cloud.firestore {
           && settings.slogan is string && settings.slogan.size() <= 80
           && settings.color in ['kava', 'bordo', 'terakota', 'olivova', 'lesni', 'namornicka', 'levandulova', 'grafitova']
           && settings.type in ['kavarna', 'cukrarna', 'bar', 'pivnice', 'restaurace']
-          && settings.categoryOrder is list && settings.categoryOrder.size() <= 50
+          // categoryOrder = staré pořadí kategorií (dnes jsou kategorie
+          // v kolekci categories) – už se neukládá, ve starých datech může být.
+          && settings.get('categoryOrder', []) is list
           && settings.get('isOpen', true) is bool
           && isShortText('announcement', 120)
           && isShortText('address', 100)

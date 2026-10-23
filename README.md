@@ -106,7 +106,7 @@ Umí všechno co obsluha, a navíc:
 | **Cloud Firestore** | databáze s živými aktualizacemi |
 | **Firestore Security Rules** | kdo smí co číst a měnit (zabezpečení na straně serveru) |
 | **Firebase Hosting** | zveřejnění aplikace na webu |
-| **CustomPainter** (Flutter) | vlastní ikony nápojů, které aplikace sama kreslí a přebarvuje podle barvy podniku |
+| **CustomPainter** (Flutter) | vlastní ikony nápojů, ilustrace na úvodní obrazovce (s animovanou párou) a vzor v pozadí podle typu podniku – aplikace je sama kreslí a přebarvuje podle barvy podniku |
 | písmo **Lexend** | písmo navržené pro snadné čtení, přibalené přímo v aplikaci |
 | `qr_flutter` | generování QR kódů stolů |
 | `file_picker` | výběr CSV souboru s menu |
@@ -400,7 +400,7 @@ firebase deploy --only hosting
 flutter test
 ```
 
-Projekt má **54 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
+Projekt má **56 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
 - objednávku od menu přes košík až po stav u obsluhy,
 - role (zákazník nevidí obsluhu, obsluha nevidí správu menu),
 - čtení CSV souboru a hlášení chybných řádků,
