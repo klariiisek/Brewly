@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
-import 'app_theme.dart';
+import '../theme/app_theme.dart';
 
-// Připravené barevné palety, ze kterých admin vybírá v nastavení podniku.
+// KONFIGURACE: barevné palety, ze kterých admin vybírá v nastavení podniku.
+// Novou paletu přidá programátor sem (a její klíč do firestore.rules).
 // Každá má hlavní barvu, tmavou na text, doplňkovou, pozadí a šedou.
 // Klíč (např. "kava") se ukládá do databáze.
 class Palette {
@@ -72,7 +73,7 @@ const List<Palette> palettes = [
   )),
 ];
 
-// Najde paletu podle klíče z databáze. Neznámý klíč = kávová.
+// Najde paletu podle klíče z databáze. Neznámý klíč = první (kávová).
 Palette paletteFor(String key) {
   return palettes.firstWhere(
     (palette) => palette.key == key,

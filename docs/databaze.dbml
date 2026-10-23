@@ -70,14 +70,17 @@ Table tables {
   code varchar [note: 'tajný kód v QR kódu na stole']
 }
 
-Table counters {
-  id varchar [pk, note: 'jediný dokument "orders"']
+Table orderNumbers {
+  id varchar [pk, note: 'jediný dokument "today"']
   last int [note: 'poslední přidělené číslo objednávky']
   day int [note: 'den YYYYMMDD – nový den = čísla od 1']
+  Note: '''Náhrada AUTO_INCREMENT: Firestore čísla 1, 2, 3… sám nepřiděluje.
+S každou objednávkou se "last" v transakci zvýší o 1
+a objednávka dostane to samé číslo (orders.number).'''
 }
 
 Table settings {
-  id varchar [pk, note: 'jediný dokument "venue"']
+  id varchar [pk, note: 'jediný dokument "venue" – to, co mění admin v aplikaci']
   name varchar
   slogan varchar
   color varchar [note: 'klíč barevné palety, např. kava, bordo']

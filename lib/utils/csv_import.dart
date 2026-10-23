@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import '../config/app_config.dart';
 import '../models/product.dart';
 import 'text.dart';
 
@@ -71,7 +72,7 @@ CsvImportResult parseProductsCsv(String text) {
       errors.add('Řádek $lineNumber ($name): cena "$priceText" není číslo');
       continue;
     }
-    if (price <= 0 || price > 10000) {
+    if (price <= 0 || price > AppConfig.maxProductPrice) {
       errors.add('Řádek $lineNumber ($name): cena musí být 1–10 000 Kč');
       continue;
     }

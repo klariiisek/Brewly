@@ -168,8 +168,8 @@ void main() {
     final yesterday = OrderService.dayKey(
         DateTime.now().subtract(const Duration(days: 1)));
     await db
-        .collection('counters')
-        .doc('orders')
+        .collection('orderNumbers')
+        .doc('today')
         .set({'last': 57, 'day': yesterday});
     final orderService = OrderService(db);
     final first = await createTestOrder(orderService);

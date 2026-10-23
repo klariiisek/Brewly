@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../config/app_config.dart';
 import '../models/menu_category.dart';
 import '../models/product.dart';
 import '../services/product_service.dart';
@@ -79,7 +80,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     final price = parsePrice(value ?? '');
     if (price == null) return 'Zadejte cenu číslem';
     if (price <= 0) return 'Cena musí být větší než 0';
-    if (price > 10000) return 'Tak drahé to snad nebude 🙂';
+    if (price > AppConfig.maxProductPrice) return 'Tak drahé to snad nebude 🙂';
     return null;
   }
 

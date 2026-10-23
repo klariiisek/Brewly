@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
+import '../config/app_config.dart';
 import '../services/product_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/csv_import.dart';
@@ -11,9 +12,6 @@ import '../widgets/app_message.dart';
 const csvExample = 'název;cena;kategorie;popis\n'
     'Flat white;72;Káva;Espresso s jemným mléčným krémem\n'
     'Brownies;65;Dezerty;Čokoládový řez s ořechy';
-
-// Nejvíc produktů najednou (Firestore zvládne max. 500 zápisů v jednom batchi).
-const maxImportProducts = 400;
 
 // Nahrání menu ze souboru CSV: návod → výběr souboru → náhled → nahrání.
 class CsvImportScreen extends StatefulWidget {
@@ -164,7 +162,7 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
   Widget buildPreview(CsvImportResult result) {
     final products = result.products;
     final errorColor = Theme.of(context).colorScheme.error;
-    final tooMany = products.length > maxImportProducts;
+    final tooMany = products.length > AppConfig.maxCsvProducts;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,7 +196,7 @@ class _CsvImportScreenState extends State<CsvImportScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              'Najednou jde nahrát nejvýš $maxImportProducts produktů. '
+              'Najednou jde nahrát nejvýš ${AppConfig.maxCsvProducts} produktů. '
               'Rozdělte soubor na menší části.',
               style: TextStyle(color: errorColor),
             ),

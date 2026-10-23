@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../config/app_config.dart';
 import '../utils/text.dart';
 
 // Okno s textovým polem pro název kategorie. Vrátí název, nebo null.
@@ -31,7 +32,7 @@ Future<String?> askForCategoryName(
           child: TextFormField(
             controller: controller,
             autofocus: true,
-            maxLength: 40,
+            maxLength: AppConfig.maxCategoryNameLength,
             textCapitalization: TextCapitalization.sentences,
             decoration: const InputDecoration(labelText: 'Název kategorie'),
             onFieldSubmitted: (_) => submit(),

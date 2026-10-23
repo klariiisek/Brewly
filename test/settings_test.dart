@@ -3,7 +3,7 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:brewly/models/venue_settings.dart';
-import 'package:brewly/theme/palettes.dart';
+import 'package:brewly/config/palettes.dart';
 
 import 'helpers.dart';
 

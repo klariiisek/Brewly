@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:brewly/models/user_role.dart';
 import 'package:brewly/theme/app_theme.dart';
-import 'package:brewly/theme/palettes.dart';
+import 'package:brewly/config/palettes.dart';
 import 'package:brewly/services/auth_service.dart';
 import 'package:brewly/widgets/change_password_dialog.dart';
 import 'package:brewly/widgets/user_avatar.dart';

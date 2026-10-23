@@ -2,9 +2,6 @@ import 'cart_item.dart';
 import 'product.dart';
 
 class Cart {
-  // Počet stolů v kavárně.
-  static const int tableCount = 10;
-
   final List<CartItem> items = [];
 
   // Stůl, u kterého zákazník sedí, a jeho tajný kód z QR kódu na stole.

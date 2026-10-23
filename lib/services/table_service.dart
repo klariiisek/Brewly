@@ -2,14 +2,11 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../models/cart.dart';
-
-// Adresa zveřejněné aplikace – na ni vedou QR kódy na stolech.
-const String appUrl = 'https://brewly-9e944.web.app';
+import '../config/app_config.dart';
 
 // Odkaz, který je v QR kódu stolu, např. https://…/?stul=4&kod=K7P2X9
 String tableLink(int tableNumber, String code) {
-  return '$appUrl/?stul=$tableNumber&kod=$code';
+  return '${AppConfig.appUrl}/?stul=$tableNumber&kod=$code';
 }
 
 // Krátký kód stolu pro ruční opsání, např. "4-K7P2X9".
@@ -22,15 +19,15 @@ String shortTableCode(int tableNumber, String code) => '$tableNumber-$code';
   if (parts.length != 2) return null;
   final number = int.tryParse(parts[0]);
   final code = parts[1];
-  if (number == null || number < 1 || number > Cart.tableCount) return null;
-  if (code.length != TableService.codeLength) return null;
+  if (number == null || number < 1 || number > AppConfig.tableCount) return null;
+  if (code.length != AppConfig.tableCodeLength) return null;
   return (number: number, code: code);
 }
 
-// Služba pro tajné kódy stolů (kolekce "tables", dokumenty "1" až "10").
+// Služba pro tajné kódy stolů (kolekce "tables", dokumenty "1" až "10" –
+// počet stolů je v konfiguraci AppConfig.tableCount).
 // Kódy může číst a měnit jen obsluha (hlídají to bezpečnostní pravidla).
 class TableService {
-  static const int codeLength = 6;
   // Bez snadno zaměnitelných znaků (0/O, 1/I/L), aby se kód dobře opisoval.
   static const String _alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
@@ -59,9 +56,9 @@ class TableService {
     // Random.secure() = náhoda vhodná pro bezpečnostní účely (nedá se uhodnout).
     final random = Random.secure();
     final batch = db.batch();
-    for (var number = 1; number <= Cart.tableCount; number++) {
+    for (var number = 1; number <= AppConfig.tableCount; number++) {
       final code = List.generate(
-        codeLength,
+        AppConfig.tableCodeLength,
         (_) => _alphabet[random.nextInt(_alphabet.length)],
       ).join();
       batch.set(_tables.doc('$number'), {'code': code});

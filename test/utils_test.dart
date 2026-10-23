@@ -6,6 +6,9 @@ import 'package:brewly/services/product_service.dart';
 import 'package:brewly/utils/csv_import.dart';
 import 'package:brewly/utils/format.dart';
 import 'package:brewly/utils/text.dart';
+import 'package:brewly/config/app_config.dart';
+import 'package:brewly/config/palettes.dart';
+import 'package:brewly/models/venue_settings.dart';
 
 
 void main() {
@@ -62,5 +65,13 @@ void main() {
     final result = parseProductsCsv('Latte,70,Káva,"Jemná, mléčná"');
     expect(result.errors, isEmpty);
     expect(result.products.single.description, 'Jemná, mléčná');
+  });
+
+  test('Konfigurace: výchozí barva a typ podniku opravdu existují', () {
+    // Kdyby programátor v app_config.dart udělal překlep, test ho odhalí.
+    expect(palettes.any((palette) => palette.key == AppConfig.defaultColor),
+        true);
+    expect(VenueSettings.defaults.type.name, AppConfig.defaultVenueType);
+    expect(VenueSettings.defaults.name, AppConfig.defaultVenueName);
   });
 }

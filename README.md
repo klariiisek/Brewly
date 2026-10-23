@@ -13,6 +13,8 @@ Zákazník naskenuje QR kód na stole, prohlédne si menu, objedná a sleduje, j
 - [💡 Proč Brewly vzniklo](#-proč-brewly-vzniklo)
 - [✨ Co aplikace umí](#-co-aplikace-umí)
 - [🛠️ Technologie](#️-technologie)
+- [🧭 Jak to funguje](#-jak-to-funguje)
+- [⚙️ Konfigurace vs. databáze](#️-konfigurace-vs-databáze)
 - [🗄️ Databáze](#️-databáze)
 - [🔒 Zabezpečení](#-zabezpečení)
 - [📁 Struktura projektu](#-struktura-projektu)
@@ -108,6 +110,58 @@ Umí všechno co obsluha, a navíc:
 
 ---
 
+## 🧭 Jak to funguje
+
+Zákazník, obsluha i admin používají stejnou aplikaci, každý vidí jen svou část podle role. Aplikace je napsaná ve Flutteru a běží v prohlížeči. Data ukládá do Firebase a každý zápis do databáze nejdřív zkontrolují bezpečnostní pravidla.
+
+```mermaid
+flowchart LR
+    Z["👤 Zákazník<br/>(QR kód na stole)"]
+    O["👩‍🍳 Obsluha"]
+    A["🧑‍💼 Admin"]
+
+    subgraph App["📱 Aplikace Flutter (v prohlížeči)"]
+        Obr["Obrazovky<br/>screens, widgets"] --> Sl["Služby<br/>services"]
+    end
+
+    subgraph FB["🔥 Firebase"]
+        Host["Hosting<br/>web aplikace"]
+        Auth["Authentication<br/>e-mail, Google"]
+        Pr{{"Bezpečnostní<br/>pravidla"}} --> DB[("Cloud Firestore")]
+    end
+
+    Z --> Obr
+    O --> Obr
+    A --> Obr
+    Obr -. "načte se z" .-> Host
+    Sl -- "přihlášení" --> Auth
+    Sl <-- "čtení, zápis<br/>a živé změny" --> Pr
+
+    classDef role fill:#F3E9DF,stroke:#6F4E37,color:#3E2723
+    class Z,O,A role
+```
+
+Aplikace se načte z **Firebase Hosting** (čárkovaná šipka). Obrazovky volají **služby**, které zajišťují přihlášení a práci s databází. Šipka mezi službami a pravidly vede oběma směry: aplikace data čte a zapisuje a databáze jí sama posílá změny, takže se nová objednávka obsluze ukáže hned. Hodnoty, které nastavuje programátor, jsou v konfiguraci (viz [Konfigurace vs. databáze](#️-konfigurace-vs-databáze)).
+
+---
+
+## ⚙️ Konfigurace vs. databáze
+
+Nastavení aplikace je rozdělené na dvě části podle toho, **kdo ho mění a kdy**:
+
+| | **Konfigurační soubor** | **Databáze** (`settings/venue`) |
+|---|---|---|
+| Kdo mění | programátor | vedoucí podniku (admin) v aplikaci |
+| Kdy | při nasazení aplikace pro podnik | kdykoli za provozu |
+| Jak se změna projeví | upravit soubor, znovu sestavit a nahrát aplikaci | **hned, všem zákazníkům** |
+| Co obsahuje | adresa aplikace, **počet stolů**, délka kódu stolu, **barevné palety**, výchozí vzhled, limity (max. cena, délky textů, počet položek) | název, slogan, typ podniku, vybraná barva, otevřeno/zavřeno, oznámení, adresa, otevírací doba, Wi-Fi |
+
+Konfigurace je v souborech [`lib/config/app_config.dart`](lib/config/app_config.dart) a [`lib/config/palettes.dart`](lib/config/palettes.dart).
+
+**Proč nastavení podniku není taky v souboru?** Vedoucí podniku není programátor. Když ráno zavírá kvůli nemoci, mění akci dne nebo heslo na Wi-Fi, musí to zvládnout sám z mobilu a změna se musí hned projevit všem zákazníkům. To konfigurační soubor neumí, databáze ano.
+
+---
+
 ## 🗄️ Databáze
 
 ### Proč Firestore (NoSQL)
@@ -116,10 +170,72 @@ Používám **Cloud Firestore**. Je to **NoSQL** databáze: data nejsou v tabulk
 - **živé aktualizace**: když zákazník objedná, obsluze se objednávka ukáže okamžitě, bez obnovování stránky,
 - **přímé napojení na přihlašování**: bezpečnostní pravidla znají přihlášeného uživatele a jeho roli.
 
-### ER diagram
-Diagram je vytvořený v [dbdiagram.io](https://dbdiagram.io). Jeho zápis je v souboru [`docs/databaze.dbml`](docs/databaze.dbml).
+### Diagram databáze
+Klasický ER diagram je stavěný pro relační databáze s tabulkami a cizími klíči. Firestore pracuje s **kolekcemi dokumentů**, proto diagram ukazuje kolekce, jednotlivé dokumenty a **odkazy mezi nimi**. Pole každé kolekce jsou v tabulkách pod diagramem.
 
-![ER diagram databáze Brewly](docs/images/er_diagram.svg)
+```mermaid
+flowchart TB
+    subgraph Single["Samostatné dokumenty"]
+        direction LR
+        numbers[["orderNumbers/today<br/>čísla objednávek"]]
+        settings[["settings/venue<br/>nastavení podniku"]]
+    end
+
+    orders[("orders<br/>objednávky")]
+    requests[("requests<br/>přivolat obsluhu, zaplatit")]
+    items[/"items<br/>položky vnořené v objednávce"/]
+    users[("users<br/>uživatelé a role")]
+    tables[("tables<br/>stoly a tajné kódy")]
+    products[("products<br/>produkty")]
+    categories[("categories<br/>kategorie menu")]
+
+    numbers -. "přidělí číslo" .-> orders
+    orders --- items
+    items -. "kopie produktu" .-> products
+    products -- "categoryId" --> categories
+    orders -- "userId" --> users
+    requests -- "userId" --> users
+    orders -- "tableNumber" --> tables
+    requests -- "tableNumber" --> tables
+
+    classDef kolekce fill:#F3E9DF,stroke:#6F4E37,color:#3E2723
+    classDef dokument fill:#FFF6D6,stroke:#C8894B,color:#3E2723
+    classDef vnorene fill:#FFFFFF,stroke:#8D7B6F,stroke-dasharray:4 3,color:#3E2723
+    class users,categories,products,orders,requests,tables kolekce
+    class numbers,settings dokument
+    class items vnorene
+```
+
+**Legenda:**
+- **válec** = kolekce (mnoho dokumentů, např. všechny objednávky),
+- **dvojitý obdélník** = jediný samostatný dokument,
+- **kosodélník** = data vnořená uvnitř dokumentu (položky objednávky),
+- **plná šipka** = odkaz pomocí ID (jako cizí klíč, správnost hlídají pravidla),
+- **čárkovaná šipka** = kopie dat nebo přidělení čísla.
+
+### Jak se ukládá objednávka
+Tady je vidět, k čemu slouží `orderNumbers/today` a co všechno kontrolují pravidla:
+
+```mermaid
+sequenceDiagram
+    actor Z as Zákazník
+    participant A as Aplikace
+    participant P as Pravidla
+    participant DB as Firestore
+    actor O as Obsluha
+
+    Z->>A: Objednat (stůl 4)
+    A->>DB: transakce: přečti orderNumbers/today
+    DB-->>A: last = 11, day = dnes
+    A->>P: ulož last = 12 a objednávku č. 12
+    Note over P: kód stolu sedí?<br/>číslo je z počítadla?<br/>čas je čas serveru?<br/>podnik má otevřeno?
+    P->>DB: vše v pořádku, uložit
+    DB-->>A: uloženo
+    A-->>Z: Objednávka č. 12 přijata
+    DB-->>O: nová objednávka se hned objeví
+```
+
+Transakce zaručí, že když objednají dva zákazníci ve stejnou chvíli, jeden dostane č. 12 a druhý č. 13. Nikdy ne oba stejné číslo.
 
 ### Kolekce
 
@@ -179,9 +295,22 @@ Diagram je vytvořený v [dbdiagram.io](https://dbdiagram.io). Jeho zápis je v 
 | `number` | číslo (ID dokumentu) | 1–10 |
 | `code` | text | tajný kód, který je v QR kódu na stole |
 
-#### `counters/orders` a `settings/venue`: samostatné dokumenty
-- **`counters/orders`**: `last` (poslední číslo objednávky) a `day` (den `YYYYMMDD`). Nový den znamená čísla od 1.
-- **`settings/venue`**: nastavení podniku (`name`, `slogan`, `color`, `type`, `isOpen`, `announcement`, `address`, `openingHours`, `wifiName`, `wifiPassword`).
+#### `orderNumbers/today`: čísla objednávek (náhrada AUTO_INCREMENT)
+| Pole | Typ | Popis |
+|---|---|---|
+| `last` | číslo | poslední přidělené číslo objednávky |
+| `day` | číslo | den, ke kterému číslo patří (`YYYYMMDD`) |
+
+V MySQL by objednávky dostávaly čísla 1, 2, 3… samy díky **AUTO_INCREMENT**. **Firestore nic takového nemá**: ID dokumentu je náhodný řetězec (např. `xK8f2mQa…`), který se obsluze špatně vyvolává. Proto si v tomto jediném dokumentu pamatuji poslední přidělené číslo:
+
+1. zákazník odešle objednávku,
+2. aplikace v **transakci** přečte `last`, zvýší ho o 1 a stejné číslo uloží do nové objednávky (`orders.number`),
+3. když je nový den (`day` se liší od dneška), začne znovu od 1.
+
+Transakce zaručí, že dva zákazníci objednávající ve stejnou chvíli nedostanou stejné číslo. Pravidla navíc hlídají, že číslo objednávky opravdu pochází z počítadla a že den se bere z hodin serveru.
+
+#### `settings/venue`: nastavení podniku
+Jediný dokument s tím, co **mění admin přímo v aplikaci**: `name`, `slogan`, `color`, `type`, `isOpen`, `announcement`, `address`, `openingHours`, `wifiName`, `wifiPassword`. Proč to není v konfiguračním souboru, vysvětluje kapitola [Konfigurace vs. databáze](#️-konfigurace-vs-databáze).
 
 ### Vztahy
 - **uživatel 1 : N objednávky** (`orders.userId` → `users.uid`)
@@ -196,7 +325,7 @@ Diagram je vytvořený v [dbdiagram.io](https://dbdiagram.io). Jeho zápis je v 
 | **Položky objednávky** | vnořený seznam `items` v objednávce, s **kopií** názvu a ceny produktu | Záměrná **denormalizace**. Objednávka si pamatuje cenu v době nákupu, takže zdražení nebo smazání produktu nezmění historii ani tržby. Celá objednávka se navíc načte jedním čtením. |
 | **Kategorie** | samostatná kolekce `categories`, produkt na ni odkazuje přes `categoryId` | **Normalizace**: název kategorie je uložený jen jednou. Přejmenování změní jediný dokument a nehrozí překlepy v názvech. |
 | **Cizí klíče** | Firestore je sám nehlídá | Hlídají je **bezpečnostní pravidla**, např. produkt nejde uložit s neexistující kategorií a objednávka musí mít platný kód stolu. |
-| **Jedinečné číslo objednávky** | počítadlo `counters/orders` zvyšované v **transakci** | Dva zákazníci objednávající ve stejnou chvíli nikdy nedostanou stejné číslo. |
+| **Pořadové číslo objednávky** (AUTO_INCREMENT) | dokument `orderNumbers/today` zvyšovaný v **transakci** | Dva zákazníci objednávající ve stejnou chvíli nikdy nedostanou stejné číslo. |
 
 ---
 
@@ -226,11 +355,12 @@ Cenu počítá aplikace v mobilu zákazníka. Bezpečnostní pravidla Firestore 
 ```
 lib/
 ├── main.dart            spuštění aplikace, napojení na Firebase, téma podle nastavení
+├── config/              KONFIGURACE: počet stolů, palety, výchozí vzhled, limity
 ├── models/              datové třídy (Product, Order, Cart, VenueSettings…)
 ├── services/            práce s databází a přihlášením (ProductService, OrderService…)
 ├── screens/             obrazovky (menu, košík, obsluha, správa menu…)
 ├── widgets/             znovupoužitelné části obrazovek (karta produktu, okna…)
-├── theme/               barvy, palety a vzhled aplikace
+├── theme/               vzhled aplikace sestavený z vybrané palety
 └── utils/               pomocné funkce (formátování cen, čtení CSV…)
 test/                    automatické testy
 docs/                    diagram databáze, ukázkové CSV menu
@@ -266,7 +396,7 @@ firebase deploy --only hosting
 flutter test
 ```
 
-Projekt má **50 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
+Projekt má **51 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
 - objednávku od menu přes košík až po stav u obsluhy,
 - role (zákazník nevidí obsluhu, obsluha nevidí správu menu),
 - čtení CSV souboru a hlášení chybných řádků,

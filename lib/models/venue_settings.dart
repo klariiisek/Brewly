@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../config/app_config.dart';
+
 // Typ podniku – podle něj se mění ikona a emoji v aplikaci.
 enum VenueType {
   kavarna('Kavárna', Icons.coffee, '☕'),
@@ -33,12 +35,12 @@ class VenueSettings {
   final String wifiName;
   final String wifiPassword;
 
-  // Výchozí nastavení (než ho admin poprvé uloží) – kavárna Brewly.
-  static const defaults = VenueSettings(
-    name: 'Brewly',
-    slogan: 'Vítejte v naší kavárně',
-    colorKey: 'kava',
-    type: VenueType.kavarna,
+  // Výchozí nastavení (než ho admin poprvé uloží) – z konfigurace aplikace.
+  static final defaults = VenueSettings(
+    name: AppConfig.defaultVenueName,
+    slogan: AppConfig.defaultSlogan,
+    colorKey: AppConfig.defaultColor,
+    type: VenueType.values.byName(AppConfig.defaultVenueType),
   );
 
   const VenueSettings({

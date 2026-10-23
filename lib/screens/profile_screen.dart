@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../config/app_config.dart';
 import '../models/user_profile.dart';
 import '../services/app_services.dart';
 import '../services/auth_service.dart';
@@ -67,7 +68,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         content: TextField(
           controller: controller,
           autofocus: true,
-          maxLength: 40,
+          maxLength: AppConfig.maxUserNameLength,
           textCapitalization: TextCapitalization.words,
           decoration: const InputDecoration(labelText: 'Jméno'),
         ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
-import '../models/cart.dart';
+import '../config/app_config.dart';
 import '../services/table_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
@@ -128,7 +128,7 @@ class _StaffTablesScreenState extends State<StaffTablesScreen> {
         crossAxisSpacing: 12,
         childAspectRatio: 0.72,
       ),
-      itemCount: Cart.tableCount,
+      itemCount: AppConfig.tableCount,
       itemBuilder: (context, index) {
         final number = index + 1;
         return buildTableCard(number, codes[number]);

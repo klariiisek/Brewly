@@ -167,11 +167,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ---------- Počítadlo objednávek ----------
-    // Kvůli pořadovým číslům ho čte a zvyšuje každý, kdo objednává.
+    // ---------- Čísla objednávek (náhrada AUTO_INCREMENT) ----------
+    // Firestore neumí čísla 1, 2, 3… přidělovat sám (jako AUTO_INCREMENT
+    // v MySQL), ID dokumentů jsou náhodné řetězce. Proto si v jednom
+    // dokumentu pamatujeme poslední přidělené číslo a s každou objednávkou
+    // ho v transakci zvýšíme o 1.
     // Čísla začínají každý den od 1. Den se bere z hodin serveru
     // (request.time), ne z telefonu – nikdo si tak čísla nevynuluje sám.
-    match /counters/orders {
+    match /orderNumbers/today {
       // Dnešní den jako číslo, např. 20261016 (v čase UTC).
       function today() {
         return request.time.year() * 10000 + request.time.month() * 100 + request.time.day();
@@ -209,7 +212,7 @@ service cloud.firestore {
       // počítadlo – a počítadlo se v ní opravdu muselo změnit.
       // (getAfter = stav po zápisu, get = stav před zápisem.)
       function hasNumberFromCounter() {
-        let counterPath = /databases/$(database)/documents/counters/orders;
+        let counterPath = /databases/$(database)/documents/orderNumbers/today;
         let after = getAfter(counterPath).data;
         return request.resource.data.number == after.last
           && (!exists(counterPath)

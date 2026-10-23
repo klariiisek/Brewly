@@ -15,10 +15,12 @@ class OrderService {
   CollectionReference<Map<String, dynamic>> get _orders =>
       db.collection('orders');
 
-  // Dokument s počítadlem objednávek: poslední přidělené číslo ("last")
+  // Čísla objednávek – náhrada AUTO_INCREMENT z relačních databází.
+  // Firestore čísla 1, 2, 3… sám nepřiděluje, proto si v dokumentu
+  // orderNumbers/today pamatujeme poslední přidělené číslo ("last")
   // a den, ke kterému patří ("day").
   DocumentReference<Map<String, dynamic>> get _counter =>
-      db.collection('counters').doc('orders');
+      db.collection('orderNumbers').doc('today');
 
   // Dnešní den jako číslo, např. 16. 10. 2026 → 20261016.
   // Počítá se v čase UTC – stejně jako v pravidlech databáze, která

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../config/app_config.dart';
 import '../models/venue_settings.dart';
 import '../services/app_services.dart';
 import '../theme/app_theme.dart';
-import '../theme/palettes.dart';
+import '../config/palettes.dart';
 import '../widgets/app_message.dart';
 import 'categories_screen.dart';
 
@@ -109,7 +110,7 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
             TextFormField(
               controller: nameController,
               decoration: const InputDecoration(labelText: 'Název podniku'),
-              maxLength: 40,
+              maxLength: AppConfig.maxVenueNameLength,
               textCapitalization: TextCapitalization.sentences,
               // Při psaní se hned překreslí náhled.
               onChanged: (_) => setState(() {}),
@@ -124,7 +125,7 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
                 labelText: 'Slogan',
                 hintText: 'Např. Vítejte v naší kavárně',
               ),
-              maxLength: 80,
+              maxLength: AppConfig.maxSloganLength,
               textCapitalization: TextCapitalization.sentences,
               onChanged: (_) => setState(() {}),
             ),
@@ -143,7 +144,7 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
                 hintText: 'Např. Dnes −20 % na všechny dezerty',
                 prefixIcon: Icon(Icons.campaign_outlined),
               ),
-              maxLength: 120,
+              maxLength: AppConfig.maxAnnouncementLength,
               textCapitalization: TextCapitalization.sentences,
             ),
             Text(
@@ -159,7 +160,7 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
                 labelText: 'Adresa',
                 prefixIcon: Icon(Icons.place_outlined),
               ),
-              maxLength: 100,
+              maxLength: AppConfig.maxAddressLength,
             ),
             const SizedBox(height: 8),
             TextFormField(
@@ -171,7 +172,7 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
               ),
               minLines: 2,
               maxLines: 5,
-              maxLength: 300,
+              maxLength: AppConfig.maxOpeningHoursLength,
             ),
             const SizedBox(height: 8),
             TextFormField(
@@ -180,7 +181,7 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
                 labelText: 'Název Wi-Fi',
                 prefixIcon: Icon(Icons.wifi),
               ),
-              maxLength: 50,
+              maxLength: AppConfig.maxWifiLength,
             ),
             const SizedBox(height: 8),
             TextFormField(
@@ -189,7 +190,7 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
                 labelText: 'Heslo k Wi-Fi',
                 prefixIcon: Icon(Icons.key_outlined),
               ),
-              maxLength: 50,
+              maxLength: AppConfig.maxWifiLength,
             ),
             const SizedBox(height: 24),
             // Kategorie mají vlastní obrazovku (změny se tam ukládají hned).

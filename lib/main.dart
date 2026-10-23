@@ -18,7 +18,7 @@ import 'services/table_service.dart';
 import 'services/user_service.dart';
 import 'models/venue_settings.dart';
 import 'theme/app_theme.dart';
-import 'theme/palettes.dart';
+import 'config/palettes.dart';
 
 // "async" protože před spuštěním aplikace musíme počkat na připojení k Firebase.
 Future<void> main() async {
