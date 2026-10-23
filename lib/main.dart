@@ -21,6 +21,9 @@ import 'models/venue_settings.dart';
 import 'theme/app_theme.dart';
 import 'config/palettes.dart';
 
+// Hlídá návrat do aplikace (viz main). Musí žít po celou dobu běhu aplikace.
+AppLifecycleListener? lifecycleListener;
+
 // "async" protože před spuštěním aplikace musíme počkat na připojení k Firebase.
 Future<void> main() async {
   // Připraví Flutter, aby šlo něco udělat ještě před runApp.
@@ -31,15 +34,34 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  final db = FirebaseFirestore.instance;
+
+  // Spolehlivé živé spojení i v Safari na iPhonu. Výchozí "proudové" spojení
+  // se v Safari občas zasekne a změny (např. stav objednávky) nedorazí.
+  // Long polling = aplikace se databáze opakovaně ptá na změny a každou
+  // odpověď dostane celou – funguje ve všech prohlížečích.
+  db.settings = const Settings(webExperimentalForceLongPolling: true);
+
+  // Když se zákazník do aplikace vrátí (rozsvítí displej, přepne zpět
+  // z jiné aplikace), obnovíme spojení s databází, aby hned viděl
+  // aktuální stav objednávky. Mobilní prohlížeče totiž stránku na pozadí
+  // uspávají, aby šetřily baterii.
+  lifecycleListener = AppLifecycleListener(
+    onResume: () async {
+      await db.disableNetwork();
+      await db.enableNetwork();
+    },
+  );
+
   // Služby pracují se skutečným Firebase (přihlašování a databáze).
   final services = AppServices(
     auth: AuthService(FirebaseAuth.instance),
-    users: UserService(FirebaseFirestore.instance),
-    products: ProductService(FirebaseFirestore.instance),
-    orders: OrderService(FirebaseFirestore.instance),
-    requests: RequestService(FirebaseFirestore.instance),
-    tables: TableService(FirebaseFirestore.instance),
-    settings: SettingsService(FirebaseFirestore.instance),
+    users: UserService(db),
+    products: ProductService(db),
+    orders: OrderService(db),
+    requests: RequestService(db),
+    tables: TableService(db),
+    settings: SettingsService(db),
   );
 
   // Košík se vytvoří jen jednou při spuštění aplikace a předává se obrazovkám.
