@@ -22,8 +22,8 @@ class CartScreen extends StatefulWidget {
   // Zavolá se, když se změní obsah košíku (aby se aktualizovalo číslo v liště).
   final VoidCallback onCartChanged;
 
-  // Zavolá se po vytvoření objednávky (přepne na záložku Objednávky).
-  final VoidCallback onOrderCreated;
+  // Zavolá se po vytvoření objednávky s jejím ID (aplikace ji rovnou otevře).
+  final ValueChanged<String> onOrderCreated;
 
   // Zavolá se z prázdného košíku tlačítkem "Přejít do menu".
   final VoidCallback onGoToMenu;
@@ -116,7 +116,7 @@ class _CartScreenState extends State<CartScreen> {
 
     try {
       // Uloží objednávku do databáze i s tím, kdo ji vytvořil.
-      await widget.services.orders.createOrder(
+      final orderId = await widget.services.orders.createOrder(
         items: widget.cart.items,
         totalPrice: widget.cart.totalPrice,
         tableNumber: widget.cart.tableNumber!,
@@ -131,7 +131,7 @@ class _CartScreenState extends State<CartScreen> {
       });
       widget.onCartChanged();
       showAppMessage(context, 'Objednávka byla odeslána');
-      widget.onOrderCreated();
+      widget.onOrderCreated(orderId);
     } on FirebaseException catch (error) {
       if (!mounted) return;
       if (error.code == 'permission-denied' && !VenueScope.of(context).isOpen) {

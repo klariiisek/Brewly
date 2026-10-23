@@ -50,9 +50,11 @@ Aplikace rozlišuje čtyři typy uživatelů. Co kdo smí, nehlídá jen aplikac
 
 ### ☕ Zákazník
 - registrace a přihlášení **e-mailem a heslem** nebo **přes Google**, obnovení zapomenutého hesla,
-- **QR kód na stole** aplikaci řekne, u kterého stolu sedí (stůl jde zadat i opsaným kódem),
+- **QR kód na stole** otevře **rovnou menu** a aplikace ví, u kterého stolu zákazník sedí (stůl jde zadat i opsaným kódem),
 - **košík**: změna množství, hlídání vyprodaných produktů a změn cen,
-- **objednávka ke stolu** a její **živý stav**: Přijata → Připravuje se → Připravena → Dokončena,
+- **plovoucí lišta košíku** v menu („2 položky · 135 Kč → Do košíku“), takže se nemusí hledat záložka,
+- **objednávka ke stolu**: po odeslání se hned otevře **sledování s ukazatelem průběhu** (Přijata → Připravuje se → Připravena → Dokončena),
+- **upozornění „Vaše objednávka je připravená! 🎉“**, ať je zákazník v aplikaci kdekoli,
 - historie objednávek s detailem,
 - **profil**: avatar (ikonka a barva, nebo fotka z Google), změna jména a hesla,
 - tlačítka **Přivolat obsluhu** a **Chci zaplatit**.
@@ -396,7 +398,7 @@ firebase deploy --only hosting
 flutter test
 ```
 
-Projekt má **51 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
+Projekt má **54 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
 - objednávku od menu přes košík až po stav u obsluhy,
 - role (zákazník nevidí obsluhu, obsluha nevidí správu menu),
 - čtení CSV souboru a hlášení chybných řádků,

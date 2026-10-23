@@ -38,9 +38,6 @@ void main() {
 
     // Přidá první produkt (Cappuccino – káva je první, pak abecedně) tlačítkem +.
     await tester.tap(find.byTooltip('Přidat do košíku').first);
-    await tester.pump();
-    // Počká, až zmizí hlášení "Přidáno: 1× Cappuccino".
-    await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
 
     // Číslo 1 u košíku ve spodní liště.
@@ -57,9 +54,14 @@ void main() {
     expect(find.text('U kterého stolu sedíte?'), findsOneWidget);
     await enterTableCode(tester, '3-abcdef');
 
-    // Objednávka se odešle a aplikace sama přepne na objednávky.
-    expect(find.text('Moje objednávky'), findsOneWidget);
+    // Objednávka se odešle a aplikace rovnou otevře její sledování.
+    expect(find.text('Objednávku jsme přijali'), findsOneWidget);
     expect(find.textContaining('Stůl 3 •'), findsOneWidget);
+
+    // Zpět se zákazník dostane na seznam svých objednávek.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Moje objednávky'), findsOneWidget);
   });
 
   test('Objednávky dostanou pořadová čísla a jde měnit jejich stav', () async {
@@ -90,9 +92,8 @@ void main() {
       (WidgetTester tester) async {
     // Zákazník přišel z QR kódu stolu 2 (stůl je v košíku už nastavený).
     final cart = Cart()..setTable(2, 'ABCDEF');
+    // Z QR kódu se úvod přeskočí – aplikace otevře rovnou menu.
     await pumpApp(tester, await buildTestApp(signedIn: false, cart: cart));
-    await tester.tap(find.text('Prohlédnout menu'));
-    await tester.pumpAndSettle();
 
     // Přidá produkt a přejde do košíku – stůl je tam z QR kódu.
     await tester.tap(find.byTooltip('Přidat do košíku').first);
@@ -113,7 +114,7 @@ void main() {
     await tester.tap(find.widgetWithText(ElevatedButton, 'Přihlásit se'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Moje objednávky'), findsOneWidget);
+    expect(find.text('Objednávku jsme přijali'), findsOneWidget);
     expect(find.textContaining('Stůl 2 •'), findsOneWidget);
   });
 
@@ -189,5 +190,53 @@ void main() {
     cart.addItem(CartItem(product: latte2));
     expect(cart.items.length, 2);
     expect(cart.items.first.quantity, 2);
+  });
+
+  testWidgets('Z QR kódu se otevře rovnou menu s číslem stolu',
+      (WidgetTester tester) async {
+    final cart = Cart()..setTable(4, 'K7P2X9');
+    await pumpApp(tester, await buildTestApp(cart: cart));
+
+    expect(find.text('Prohlédnout menu'), findsNothing);
+    expect(find.text('Stůl 4 · Co si dnes dáte?'), findsOneWidget);
+    // Menu je první obrazovka – šipka zpět není kam.
+    expect(find.byType(BackButton), findsNothing);
+  });
+
+  testWidgets('Plovoucí lišta v menu vede rovnou do košíku',
+      (WidgetTester tester) async {
+    await pumpApp(tester, await buildTestApp());
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+    expect(find.text('Do košíku'), findsNothing);
+
+    await tester.tap(find.byTooltip('Přidat do košíku').first);
+    await tester.pumpAndSettle();
+    expect(find.text('1 položka · 65 Kč'), findsOneWidget);
+
+    await tester.tap(find.text('Do košíku'));
+    await tester.pumpAndSettle();
+    expect(find.text('Objednat'), findsOneWidget);
+  });
+
+  testWidgets('Když je objednávka připravená, zákazník dostane upozornění',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    final orderId = await createTestOrder(OrderService(db));
+    await db.collection('orders').doc(orderId).update({'status': 'pripravujeSe'});
+
+    await pumpApp(tester, await buildTestApp(db: db));
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+
+    // Obsluha mezitím objednávku dodělá.
+    await db.collection('orders').doc(orderId).update({'status': 'pripravena'});
+    await tester.pumpAndSettle();
+    expect(find.text('Vaše objednávka č. 1 je připravená!'), findsOneWidget);
+
+    // "Zobrazit" otevře sledování objednávky.
+    await tester.tap(find.text('Zobrazit'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Hotovo!'), findsOneWidget);
   });
 }

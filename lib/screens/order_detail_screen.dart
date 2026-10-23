@@ -5,7 +5,7 @@ import '../services/order_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../widgets/empty_state.dart';
-import '../widgets/status_badge.dart';
+import '../widgets/order_progress.dart';
 
 // Detail objednávky. Sleduje objednávku v databázi živě,
 // takže zákazník hned vidí, když obsluha změní stav.
@@ -73,24 +73,26 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return ListView(
       padding: const EdgeInsets.symmetric(vertical: 8),
       children: [
-        // Stůl a stav objednávky.
+        // Průběh objednávky – živě se mění, jak obsluha posouvá stav.
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 20),
+            child: Column(
               children: [
-                Icon(Icons.table_restaurant, color: context.colors.primary),
-                const SizedBox(width: 12),
-                Text(
-                  'Stůl ${order.tableNumber}',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: context.colors.dark,
-                  ),
+                OrderProgress(status: order.status),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.table_restaurant,
+                        size: 18, color: context.colors.muted),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Stůl ${order.tableNumber} • ${formatOrderDate(order.time)}',
+                      style: TextStyle(color: context.colors.muted),
+                    ),
+                  ],
                 ),
-                const Spacer(),
-                StatusBadge(status: order.status),
               ],
             ),
           ),

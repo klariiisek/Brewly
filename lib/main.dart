@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'firebase_options.dart';
 import 'models/cart.dart';
 import 'screens/home_screen.dart';
+import 'screens/main_screen.dart';
 import 'services/app_services.dart';
 import 'services/auth_service.dart';
 import 'services/order_service.dart';
@@ -69,6 +70,10 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   late final Stream<VenueSettings> settingsStream;
 
+  // Přišel zákazník z QR kódu na stole? Pak úvodní obrazovku přeskočíme
+  // a otevřeme rovnou menu – o jedno klepnutí méně.
+  late final bool startInMenu = widget.cart.hasTable;
+
   // Pojistka: když nastavení nedorazí do 3 sekund (např. bez internetu),
   // použije se výchozí vzhled, aby aplikace nezůstala na načítání.
   bool waitedTooLong = false;
@@ -111,7 +116,9 @@ class _MyAppState extends State<MyApp> {
             debugShowCheckedModeBanner: false,
             // Téma sestavené z palety, kterou admin vybral.
             theme: AppTheme.build(paletteFor(settings.colorKey).colors),
-            home: HomeScreen(cart: widget.cart, services: widget.services),
+            home: startInMenu
+                ? MainScreen(cart: widget.cart, services: widget.services)
+                : HomeScreen(cart: widget.cart, services: widget.services),
           ),
         );
       },

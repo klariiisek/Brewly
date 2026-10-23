@@ -6,7 +6,7 @@ import '../models/product.dart';
 import '../models/venue_settings.dart';
 import '../services/product_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/app_message.dart';
+import '../utils/format.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_sheet.dart';
@@ -19,11 +19,15 @@ class MenuScreen extends StatefulWidget {
   // Zavolá se, když se změní obsah košíku (aby se aktualizovalo číslo v liště).
   final VoidCallback onCartChanged;
 
+  // Zavolá se z plovoucí lišty košíku (přepne na záložku Košík).
+  final VoidCallback onOpenCart;
+
   const MenuScreen({
     super.key,
     required this.cart,
     required this.productService,
     required this.onCartChanged,
+    required this.onOpenCart,
   });
 
   @override
@@ -82,8 +86,10 @@ class _MenuScreenState extends State<MenuScreen> {
 
   void addToCart(Product product, {int quantity = 1}) {
     widget.cart.addItem(CartItem(product: product, quantity: quantity));
+    // Hlášku „Přidáno“ už nepotřebujeme – zákazník změnu vidí
+    // na plovoucí liště košíku dole.
+    setState(() {});
     widget.onCartChanged();
-    showAppMessage(context, 'Přidáno: $quantity× ${product.name}');
   }
 
   // Otevře detail zespodu. Když zákazník vybere množství, přidá ho do košíku.
@@ -131,9 +137,81 @@ class _MenuScreenState extends State<MenuScreen> {
               },
             ),
           ),
+          buildCartBar(),
         ],
       ),
     );
+  }
+
+  // Plovoucí lišta košíku: jakmile je v košíku něco, ukáže se dole
+  // „🛍 2 položky · 135 Kč → Do košíku“. Zákazník tak nemusí hledat
+  // záložku Košík – stačí jedno klepnutí.
+  Widget buildCartBar() {
+    final cart = widget.cart;
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      child: cart.itemCount == 0
+          ? const SizedBox(width: double.infinity)
+          : SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Material(
+                  color: context.colors.primary,
+                  borderRadius: BorderRadius.circular(AppRadius.large),
+                  elevation: 4,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(AppRadius.large),
+                    onTap: widget.onOpenCart,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 14),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.shopping_bag, color: Colors.white),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            // Počet a cena se při změně plynule vymění.
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              child: Text(
+                                '${formatItemCount(cart.itemCount)} · '
+                                '${formatPrice(cart.totalPrice)}',
+                                key: ValueKey(cart.itemCount),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const Text(
+                            'Do košíku',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.arrow_forward, color: Colors.white),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+    );
+  }
+
+  // Šipka zpět – jen když je kam se vrátit (při otevření z QR kódu
+  // je menu první obrazovka, úvod se přeskočí).
+  Widget buildBackButton() {
+    if (!Navigator.of(context).canPop()) return const SizedBox(width: 8);
+    return const BackButton(color: Colors.white);
   }
 
   Widget buildMenu(List<Product> menuProducts) {
@@ -261,7 +339,7 @@ class _MenuScreenState extends State<MenuScreen> {
           // Šipka zpět na úvodní obrazovku a vpravo informace o podniku.
           Row(
             children: [
-              const BackButton(color: Colors.white),
+              buildBackButton(),
               const Spacer(),
               buildInfoButton(),
             ],
@@ -281,7 +359,11 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Co si dnes dáte?',
+                  // Zákazník od stolu (z QR kódu) hned vidí, že ho aplikace
+                  // pozná: "Stůl 4 · Co si dnes dáte?"
+                  widget.cart.hasTable
+                      ? 'Stůl ${widget.cart.tableNumber} · Co si dnes dáte?'
+                      : 'Co si dnes dáte?',
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.white.withValues(alpha: 0.85),
@@ -303,7 +385,7 @@ class _MenuScreenState extends State<MenuScreen> {
       padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
       child: Row(
         children: [
-          const BackButton(color: Colors.white),
+          buildBackButton(),
           const SizedBox(width: 4),
           Text(
             'Menu $emoji',

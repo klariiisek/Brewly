@@ -73,7 +73,8 @@ void main() {
     // Přidá do košíku, okno se zavře.
     await tester.tap(find.text('Přidat do košíku · 210 Kč'));
     await tester.pumpAndSettle();
-    expect(find.text('Přidáno: 3× Latte'), findsOneWidget);
+    // Plovoucí lišta košíku ukazuje počet a cenu.
+    expect(find.text('3 položky · 210 Kč'), findsOneWidget);
 
     // V liště je u košíku číslo 3.
     expect(find.text('3'), findsOneWidget);
