@@ -103,6 +103,18 @@ Umí všechno co obsluha, a navíc:
 
 ![Ukončení zapomenuté směny adminem](docs/screenshots/dochazka-oprava-adminem.png)
 
+**Razítková karta.** Vlevo karta zákazníka v profilu: za každou kávu razítko, 10. políčko je dárek a při plné kartě zezelená. Vpravo admin v nastavení zvolí kategorii a kolikátý kus je zdarma.
+
+![Razítková karta v profilu a její nastavení](docs/screenshots/karta-profil-a-nastaveni.png)
+
+**Uplatnění odměny v košíku.** S plnou kartou se v košíku objeví tlačítko. Po stisknutí je jeden kus zdarma a cena se sníží.
+
+![Odměna v košíku před a po uplatnění](docs/screenshots/karta-kosik.png)
+
+**Kontrola u obsluhy.** Obsluha u objednávky vidí, který kus je zdarma, a aplikace jí potvrdí, že zákazník měl kartu opravdu plnou. Vpravo stejná objednávka u zákazníka.
+
+![Odměna u obsluhy a v detailu objednávky](docs/screenshots/karta-overeni-obsluhou.png)
+
 **Košík a správa menu.** Vlevo košík zákazníka: produkt, který admin mezitím označil jako vyprodaný, se zešedí a objednat nejde, dokud ho zákazník neodebere. Vpravo správa menu s vyhledáváním a přepínačem vyprodáno.
 
 ![Košík a správa menu](docs/screenshots/kosik-a-sprava-menu.png)
