@@ -189,7 +189,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               width: double.infinity,
               child: ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isWorking ? colors.dark : AppColors.success,
+                  backgroundColor: isWorking ? colors.strong : AppColors.success,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 icon: Icon(isWorking ? Icons.logout : Icons.login),

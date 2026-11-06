@@ -22,12 +22,18 @@ class MenuScreen extends StatefulWidget {
   // Zavolá se z plovoucí lišty košíku (přepne na záložku Košík).
   final VoidCallback onOpenCart;
 
+  // Oblíbené produkty přihlášeného zákazníka (ID) a přepnutí srdíčka.
+  final Set<String> favorites;
+  final ValueChanged<Product>? onToggleFavorite;
+
   const MenuScreen({
     super.key,
     required this.cart,
     required this.productService,
     required this.onCartChanged,
     required this.onOpenCart,
+    this.favorites = const {},
+    this.onToggleFavorite,
   });
 
   @override
@@ -36,6 +42,7 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
   static const String allCategories = 'Vše';
+  static const String favoriteCategory = 'Oblíbené';
 
   // Právě vybraná kategorie.
   String selectedCategory = allCategories;
@@ -52,9 +59,13 @@ class _MenuScreenState extends State<MenuScreen> {
 
   // Seznam kategorií: "Vše" + každá kategorie z menu jen jednou.
   // toSet() odstraní duplicity (Káva je v menu třikrát, ale štítek chceme jeden).
+  // Když má zákazník oblíbené produkty, je hned za „Vše“ štítek Oblíbené.
   List<String> categoriesOf(List<Product> products) {
+    final hasFavorites =
+        products.any((product) => widget.favorites.contains(product.id));
     return [
       allCategories,
+      if (hasFavorites) favoriteCategory,
       ...products.map((product) => product.category).toSet(),
     ];
   }
@@ -64,9 +75,13 @@ class _MenuScreenState extends State<MenuScreen> {
   List<Product> filterProducts(List<Product> products) {
     final filtered = selectedCategory == allCategories
         ? products
-        : products
-            .where((product) => product.category == selectedCategory)
-            .toList();
+        : selectedCategory == favoriteCategory
+            ? products
+                .where((product) => widget.favorites.contains(product.id))
+                .toList()
+            : products
+                .where((product) => product.category == selectedCategory)
+                .toList();
 
     // Nejdřív dostupné, pak vyprodané – v obou skupinách zůstane
     // původní pořadí (podle kategorie a názvu).
@@ -217,6 +232,12 @@ class _MenuScreenState extends State<MenuScreen> {
   Widget buildMenu(List<Product> menuProducts) {
     // Produkty už jsou seřazené podle pořadí kategorií (určuje admin).
     final allProducts = menuProducts;
+    // Vybraná kategorie zmizela (např. zákazník odebral poslední oblíbený
+    // produkt) → zpět na „Vše“.
+    final categories = categoriesOf(allProducts);
+    if (!categories.contains(selectedCategory)) {
+      selectedCategory = allCategories;
+    }
     final products = filterProducts(allProducts);
 
     final venue = VenueScope.of(context);
@@ -238,7 +259,7 @@ class _MenuScreenState extends State<MenuScreen> {
             text: venue.announcement,
             color: context.colors.accent,
           ),
-        buildCategoryChips(categoriesOf(allProducts)),
+        buildCategoryChips(categories),
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.only(bottom: 16),
@@ -249,6 +270,10 @@ class _MenuScreenState extends State<MenuScreen> {
                 product: product,
                 onTap: () => openDetail(product),
                 onAdd: () => addToCart(product),
+                isFavorite: widget.favorites.contains(product.id),
+                onFavorite: widget.onToggleFavorite == null
+                    ? null
+                    : () => widget.onToggleFavorite!(product),
               );
             },
           ),
@@ -413,11 +438,19 @@ class _MenuScreenState extends State<MenuScreen> {
           return Padding(
             padding: const EdgeInsets.only(right: 8),
             child: ChoiceChip(
+              // Štítek Oblíbené má srdíčko.
+              avatar: category == favoriteCategory
+                  ? Icon(
+                      Icons.favorite,
+                      size: 16,
+                      color: isSelected ? Colors.white : const Color(0xFFE0526B),
+                    )
+                  : null,
               label: Text(category),
               selected: isSelected,
               showCheckmark: false,
               selectedColor: context.colors.primary,
-              backgroundColor: Colors.white,
+              backgroundColor: context.colors.surface,
               side: BorderSide.none,
               shape: const StadiumBorder(),
               labelStyle: TextStyle(

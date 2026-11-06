@@ -52,11 +52,12 @@ Aplikace rozlišuje čtyři typy uživatelů. Co kdo smí, nehlídá jen aplikac
 - registrace a přihlášení **e-mailem a heslem** nebo **přes Google**, obnovení zapomenutého hesla,
 - **QR kód na stole** otevře **rovnou menu** a aplikace ví, u kterého stolu zákazník sedí (stůl jde zadat i opsaným kódem),
 - **košík**: změna množství, hlídání vyprodaných produktů a změn cen,
+- **oblíbené produkty**: srdíčko u produktu a štítek „Oblíbené“ v menu (uloží se k účtu),
 - **plovoucí lišta košíku** v menu („2 položky · 135 Kč → Do košíku“), takže se nemusí hledat záložka,
 - **objednávka ke stolu**: po odeslání se hned otevře **sledování s ukazatelem průběhu** (Přijata → Připravuje se → Připravena → Dokončena),
 - **upozornění „Vaše objednávka je připravená! 🎉“**, ať je zákazník v aplikaci kdekoli,
 - historie objednávek s detailem,
-- **profil**: avatar (ikonka a barva, nebo fotka z Google), změna jména a hesla,
+- **profil**: avatar (ikonka a barva, nebo fotka z Google), změna jména a hesla, **světlý / tmavý vzhled** (nebo podle systému, volba se uloží k účtu),
 - tlačítka **Přivolat obsluhu** a **Chci zaplatit**,
 - **razítková karta** v profilu (např. **každá 10. káva zdarma**): za každý kus z vybrané kategorie jedno razítko, s plnou kartou se v košíku objeví **Uplatnit odměnu** a nejdražší kus z kategorie je zdarma.
 
@@ -91,6 +92,14 @@ Umí všechno co obsluha, a navíc:
 **Úvod pro admina a obsluhu.** Po přihlášení zaměstnanec místo menu vidí ovládací panel: přepínač Otevřeno, živá čísla a barevné dlaždice s nástroji. Každý nástroj má vždy stejnou barvu, pozadí se mění podle palety podniku. Vlevo admin (7 nástrojů), vpravo obsluha (jen Objednávky, Docházka a Stoly).
 
 ![Úvod pro admina a obsluhu](docs/screenshots/uvod-admin-a-obsluha.png)
+
+**Tmavý režim.** Každý si v profilu (obsluha a admin tlačítkem s měsícem na úvodu) vybere světlý nebo tmavý vzhled, případně „Systém“ podle nastavení zařízení. Tmavé varianty všech palet aplikace dopočítá sama.
+
+![Tmavý režim](docs/screenshots/tmavy-rezim.png)
+
+**Oblíbené produkty.** Zákazník si srdíčkem označí, co si dává nejčastěji. Hned za „Vše“ se objeví štítek Oblíbené, který ukáže jen tyto produkty. Oblíbené se ukládají k účtu, takže je zákazník uvidí i na jiném zařízení.
+
+![Oblíbené produkty v menu](docs/screenshots/oblibene.png)
 
 **Zaměstnanci.** Admin přidá nového zaměstnance do obsluhy jedním klepnutím. Zaměstnanec se zaregistruje jako zákazník a admin ho tu vyhledá. E-maily jsou na snímku rozmazané.
 
@@ -492,7 +501,7 @@ firebase deploy --only hosting
 flutter test
 ```
 
-Projekt má **72 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
+Projekt má **75 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
 - objednávku od menu přes košík až po stav u obsluhy,
 - role (zákazník nevidí obsluhu, obsluha nevidí správu menu),
 - čtení CSV souboru a hlášení chybných řádků,

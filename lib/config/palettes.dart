@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
@@ -78,5 +80,31 @@ Palette paletteFor(String key) {
   return palettes.firstWhere(
     (palette) => palette.key == key,
     orElse: () => palettes.first,
+  );
+}
+
+// Tmavá varianta palety (tmavý režim). Nepíšeme ji ručně pro každou paletu –
+// dopočítá se: pozadí a karty jsou skoro černé s nádechem barvy podniku,
+// text je světlý a hlavní barva se zesvětlí, aby byla na tmavém dobře vidět.
+AppColors darkColors(AppColors light) {
+  Color lighten(Color color, double minLightness) {
+    final hsl = HSLColor.fromColor(color);
+    return hsl.withLightness(math.max(hsl.lightness, minLightness)).toColor();
+  }
+
+  return AppColors(
+    primary: lighten(light.primary, 0.58),
+    accent: lighten(light.accent, 0.62),
+    dark: const Color(0xFFF2ECE8), // text – v tmavém režimu světlý
+    muted: const Color(0xFFADA39C),
+    background: Color.alphaBlend(
+      light.primary.withValues(alpha: 0.10),
+      const Color(0xFF131111),
+    ),
+    surface: Color.alphaBlend(
+      light.primary.withValues(alpha: 0.14),
+      const Color(0xFF201D1C),
+    ),
+    isDark: true,
   );
 }

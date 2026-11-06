@@ -109,7 +109,7 @@ class _BarChartState extends State<BarChart> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            color: context.colors.dark,
+            color: context.colors.strong,
             borderRadius: BorderRadius.circular(AppRadius.medium),
             boxShadow: const [
               BoxShadow(color: Colors.black26, blurRadius: 8),

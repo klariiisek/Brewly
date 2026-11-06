@@ -202,4 +202,28 @@ void main() {
     final profile = (await db.collection('users').doc(testUser.uid).get()).data()!;
     expect(profile['name'], 'Klára');
   });
+
+  testWidgets('Tmavý režim: volba v profilu se uloží a přepne aplikaci',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final db = FakeFirebaseFirestore();
+    await pumpApp(tester, await buildTestApp(db: db));
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Profil').last);
+    await tester.pumpAndSettle();
+
+    // Výchozí je podle systému.
+    MaterialApp app() => tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app().themeMode, ThemeMode.system);
+
+    await tester.tap(find.text('Tmavý'));
+    await tester.pumpAndSettle();
+
+    final profile = await db.collection('users').doc(testUser.uid).get();
+    expect(profile.data()!['themeMode'], 'dark');
+    expect(app().themeMode, ThemeMode.dark);
+  });
 }

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
 import 'models/cart.dart';
+import 'models/user_profile.dart';
 import 'screens/home_screen.dart';
 import 'screens/main_screen.dart';
 import 'services/app_services.dart';
@@ -98,6 +99,13 @@ class _MyAppState extends State<MyApp> {
   // a otevřeme rovnou menu – o jedno klepnutí méně.
   late final bool startInMenu = widget.cart.hasTable;
 
+  // Světlý / tmavý vzhled podle volby přihlášeného uživatele
+  // (nepřihlášený = podle zařízení).
+  ThemeMode themeMode = ThemeMode.system;
+  StreamSubscription<User?>? userSubscription;
+  StreamSubscription<UserProfile>? profileSubscription;
+  String? watchedUserId;
+
   // Pojistka: když nastavení nedorazí do 3 sekund (např. bez internetu),
   // použije se výchozí vzhled, aby aplikace nezůstala na načítání.
   bool waitedTooLong = false;
@@ -110,11 +118,31 @@ class _MyAppState extends State<MyApp> {
     waitTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) setState(() => waitedTooLong = true);
     });
+    final auth = widget.services.auth;
+    watchThemeOf(auth.currentUser);
+    userSubscription = auth.userChanges().listen(watchThemeOf);
+  }
+
+  // Sleduje volbu vzhledu v profilu přihlášeného uživatele.
+  void watchThemeOf(User? user) {
+    if (user?.uid == watchedUserId) return;
+    watchedUserId = user?.uid;
+    profileSubscription?.cancel();
+    if (user == null) {
+      if (mounted) setState(() => themeMode = ThemeMode.system);
+      return;
+    }
+    profileSubscription =
+        widget.services.users.watchProfile(user).listen((profile) {
+      if (mounted) setState(() => themeMode = profile.themeMode);
+    });
   }
 
   @override
   void dispose() {
     waitTimer?.cancel();
+    userSubscription?.cancel();
+    profileSubscription?.cancel();
     super.dispose();
   }
 
@@ -138,8 +166,13 @@ class _MyAppState extends State<MyApp> {
           child: MaterialApp(
             title: settings.name,
             debugShowCheckedModeBanner: false,
-            // Téma sestavené z palety, kterou admin vybral.
+            // Téma sestavené z palety, kterou admin vybral – světlé i tmavé.
+            // Které se použije, rozhoduje volba uživatele (themeMode).
             theme: AppTheme.build(paletteFor(settings.colorKey).colors),
+            darkTheme: AppTheme.build(
+              darkColors(paletteFor(settings.colorKey).colors),
+            ),
+            themeMode: themeMode,
             home: startInMenu
                 ? MainScreen(cart: widget.cart, services: widget.services)
                 : HomeScreen(cart: widget.cart, services: widget.services),

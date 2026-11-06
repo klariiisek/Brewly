@@ -11,7 +11,15 @@ class VenuePatternPainter extends CustomPainter {
   final VenueType type;
   final Color color;
 
-  VenuePatternPainter({required this.type, required this.color});
+  // Barva „vyříznutých“ detailů (rýha na zrnku, žilka lístku) = barva
+  // pozadí. Bílá by v tmavém režimu svítila.
+  final Color cutColor;
+
+  VenuePatternPainter({
+    required this.type,
+    required this.color,
+    this.cutColor = Colors.white,
+  });
 
   static const double _step = 64;
 
@@ -57,7 +65,7 @@ class VenuePatternPainter extends CustomPainter {
           ..cubicTo(-4, -3, 4, 3, 0, 8);
         canvas.drawPath(
           groove,
-          _line(1.6)..color = Colors.white.withValues(alpha: 0.5),
+          _line(1.6)..color = cutColor,
         );
       case VenueType.cukrarna:
         // Posypky: dvě tyčinky a tečka.
@@ -89,13 +97,15 @@ class VenuePatternPainter extends CustomPainter {
           ..close();
         canvas.drawPath(leaf, _fill);
         canvas.drawLine(const Offset(0, -8), const Offset(0, 13),
-            _line(1.4)..color = Colors.white.withValues(alpha: 0.5));
+            _line(1.4)..color = cutColor);
     }
   }
 
   @override
   bool shouldRepaint(VenuePatternPainter oldDelegate) =>
-      oldDelegate.type != type || oldDelegate.color != color;
+      oldDelegate.type != type ||
+      oldDelegate.color != color ||
+      oldDelegate.cutColor != cutColor;
 }
 
 // Pozadí stránky: barva pozadí podniku + vzor podle typu podniku.
@@ -113,7 +123,8 @@ class PatternedBackground extends StatelessWidget {
         // RepaintBoundary = vzor se nepřekresluje při každé změně obsahu.
         painter: VenuePatternPainter(
           type: VenueScope.of(context).type,
-          color: colors.primary.withValues(alpha: 0.06),
+          color: colors.primary.withValues(alpha: colors.isDark ? 0.09 : 0.06),
+          cutColor: colors.background,
         ),
         child: RepaintBoundary(child: child),
       ),

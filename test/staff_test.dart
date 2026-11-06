@@ -315,4 +315,19 @@ void main() {
     final orders = await OrderService(db).watchStaffOrders().first;
     expect(orders.map((order) => order.number), [9, 1]);
   });
+
+  testWidgets('Obsluha si přepne tmavý vzhled na úvodu',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set({'role': 'obsluha'});
+    await pumpApp(tester, await buildTestApp(db: db));
+
+    await tester.tap(find.byTooltip('Vzhled aplikace'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tmavý'));
+    await tester.pumpAndSettle();
+
+    final profile = await db.collection('users').doc(testUser.uid).get();
+    expect(profile.data()!['themeMode'], 'dark');
+  });
 }

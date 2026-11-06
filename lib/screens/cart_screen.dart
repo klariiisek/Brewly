@@ -337,7 +337,7 @@ class _CartScreenState extends State<CartScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.colors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(

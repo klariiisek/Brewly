@@ -181,14 +181,19 @@ service cloud.firestore {
         && request.auth.uid == userId
         && request.resource.data.role == resource.data.role
         && request.resource.data.keys().hasOnly(
-            ['name', 'email', 'role', 'createdAt', 'avatarIcon', 'avatarColor'])
+            ['name', 'email', 'role', 'createdAt', 'avatarIcon', 'avatarColor', 'themeMode',
+             'favorites'])
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 100
         && request.resource.data.get('avatarIcon', '') is string
         && request.resource.data.get('avatarIcon', '').size() <= 20
         && request.resource.data.get('avatarColor', '') is string
-        && request.resource.data.get('avatarColor', '').size() <= 20;
+        && request.resource.data.get('avatarColor', '').size() <= 20
+        && request.resource.data.get('themeMode', 'system') in ['system', 'light', 'dark']
+        // Oblíbené produkty: seznam ID, nejvýš 100.
+        && request.resource.data.get('favorites', []) is list
+        && request.resource.data.get('favorites', []).size() <= 100;
 
       // Admin smí jinému účtu změnit roli zákazník ↔ obsluha – nic jiného.
       // Sobě ani jinému adminovi ne (adminy nastavuje vývojář v konzoli).

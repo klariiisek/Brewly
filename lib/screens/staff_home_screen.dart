@@ -81,6 +81,17 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
   }
 
   // Otevřeno / zavřeno. Když je zavřeno, zákazníci nemůžou objednávat.
+  // Světlý / systémový / tmavý vzhled (obsluha a admin nemají Profil,
+  // proto volba přímo tady). Ukládá se k účtu stejně jako v Profilu.
+  Future<void> setThemeMode(ThemeMode mode) async {
+    try {
+      await widget.services.users.updateThemeMode(widget.user.uid, mode);
+    } catch (error) {
+      if (!mounted) return;
+      showAppMessage(context, 'Vzhled se nepodařilo uložit');
+    }
+  }
+
   Future<void> setOpen(bool isOpen) async {
     try {
       await widget.services.settings.setOpen(isOpen);
@@ -161,12 +172,54 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
             ],
           ),
         ),
+        buildThemeButton(),
+        const SizedBox(width: 8),
         IconButton.filledTonal(
           icon: const Icon(Icons.logout),
           tooltip: 'Odhlásit se',
           onPressed: signOut,
         ),
       ],
+    );
+  }
+
+  // Tlačítko se sluníčkem / měsícem – nabídne Světlý / Systém / Tmavý.
+  Widget buildThemeButton() {
+    final isDark = context.colors.isDark;
+    return PopupMenuButton<ThemeMode>(
+      tooltip: 'Vzhled aplikace',
+      onSelected: setThemeMode,
+      itemBuilder: (context) => const [
+        PopupMenuItem(
+          value: ThemeMode.light,
+          child: ListTile(
+            leading: Icon(Icons.light_mode_outlined),
+            title: Text('Světlý'),
+          ),
+        ),
+        PopupMenuItem(
+          value: ThemeMode.system,
+          child: ListTile(
+            leading: Icon(Icons.brightness_auto_outlined),
+            title: Text('Systém'),
+          ),
+        ),
+        PopupMenuItem(
+          value: ThemeMode.dark,
+          child: ListTile(
+            leading: Icon(Icons.dark_mode_outlined),
+            title: Text('Tmavý'),
+          ),
+        ),
+      ],
+      child: IgnorePointer(
+        child: IconButton.filledTonal(
+          icon: Icon(
+            isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+          ),
+          onPressed: () {},
+        ),
+      ),
     );
   }
 
@@ -179,7 +232,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(AppRadius.large),
       ),
       child: Row(
@@ -346,7 +399,7 @@ class NumberCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     return Material(
-      color: Colors.white,
+      color: colors.surface,
       borderRadius: BorderRadius.circular(AppRadius.large),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppRadius.large),

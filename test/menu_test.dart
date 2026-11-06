@@ -147,4 +147,33 @@ void main() {
         tester.widgetList<ProductCard>(find.byType(ProductCard)).first;
     expect(first.product.name, 'Domácí limonáda');
   });
+
+  testWidgets('Oblíbené: srdíčko uloží produkt a štítek ukáže jen oblíbené',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await pumpApp(tester, await buildTestApp(db: db));
+    await tester.tap(find.text('Prohlédnout menu'));
+    await tester.pumpAndSettle();
+
+    // Zatím žádné oblíbené → štítek Oblíbené není.
+    expect(find.text('Oblíbené'), findsNothing);
+
+    // Srdíčko u prvního produktu (Cappuccino).
+    await tester.tap(find.byTooltip('Přidat do oblíbených').first);
+    await tester.pumpAndSettle();
+    final profile = await db.collection('users').doc(testUser.uid).get();
+    expect((profile.data()!['favorites'] as List).length, 1);
+
+    // Štítek Oblíbené ukáže jen Cappuccino.
+    await tester.tap(find.text('Oblíbené'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ProductCard), findsOneWidget);
+    expect(find.text('Cappuccino'), findsOneWidget);
+
+    // Odebrání posledního oblíbeného → zpět na celé menu.
+    await tester.tap(find.byTooltip('Odebrat z oblíbených'));
+    await tester.pumpAndSettle();
+    expect(find.text('Oblíbené'), findsNothing);
+    expect(find.byType(ProductCard), findsWidgets);
+  });
 }

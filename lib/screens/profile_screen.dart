@@ -114,6 +114,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> changeThemeMode(UserProfile profile, ThemeMode mode) async {
+    try {
+      await widget.services.users.updateThemeMode(profile.uid, mode);
+    } catch (error) {
+      if (!mounted) return;
+      showAppMessage(context, 'Vzhled se nepodařilo uložit');
+    }
+  }
+
   Future<void> changePassword() async {
     final changed = await showChangePasswordDialog(context, auth);
     if (changed == true && mounted) {
@@ -328,6 +337,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         const SizedBox(height: 16),
         buildLoyaltyCard(),
+        buildThemePicker(profile),
         Card(
           margin: EdgeInsets.zero,
           child: Column(
@@ -393,6 +403,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: LoyaltyCard(status: status, categoryName: categoryName),
         );
       },
+    );
+  }
+
+  // Vzhled aplikace: světlý / podle zařízení / tmavý. Ukládá se k účtu.
+  Widget buildThemePicker(UserProfile profile) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Vzhled aplikace',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: context.colors.dark,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<ThemeMode>(
+                segments: const [
+                  ButtonSegment(
+                    value: ThemeMode.light,
+                    icon: Icon(Icons.light_mode_outlined),
+                    label: Text('Světlý'),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.system,
+                    icon: Icon(Icons.brightness_auto_outlined),
+                    label: Text('Systém'),
+                  ),
+                  ButtonSegment(
+                    value: ThemeMode.dark,
+                    icon: Icon(Icons.dark_mode_outlined),
+                    label: Text('Tmavý'),
+                  ),
+                ],
+                selected: {profile.themeMode},
+                showSelectedIcon: false,
+                onSelectionChanged: (selected) =>
+                    changeThemeMode(profile, selected.first),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart' show ThemeMode;
 
 import '../models/user_profile.dart';
 import '../models/user_role.dart';
@@ -73,6 +74,23 @@ class UserService {
   // Pravidla hlídají, že admin nemění sebe ani jiného admina.
   Future<void> setRole(String uid, UserRole role) {
     return _users.doc(uid).update({'role': role.name});
+  }
+
+  // Uloží volbu světlého / tmavého vzhledu k účtu (platí na všech zařízeních).
+  Future<void> updateThemeMode(String uid, ThemeMode mode) {
+    return _users.doc(uid).update({'themeMode': mode.name});
+  }
+
+  // Přidá produkt do oblíbených, nebo ho z nich odebere.
+  // arrayUnion / arrayRemove změní jen tuto položku seznamu – nemusíme
+  // posílat celý seznam a nic se nepřepíše, kdyby měl zákazník
+  // aplikaci otevřenou na dvou zařízeních.
+  Future<void> setFavorite(String uid, String productId, bool isFavorite) {
+    return _users.doc(uid).update({
+      'favorites': isFavorite
+          ? FieldValue.arrayUnion([productId])
+          : FieldValue.arrayRemove([productId]),
+    });
   }
 
   // Změní avatar (ikonu a barvu).

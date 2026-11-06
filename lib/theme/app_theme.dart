@@ -14,6 +14,8 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color accent; // doplňková barva (přechod v hlavičce, akcenty)
   final Color background; // pozadí obrazovek
   final Color muted; // méně důležitý text
+  final Color surface; // karty, panely, textová pole (ve světlém režimu bílá)
+  final bool isDark; // tmavý režim?
 
   // Zelená pro "Připravena" je stejná ve všech paletách.
   static const Color success = Color(0xFF5B8C5A);
@@ -24,7 +26,16 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.accent,
     required this.background,
     required this.muted,
+    this.surface = Colors.white,
+    this.isDark = false,
   });
+
+  // Výrazné pozadí pod bílým textem (bublina grafu, hlášení, tlačítko
+  // Odchod). Ve světlém režimu tmavá barva palety; v tmavém je „dark“
+  // světlá (text), proto použijeme o něco světlejší kartu.
+  Color get strong => isDark
+      ? Color.alphaBlend(Colors.white.withValues(alpha: 0.14), surface)
+      : dark;
 
   // Tyhle dvě metody po nás Flutter u ThemeExtension vyžaduje.
   // copyWith = kopie se změněnými barvami, lerp = plynulý přechod mezi
@@ -36,6 +47,8 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? accent,
     Color? background,
     Color? muted,
+    Color? surface,
+    bool? isDark,
   }) {
     return AppColors(
       primary: primary ?? this.primary,
@@ -43,6 +56,8 @@ class AppColors extends ThemeExtension<AppColors> {
       accent: accent ?? this.accent,
       background: background ?? this.background,
       muted: muted ?? this.muted,
+      surface: surface ?? this.surface,
+      isDark: isDark ?? this.isDark,
     );
   }
 
@@ -55,6 +70,8 @@ class AppColors extends ThemeExtension<AppColors> {
       accent: Color.lerp(accent, other.accent, t)!,
       background: Color.lerp(background, other.background, t)!,
       muted: Color.lerp(muted, other.muted, t)!,
+      surface: Color.lerp(surface, other.surface, t)!,
+      isDark: t < 0.5 ? isDark : other.isDark,
     );
   }
 }
@@ -85,9 +102,12 @@ class AppTheme {
       extensions: [colors],
       colorScheme: ColorScheme.fromSeed(
         seedColor: colors.primary,
+        brightness: colors.isDark ? Brightness.dark : Brightness.light,
         primary: colors.primary,
+        onPrimary: Colors.white,
         secondary: colors.accent,
-        surface: Colors.white,
+        surface: colors.surface,
+        onSurface: colors.dark,
       ),
       // Obrazovky jsou průhledné – pozadí s barvou a vzorem podniku jim
       // dává přechod mezi stránkami (PatternedPageTransitionsBuilder).
@@ -113,9 +133,9 @@ class AppTheme {
         ),
       ),
 
-      // Karty: bílé, kulaté rohy, jemný stín.
+      // Karty: bílé (v tmavém režimu tmavé), kulaté rohy, jemný stín.
       cardTheme: CardThemeData(
-        color: Colors.white,
+        color: colors.surface,
         elevation: 2,
         shadowColor: colors.primary.withValues(alpha: 0.15),
         surfaceTintColor: Colors.transparent,
@@ -162,7 +182,7 @@ class AppTheme {
       // Textová pole (e-mail, heslo...): bílá, kulaté rohy, barevný rámeček.
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: colors.surface,
         prefixIconColor: colors.primary,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.medium),
@@ -191,7 +211,7 @@ class AppTheme {
 
       // Okna vysunutá zespodu (detail produktu).
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         showDragHandle: true,
         dragHandleColor: colors.muted,
         shape: const RoundedRectangleBorder(
@@ -201,7 +221,7 @@ class AppTheme {
 
       // Spodní lišta se záložkami.
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: Colors.white,
+        backgroundColor: colors.surface,
         indicatorColor: colors.primary.withValues(alpha: 0.15),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
@@ -230,7 +250,7 @@ class AppTheme {
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         width: 320,
-        backgroundColor: colors.dark,
+        backgroundColor: colors.strong,
         contentTextStyle: const TextStyle(
           fontFamily: appFont,
           color: Colors.white,

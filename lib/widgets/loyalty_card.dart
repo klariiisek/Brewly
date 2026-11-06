@@ -32,7 +32,7 @@ class LoyaltyCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(AppRadius.large),
         border: Border.all(color: colors.primary.withValues(alpha: 0.25)),
         boxShadow: [

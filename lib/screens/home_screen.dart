@@ -140,7 +140,7 @@ class _HomeScreenState extends State<HomeScreen> {
               gradient: RadialGradient(
                 center: const Alignment(0, -0.2),
                 colors: [
-                  Colors.white,
+                  colors.surface,
                   Color.alphaBlend(
                     colors.primary.withValues(alpha: 0.12),
                     colors.background,

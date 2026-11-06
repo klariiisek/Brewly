@@ -45,12 +45,19 @@ class ProductCard extends StatelessWidget {
   // Volitelně něco jiného místo tlačítka + (ve správě menu přepínač).
   final Widget? trailing;
 
+  // Oblíbený produkt: plné srdíčko. Bez onFavorite se srdíčko nezobrazí
+  // (např. ve správě menu).
+  final bool isFavorite;
+  final VoidCallback? onFavorite;
+
   const ProductCard({
     super.key,
     required this.product,
     required this.onTap,
     this.onAdd,
     this.trailing,
+    this.isFavorite = false,
+    this.onFavorite,
   });
 
   @override
@@ -73,7 +80,20 @@ class ProductCard extends StatelessWidget {
                   child: buildInfo(context),
                 ),
               ),
-              const SizedBox(width: 8),
+              if (onFavorite != null)
+                IconButton(
+                  icon: Icon(
+                    isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: isFavorite
+                        ? const Color(0xFFE0526B)
+                        : context.colors.muted,
+                  ),
+                  tooltip: isFavorite
+                      ? 'Odebrat z oblíbených'
+                      : 'Přidat do oblíbených',
+                  onPressed: onFavorite,
+                ),
+              const SizedBox(width: 4),
               trailing ??
                   IconButton.filled(
                     icon: const Icon(Icons.add),

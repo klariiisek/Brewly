@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 
 import '../models/cart.dart';
 import '../models/order.dart';
-import '../models/user_role.dart';
+import '../models/product.dart';
+import '../models/user_profile.dart';
 import '../services/app_services.dart';
+import '../widgets/app_message.dart';
 import 'cart_screen.dart';
 import 'menu_screen.dart';
 import 'order_detail_screen.dart';
@@ -48,8 +50,11 @@ class _MainScreenState extends State<MainScreen> {
   // Je přihlášená obsluha nebo admin? Pak je zákaznická část jen náhled:
   // vše jde prohlédnout, ale objednávat a volat obsluhu nejde
   // (zkreslilo by to statistiky a zmátlo obsluhu).
-  StreamSubscription<UserRole>? roleSubscription;
+  StreamSubscription<UserProfile>? profileSubscription;
   bool isPreview = false;
+
+  // Oblíbené produkty přihlášeného zákazníka (ID produktů).
+  Set<String> favorites = {};
 
   @override
   void initState() {
@@ -63,7 +68,7 @@ class _MainScreenState extends State<MainScreen> {
   void dispose() {
     userSubscription?.cancel();
     ordersSubscription?.cancel();
-    roleSubscription?.cancel();
+    profileSubscription?.cancel();
     super.dispose();
   }
 
@@ -72,18 +77,25 @@ class _MainScreenState extends State<MainScreen> {
     if (user?.uid == watchedUserId) return;
     watchedUserId = user?.uid;
     ordersSubscription?.cancel();
-    roleSubscription?.cancel();
+    profileSubscription?.cancel();
     lastStatuses = null;
     if (mounted) {
       setState(() {
         myOrders = [];
         isPreview = false;
+        favorites = {};
       });
     }
     if (user == null) return;
 
-    roleSubscription = widget.services.users.watchRole(user).listen((role) {
-      if (mounted) setState(() => isPreview = role.canServe);
+    // Z profilu: role (náhled pro obsluhu/admina) a oblíbené produkty.
+    profileSubscription =
+        widget.services.users.watchProfile(user).listen((profile) {
+      if (!mounted) return;
+      setState(() {
+        isPreview = profile.role.canServe;
+        favorites = profile.favorites.toSet();
+      });
     });
 
     ordersSubscription = widget.services.orders
@@ -137,6 +149,23 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  // Srdíčko u produktu: přidá / odebere oblíbený produkt.
+  // Nepřihlášený zákazník se nejdřív musí přihlásit (oblíbené jsou u účtu).
+  Future<void> toggleFavorite(Product product) async {
+    final user = widget.services.auth.currentUser;
+    if (user == null) {
+      showAppMessage(context, 'Pro oblíbené produkty se prosím přihlaste');
+      return;
+    }
+    final isFavorite = !favorites.contains(product.id);
+    try {
+      await widget.services.users.setFavorite(user.uid, product.id, isFavorite);
+    } catch (error) {
+      if (!mounted) return;
+      showAppMessage(context, 'Oblíbené se nepodařilo uložit');
+    }
+  }
+
   // Překreslí obrazovku (hlavně číslo u košíku v liště).
   void refresh() {
     setState(() {});
@@ -186,6 +215,8 @@ class _MainScreenState extends State<MainScreen> {
             productService: widget.services.products,
             onCartChanged: refresh,
             onOpenCart: () => goToTab(1),
+            favorites: favorites,
+            onToggleFavorite: toggleFavorite,
           ),
           CartScreen(
             cart: cart,
