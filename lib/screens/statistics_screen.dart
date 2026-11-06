@@ -38,10 +38,15 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     super.initState();
     loadOrders();
     menuSubscription = widget.services.products.watchProducts().listen(
-          (menu) => setState(
-            () => menuById = {for (final product in menu) product.id: product},
-          ),
+      (menu) {
+        if (!mounted) return;
+        setState(
+          () => menuById = {for (final product in menu) product.id: product},
         );
+      },
+      // Bez menu se v žebříčku ukážou jen výchozí ikony.
+      onError: (Object error) {},
+    );
   }
 
   @override
@@ -53,8 +58,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   // Načte objednávky od začátku PŘEDCHOZÍHO období (kvůli srovnání).
   void loadOrders() {
     final range = periodRange(period, DateTime.now());
-    ordersStream =
-        widget.services.orders.watchOrdersSince(range.previousStart);
+    ordersStream = widget.services.orders.watchOrdersSince(range.previousStart);
   }
 
   void changePeriod(StatsPeriod value) {
@@ -79,8 +83,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
             );
           }
           final orders = snapshot.data;
-          final stats =
-              orders == null ? null : computeStats(orders, period, DateTime.now());
+          final stats = orders == null
+              ? null
+              : computeStats(orders, period, DateTime.now());
           return Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 640),
@@ -117,10 +122,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
 
   // Text srovnání pod dlaždicemi podle období.
   String get comparedTo => switch (period) {
-        StatsPeriod.day => 'oproti včerejšku',
-        StatsPeriod.week => 'oproti min. týdnu',
-        StatsPeriod.month => 'oproti min. měsíci',
-      };
+    StatsPeriod.day => 'oproti včerejšku',
+    StatsPeriod.week => 'oproti min. týdnu',
+    StatsPeriod.month => 'oproti min. měsíci',
+  };
 
   List<Widget> buildStats(SalesStats stats) {
     return [
@@ -156,8 +161,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   value: stats.orderCount.toDouble(),
                   format: (value) => '${value.round()}',
                   animationKey: period,
-                  change: percentChange(stats.orderCount.toDouble(),
-                      stats.previousOrderCount.toDouble()),
+                  change: percentChange(
+                    stats.orderCount.toDouble(),
+                    stats.previousOrderCount.toDouble(),
+                  ),
                   comparedTo: comparedTo,
                 ),
               ),
@@ -214,7 +221,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   stats.rewardCount == 0
                       ? 'V tomto období zatím žádná odměna.'
                       : 'Vydáno odměn: ${stats.rewardCount} '
-                          '(v hodnotě ${formatPrice(stats.rewardValue)})',
+                            '(v hodnotě ${formatPrice(stats.rewardValue)})',
                 ),
               ),
             ],
@@ -281,8 +288,10 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
   // Kategorie: prstencový graf a vedle legenda se stejnými barvami.
   Widget buildCategories(List<RankItem> categories) {
     final colors = chartColors(context.colors, categories.length);
-    final total =
-        categories.fold(0.0, (sum, category) => sum + category.revenue);
+    final total = categories.fold(
+      0.0,
+      (sum, category) => sum + category.revenue,
+    );
     return Row(
       children: [
         DonutChart(
@@ -402,8 +411,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                             value: fill,
                             minHeight: 8,
                             color: colors.primary,
-                            backgroundColor:
-                                colors.primary.withValues(alpha: 0.1),
+                            backgroundColor: colors.primary.withValues(
+                              alpha: 0.1,
+                            ),
                           ),
                         ),
                       ),
@@ -448,8 +458,8 @@ class StatTile extends StatelessWidget {
     final changeColor = change == null
         ? colors.muted
         : isUp
-            ? AppColors.success
-            : Theme.of(context).colorScheme.error;
+        ? AppColors.success
+        : Theme.of(context).colorScheme.error;
 
     return Container(
       padding: const EdgeInsets.all(14),

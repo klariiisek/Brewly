@@ -32,9 +32,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Připojí aplikaci k Firebase projektu (údaje jsou ve firebase_options.dart).
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   final db = FirebaseFirestore.instance;
 
@@ -132,10 +130,13 @@ class _MyAppState extends State<MyApp> {
       if (mounted) setState(() => themeMode = ThemeMode.system);
       return;
     }
-    profileSubscription =
-        widget.services.users.watchProfile(user).listen((profile) {
-      if (mounted) setState(() => themeMode = profile.themeMode);
-    });
+    profileSubscription = widget.services.users.watchProfile(user).listen(
+      (profile) {
+        if (mounted) setState(() => themeMode = profile.themeMode);
+      },
+      // Chyba (např. chvilku po odhlášení) = necháme dosavadní vzhled.
+      onError: (Object error) {},
+    );
   }
 
   @override

@@ -89,18 +89,21 @@ class _MainScreenState extends State<MainScreen> {
     if (user == null) return;
 
     // Z profilu: role (náhled pro obsluhu/admina) a oblíbené produkty.
-    profileSubscription =
-        widget.services.users.watchProfile(user).listen((profile) {
-      if (!mounted) return;
-      setState(() {
-        isPreview = profile.role.canServe;
-        favorites = profile.favorites.toSet();
-      });
-    });
+    profileSubscription = widget.services.users.watchProfile(user).listen(
+      (profile) {
+        if (!mounted) return;
+        setState(() {
+          isPreview = profile.role.canServe;
+          favorites = profile.favorites.toSet();
+        });
+      },
+      // Chyba (např. chvilku po odhlášení) = necháme poslední stav.
+      onError: (Object error) {},
+    );
 
     ordersSubscription = widget.services.orders
         .watchMyOrders(user.uid)
-        .listen(checkForReadyOrders);
+        .listen(checkForReadyOrders, onError: (Object error) {});
   }
 
   // Porovná nové stavy s předchozími. Když se objednávka právě teď
