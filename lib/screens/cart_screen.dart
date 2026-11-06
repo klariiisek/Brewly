@@ -24,6 +24,9 @@ class CartScreen extends StatefulWidget {
   // Objednávky zákazníka – podle nich se počítají razítka na kartě.
   final List<Order> myOrders;
 
+  // Náhled pro obsluhu/admina: košík funguje, ale objednat nejde.
+  final bool isPreview;
+
   // Zavolá se, když se změní obsah košíku (aby se aktualizovalo číslo v liště).
   final VoidCallback onCartChanged;
 
@@ -38,6 +41,7 @@ class CartScreen extends StatefulWidget {
     required this.cart,
     required this.services,
     this.myOrders = const [],
+    this.isPreview = false,
     required this.onCartChanged,
     required this.onOrderCreated,
     required this.onGoToMenu,
@@ -387,7 +391,14 @@ class _CartScreenState extends State<CartScreen> {
             ],
           ),
           // Upozornění, proč teď nejde objednat.
-          if (!isOpen) ...[
+          if (widget.isPreview) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Náhled pro obsluhu a admina – objednávat mohou jen zákazníci.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: context.colors.muted),
+            ),
+          ] else if (!isOpen) ...[
             const SizedBox(height: 12),
             Text(
               'Teď máme zavřeno, objednat zatím nejde.',
@@ -409,10 +420,12 @@ class _CartScreenState extends State<CartScreen> {
               // Během odesílání je tlačítko neaktivní (null), aby se
               // objednávka neodeslala dvakrát. Neaktivní je i tehdy,
               // když je v košíku něco vyprodaného.
-              onPressed:
-                  isSending || !isOpen || widget.cart.hasUnavailableItems
-                      ? null
-                      : placeOrder,
+              onPressed: isSending ||
+                      widget.isPreview ||
+                      !isOpen ||
+                      widget.cart.hasUnavailableItems
+                  ? null
+                  : placeOrder,
               child: Text(isSending ? 'Odesílám…' : 'Objednat'),
             ),
           ),

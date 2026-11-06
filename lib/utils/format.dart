@@ -37,6 +37,13 @@ String formatStampCount(int count) {
   return '$count razítek';
 }
 
+// Správný český tvar: 1 objednávka, 2–4 objednávky, 0 nebo 5 a víc objednávek.
+String formatOrderCount(int count) {
+  if (count == 1) return '1 objednávka';
+  if (count >= 2 && count <= 4) return '$count objednávky';
+  return '$count objednávek';
+}
+
 // Je datum dnes?
 bool isToday(DateTime time) {
   final now = DateTime.now();

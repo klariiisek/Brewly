@@ -11,7 +11,6 @@ import '../utils/format.dart';
 import '../widgets/app_message.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/status_badge.dart';
-import 'staff_tables_screen.dart';
 
 // Text tlačítka podle toho, co obsluha s objednávkou udělá jako další.
 String nextStatusAction(OrderStatus status) {
@@ -98,23 +97,6 @@ class _StaffScreenState extends State<StaffScreen> {
     } catch (error) {
       if (!mounted) return;
       showAppMessage(context, 'Požadavek se nepodařilo vyřídit');
-    }
-  }
-
-  // Otevřeno / zavřeno. Když je zavřeno, zákazníci nemůžou objednávat.
-  Future<void> setOpen(bool isOpen) async {
-    try {
-      await widget.services.settings.setOpen(isOpen);
-      if (!mounted) return;
-      showAppMessage(
-        context,
-        isOpen
-            ? 'Otevřeno – zákazníci můžou objednávat'
-            : 'Zavřeno – nové objednávky nejdou odeslat',
-      );
-    } catch (error) {
-      if (!mounted) return;
-      showAppMessage(context, 'Změnu se nepodařilo uložit');
     }
   }
 
@@ -219,23 +201,6 @@ class _StaffScreenState extends State<StaffScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Obsluha'),
-          actions: [
-            buildOpenSwitch(),
-            IconButton(
-              icon: const Icon(Icons.qr_code_2),
-              tooltip: 'Stoly a QR kódy',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => StaffTablesScreen(
-                      tableService: widget.services.tables,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
           bottom: TabBar(
             // Tři záložky se nemusí vejít – dají se posouvat do stran.
             isScrollable: true,
@@ -269,29 +234,6 @@ class _StaffScreenState extends State<StaffScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  // Přepínač v horní liště: "Otevřeno" / "Zavřeno".
-  Widget buildOpenSwitch() {
-    final isOpen = VenueScope.of(context).isOpen;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          isOpen ? 'Otevřeno' : 'Zavřeno',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            color: isOpen
-                ? AppColors.success
-                : Theme.of(context).colorScheme.error,
-          ),
-        ),
-        Switch(
-          value: isOpen,
-          onChanged: setOpen,
-        ),
-      ],
     );
   }
 

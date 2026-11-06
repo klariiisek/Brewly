@@ -26,8 +26,8 @@ void main() {
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
     // Obsluha nevidí správu menu – ta je jen pro admina.
-    expect(find.text('Správa menu'), findsNothing);
-    await scrollAndTap(tester, find.text('Vstup pro obsluhu'));
+    expect(find.text('Menu'), findsNothing);
+    await scrollAndTap(tester, find.text('Objednávky'));
 
     // První je záložka Požadavky – přepne na Aktivní.
     await tester.tap(find.text('Aktivní (1)'));
@@ -89,16 +89,30 @@ void main() {
         'https://brewly-9e944.web.app/?stul=4&kod=K7P2X9');
   });
 
-  testWidgets('Obsluha vygeneruje kódy a uvidí QR kódy stolů',
+  testWidgets('Obsluha QR kódy jen vidí, vygenerovat je nemůže',
       (WidgetTester tester) async {
     final db = FakeFirebaseFirestore();
     await db.collection('users').doc(testUser.uid).set({'role': 'obsluha'});
 
     await pumpApp(tester, await buildTestApp(db: db));
+    await scrollAndTap(tester, find.text('Stoly'));
+    expect(find.text('Kódy stolů vygeneruje admin.'), findsOneWidget);
+    expect(find.text('Vygenerovat kódy'), findsNothing);
+
+    // Když kódy existují, obsluha je vidí, ale nemá tlačítko pro obnovení.
+    await TableService(db).regenerateCodes();
     await tester.pumpAndSettle();
-    await scrollAndTap(tester, find.text('Vstup pro obsluhu'));
-    await tester.tap(find.byTooltip('Stoly a QR kódy'));
-    await tester.pumpAndSettle();
+    expect(find.text('Stůl 1'), findsOneWidget);
+    expect(find.byTooltip('Vygenerovat nové kódy'), findsNothing);
+  });
+
+  testWidgets('Admin vygeneruje kódy a uvidí QR kódy stolů',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
+
+    await pumpApp(tester, await buildTestApp(db: db));
+    await scrollAndTap(tester, find.text('Stoly'));
 
     expect(find.text('Stoly zatím nemají kódy'), findsOneWidget);
     await tester.tap(find.text('Vygenerovat kódy'));
@@ -126,7 +140,7 @@ void main() {
 
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
-    await scrollAndTap(tester, find.text('Vstup pro obsluhu'));
+    await scrollAndTap(tester, find.text('Objednávky'));
 
     expect(find.text('Požadavky (1)'), findsOneWidget);
     expect(find.text('Stůl 3 • Chce zaplatit'), findsOneWidget);
@@ -142,15 +156,15 @@ void main() {
     final db = FakeFirebaseFirestore();
     await db.collection('users').doc(testUser.uid).set({'role': 'obsluha'});
 
+    // Přepínač je na úvodní obrazovce obsluhy.
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
-    await scrollAndTap(tester, find.text('Vstup pro obsluhu'));
 
     expect(find.text('Otevřeno'), findsOneWidget);
     await tester.tap(find.byType(Switch));
     await tester.pumpAndSettle();
 
-    expect(find.text('Zavřeno'), findsOneWidget);
+    expect(find.text('Zavřeno – nejde objednávat'), findsOneWidget);
     final saved = (await db.collection('settings').doc('venue').get()).data()!;
     expect(saved, {'isOpen': false});
   });
@@ -200,7 +214,7 @@ void main() {
     });
 
     await pumpApp(tester, await buildTestApp(db: db));
-    await scrollAndTap(tester, find.text('Vstup pro obsluhu'));
+    await scrollAndTap(tester, find.text('Objednávky'));
 
     expect(find.text('Dokončené (1)'), findsOneWidget);
   });
@@ -266,7 +280,7 @@ void main() {
     });
 
     await pumpApp(tester, await buildTestApp(db: db));
-    await scrollAndTap(tester, find.text('Vstup pro obsluhu'));
+    await scrollAndTap(tester, find.text('Objednávky'));
     await tester.tap(find.text('Aktivní (1)'));
     await tester.pumpAndSettle();
 

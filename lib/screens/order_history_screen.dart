@@ -20,11 +20,15 @@ class OrderHistoryScreen extends StatefulWidget {
   // Volitelné: tlačítko "Přejít do menu" u prázdného seznamu.
   final VoidCallback? onGoToMenu;
 
+  // Náhled pro obsluhu/admina: bez tlačítek Přivolat obsluhu a Chci zaplatit.
+  final bool isPreview;
+
   const OrderHistoryScreen({
     super.key,
     required this.services,
     required this.cart,
     this.onGoToMenu,
+    this.isPreview = false,
   });
 
   @override
@@ -102,12 +106,13 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                   children: [
                     // Karta Přivolat obsluhu / Chci zaplatit.
                     // key: když se přihlásí jiný uživatel, karta se vytvoří znovu.
-                    TableServiceCard(
-                      key: ValueKey(user.uid),
-                      services: widget.services,
-                      cart: widget.cart,
-                      user: user,
-                    ),
+                    if (!widget.isPreview)
+                      TableServiceCard(
+                        key: ValueKey(user.uid),
+                        services: widget.services,
+                        cart: widget.cart,
+                        user: user,
+                      ),
                     Expanded(child: buildOrders(user)),
                   ],
                 ),

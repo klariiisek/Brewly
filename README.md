@@ -65,11 +65,15 @@ Aplikace rozlišuje čtyři typy uživatelů. Co kdo smí, nehlídá jen aplikac
 - posouvání objednávek do dalšího stavu jedním tlačítkem,
 - vyřizování požadavků zákazníků,
 - přepínač **Otevřeno / Zavřeno** (když je zavřeno, nejde objednat),
-- **QR kódy stolů** k vytištění a jejich obnovení, kdyby kód unikl,
+- vlastní **úvodní obrazovka s barevnými dlaždicemi** (Objednávky, Docházka, Stoly), přepínačem Otevřeno / Zavřeno a živými čísly (aktivní objednávky, od kdy je v práci),
+- **QR kódy stolů** k vytištění (obnovit je smí jen admin, aby obsluha omylem nezneplatnila vytištěné kódy),
 - **docházka** (jako v pokladním systému Dotykačka): tlačítka **Příchod** a **Odchod**, běžící čas směny a **odpracované hodiny za měsíc** se seznamem směn.
 
 ### 🧑‍💼 Admin (vedoucí podniku)
 Umí všechno co obsluha, a navíc:
+- **úvodní obrazovka jako ovládací panel**: dnešní tržba, aktivní objednávky a sedm barevných dlaždic (Objednávky, Menu, Statistiky, Docházka, Zaměstnanci, Podnik, Stoly). Každý nástroj má pořád stejnou barvu, aby si ji člověk zapamatoval. Odkaz **Zobrazit jako zákazník** ukáže menu očima hosta (jen náhled, objednat z něj nejde),
+- **obnovení QR kódů stolů**, kdyby kód unikl,
+- **zaměstnanci**: přehled obsluhy a přidání nového zaměstnance jedním klepnutím (zaregistruje se jako zákazník, admin ho najde a dá mu roli obsluha), případně odebrání,
 - **správa menu**: přidání, úprava a smazání produktu, přepínač **vyprodáno**, vyhledávání,
 - **nahrání celého menu ze souboru CSV** (např. z Excelu) s kontrolou chyb před uložením,
 - **kategorie**: přidání, přejmenování, smazání a řazení přetažením,
@@ -79,9 +83,18 @@ Umí všechno co obsluha, a navíc:
   - **oznámení v menu** (např. „Dnes −20 % na dezerty“),
   - informace pro zákazníky: adresa, otevírací doba, Wi-Fi,
   - **razítková karta**: zapnutí, kategorie, za kterou jsou razítka, a kolikátý kus je zdarma (3.–20.),
+- **statistiky** za dnešek, týden nebo měsíc: tržba, počet objednávek a průměrná útrata se **srovnáním s předchozím obdobím**, **interaktivní graf tržeb** po hodinách nebo dnech (po klepnutí na sloupec se ukáže detail), **nejprodávanější produkty** s ikonami, **barevný prstencový graf** tržby podle kategorií a vydané odměny z razítkové karty,
 - **docházka zaměstnanců**: kdo je právě v práci, odpracované hodiny každého za měsíc a **ukončení zapomenuté směny** (po 12 hodinách aplikace upozorní na možná zapomenutý odchod).
 
 ### 📸 Ukázky
+
+**Úvod pro admina a obsluhu.** Po přihlášení zaměstnanec místo menu vidí ovládací panel: přepínač Otevřeno, živá čísla a barevné dlaždice s nástroji. Každý nástroj má vždy stejnou barvu, pozadí se mění podle palety podniku. Vlevo admin (7 nástrojů), vpravo obsluha (jen Objednávky, Docházka a Stoly).
+
+![Úvod pro admina a obsluhu](docs/screenshots/uvod-admin-a-obsluha.png)
+
+**Zaměstnanci.** Admin přidá nového zaměstnance do obsluhy jedním klepnutím. Zaměstnanec se zaregistruje jako zákazník a admin ho tu vyhledá. E-maily jsou na snímku rozmazané.
+
+<img src="docs/screenshots/zamestnanci.png" alt="Správa zaměstnanců" width="600">
 
 **Úvodní obrazovka podle typu podniku.** Admin zvolí typ podniku a barvu: změní se ilustrace (u kavárny s animovanou párou) i vzor v pozadí celé aplikace. Kavárna má kávová zrnka, cukrárna posypky, bar hvězdičky a pivnice bublinky.
 
@@ -142,7 +155,7 @@ Umí všechno co obsluha, a navíc:
 | **Cloud Firestore** | databáze s živými aktualizacemi |
 | **Firestore Security Rules** | kdo smí co číst a měnit (zabezpečení na straně serveru) |
 | **Firebase Hosting** | zveřejnění aplikace na webu |
-| **CustomPainter** (Flutter) | vlastní ikony nápojů, ilustrace na úvodní obrazovce (s animovanou párou) a vzor v pozadí podle typu podniku – aplikace je sama kreslí a přebarvuje podle barvy podniku |
+| **CustomPainter** (Flutter) | sloupcový a prstencový graf ve statistikách, vlastní ikony nápojů, ilustrace na úvodní obrazovce (s animovanou párou) a vzor v pozadí podle typu podniku – aplikace je sama kreslí a přebarvuje podle barvy podniku |
 | písmo **Lexend** | písmo navržené pro snadné čtení, přibalené přímo v aplikaci |
 | `qr_flutter` | generování QR kódů stolů |
 | `file_picker` | výběr CSV souboru s menu |
@@ -334,6 +347,14 @@ Razítka se **nikam neukládají**, aplikace je spočítá z objednávek zákazn
 
 Stav „dokončena“ smí nastavit jen obsluha, takže si zákazník razítka sám nepřidá. Počet razítek na odměnu se ukládá do každé objednávky s odměnou: když admin později změní „každou 10. kávu“ třeba na „každou 8.“, staré odměny se nepřepočítají. Je to stejný princip jako u ceny, objednávka si pamatuje údaje platné v době nákupu.
 
+#### Jak se počítají statistiky
+Statistiky se také **nikam neukládají**. Obrazovka načte objednávky od začátku předchozího období a spočítá z nich (jako `SUM`, `COUNT` a `GROUP BY` v SQL):
+- **tržbu** (součet `totalPrice`, tedy už po odečtení odměn), **počet objednávek** a **průměrnou útratu**,
+- **nejprodávanější produkty** a **tržbu podle kategorií** (seskupení položek podle názvu),
+- **graf** (součty po hodinách, nebo po dnech).
+
+Počítají se jen **dokončené** objednávky. Srovnání je férové: dnešek do 14:00 se porovná se včerejškem do 14:00, ne s celým včerejším dnem.
+
 #### `requests`: požadavky na obsluhu
 | Pole | Typ | Popis |
 |---|---|---|
@@ -405,11 +426,12 @@ Jediný dokument s tím, co **mění admin přímo v aplikaci**: `name`, `slogan
 
 Pravidla v souboru [`firestore.rules`](firestore.rules) běží na serveru Firebase, takže je nejde obejít ani mimo aplikaci:
 
-- **role:** zákazník si nemůže sám přidělit roli obsluhy nebo admina,
+- **role:** zákazník si nemůže sám přidělit roli obsluhy nebo admina. Admin smí jinému účtu přepnout jen zákazník ↔ obsluha, sobě ani jinému adminovi roli měnit nesmí,
 - **objednávky:** zákazník vytvoří objednávku jen sám za sebe, se správným **kódem stolu** a jen když má podnik otevřeno. Objednávka smí mít jen povolená pole, **číslo musí pocházet z počítadla** ve stejné transakci a **čas je čas serveru**,
 - **stav objednávky** mění jen obsluha, a to jen o jeden krok dopředu (Přijata → Připravuje se → Připravena → Dokončena),
-- **QR kódy:** tajné kódy stolů vidí jen obsluha. Kdo u stolu nesedí, nemůže k němu objednat ani přivolat obsluhu,
+- **QR kódy:** tajné kódy stolů vidí jen obsluha a admin, vygenerovat nové smí jen admin. Kdo u stolu nesedí, nemůže k němu objednat ani přivolat obsluhu,
 - **požadavky:** ochrana proti spamu, další požadavek jde poslat až po vyřízení předchozího,
+- **oddělení rolí:** obsluha a admin nemůžou vytvářet objednávky ani požadavky. Nezkreslují tak statistiky a nemůžou si sami dokončovat objednávky a sbírat razítka. Zákaznická část je pro ně jen náhled,
 - **menu a nastavení** mění jen admin. Obsluha smí přepnout jen Otevřeno / Zavřeno,
 - **čísla objednávek** se nulují jen v opravdu novém dni podle hodin serveru,
 - **docházka:** čas příchodu i odchodu je **čas serveru**, ne telefonu. Hotová směna vznikne jen spolu s odchodem a se stejným časem příchodu, jaký byl zapsaný. Směny už pak nejde změnit ani smazat. Admin smí zadat čas zapomenutého odchodu, ale jen po příchodu a ne v budoucnosti,
@@ -470,7 +492,7 @@ firebase deploy --only hosting
 flutter test
 ```
 
-Projekt má **66 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
+Projekt má **72 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
 - objednávku od menu přes košík až po stav u obsluhy,
 - role (zákazník nevidí obsluhu, obsluha nevidí správu menu),
 - čtení CSV souboru a hlášení chybných řádků,
@@ -478,13 +500,13 @@ Projekt má **66 automatických testů** rozdělených do souborů podle témat 
 - zavřený podnik (nejde objednat),
 - převod starých dat kategorií,
 - docházku (příchod, odchod, ukončení zapomenuté směny, noční směna přes půlnoc),
-- razítkovou kartu (počítání razítek, odměna v košíku, změna počtu razítek, odhalení neoprávněné odměny).
+- razítkovou kartu (počítání razítek, odměna v košíku, změna počtu razítek, odhalení neoprávněné odměny),
+- statistiky (období od pondělí, férové srovnání se stejně dlouhým úsekem, součty, žebříčky, graf).
 
 ---
 
 ## 🗺️ Plánované funkce
 
-- 📊 **statistiky pro admina**: tržby, počet objednávek, nejprodávanější produkty.
 
 ---
 

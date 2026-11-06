@@ -140,6 +140,15 @@ class OrderService {
     });
   }
 
+  // Statistiky pro admina: živě všechny objednávky od zadaného času
+  // (aktuální i předchozí období kvůli srovnání).
+  Stream<List<Order>> watchOrdersSince(DateTime since) {
+    return _orders
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(since))
+        .snapshots()
+        .map(_ordersFrom);
+  }
+
   // Jednorázově načte všechny objednávky zákazníka – obsluha podle nich
   // ověří, že má zákazník na odměnu opravdu plnou razítkovou kartu.
   Future<List<Order>> loadCustomerOrders(String userId) async {

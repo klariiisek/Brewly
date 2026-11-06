@@ -58,6 +58,23 @@ class UserService {
     return _users.doc(uid).update({'name': name});
   }
 
+  // Admin: živě všechny účty (zaměstnanci i zákazníci), seřazené podle jména.
+  Stream<List<UserProfile>> watchAllUsers() {
+    return _users.snapshots().map((snapshot) {
+      final users = snapshot.docs
+          .map((doc) => UserProfile.fromMap(doc.id, doc.data()))
+          .toList();
+      users.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      return users;
+    });
+  }
+
+  // Admin změní roli jiného účtu (zákazník ↔ obsluha).
+  // Pravidla hlídají, že admin nemění sebe ani jiného admina.
+  Future<void> setRole(String uid, UserRole role) {
+    return _users.doc(uid).update({'role': role.name});
+  }
+
   // Změní avatar (ikonu a barvu).
   Future<void> updateAvatar(String uid, String icon, String color) {
     return _users.doc(uid).update({'avatarIcon': icon, 'avatarColor': color});

@@ -72,7 +72,8 @@ void main() {
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
 
-    expect(find.text('Vstup pro obsluhu'), findsNothing);
+    expect(find.text('Statistiky'), findsNothing);
+    expect(find.text('Docházka'), findsNothing);
 
     // Při prvním přihlášení se v databázi založil profil s rolí zákazník.
     final profile = await db.collection('users').doc(testUser.uid).get();
@@ -84,7 +85,8 @@ void main() {
     await pumpApp(tester, await buildTestApp(signedIn: false));
     await tester.pumpAndSettle();
 
-    expect(find.text('Vstup pro obsluhu'), findsNothing);
+    expect(find.text('Statistiky'), findsNothing);
+    expect(find.text('Docházka'), findsNothing);
   });
 
   test('Role z databáze: neznámý text je zákazník', () {

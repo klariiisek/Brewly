@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../models/cart.dart';
 import '../models/order.dart';
+import '../models/user_role.dart';
 import '../services/app_services.dart';
 import 'cart_screen.dart';
 import 'menu_screen.dart';
@@ -44,6 +45,12 @@ class _MainScreenState extends State<MainScreen> {
   // na razítkové kartě (košík a profil).
   List<Order> myOrders = [];
 
+  // Je přihlášená obsluha nebo admin? Pak je zákaznická část jen náhled:
+  // vše jde prohlédnout, ale objednávat a volat obsluhu nejde
+  // (zkreslilo by to statistiky a zmátlo obsluhu).
+  StreamSubscription<UserRole>? roleSubscription;
+  bool isPreview = false;
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +63,7 @@ class _MainScreenState extends State<MainScreen> {
   void dispose() {
     userSubscription?.cancel();
     ordersSubscription?.cancel();
+    roleSubscription?.cancel();
     super.dispose();
   }
 
@@ -64,9 +72,19 @@ class _MainScreenState extends State<MainScreen> {
     if (user?.uid == watchedUserId) return;
     watchedUserId = user?.uid;
     ordersSubscription?.cancel();
+    roleSubscription?.cancel();
     lastStatuses = null;
-    if (mounted) setState(() => myOrders = []);
+    if (mounted) {
+      setState(() {
+        myOrders = [];
+        isPreview = false;
+      });
+    }
     if (user == null) return;
+
+    roleSubscription = widget.services.users.watchRole(user).listen((role) {
+      if (mounted) setState(() => isPreview = role.canServe);
+    });
 
     ordersSubscription = widget.services.orders
         .watchMyOrders(user.uid)
@@ -173,6 +191,7 @@ class _MainScreenState extends State<MainScreen> {
             cart: cart,
             services: widget.services,
             myOrders: myOrders,
+            isPreview: isPreview,
             onCartChanged: refresh,
             onOrderCreated: onOrderCreated,
             onGoToMenu: () => goToTab(0),
@@ -180,6 +199,7 @@ class _MainScreenState extends State<MainScreen> {
           OrderHistoryScreen(
             services: widget.services,
             cart: cart,
+            isPreview: isPreview,
             onGoToMenu: () => goToTab(0),
           ),
           ProfileScreen(services: widget.services, myOrders: myOrders),

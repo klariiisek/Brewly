@@ -9,9 +9,7 @@ import 'package:brewly/services/product_service.dart';
 import 'package:brewly/utils/csv_import.dart';
 
 import 'package:brewly/models/product.dart';
-import 'package:brewly/models/venue_settings.dart';
 import 'package:brewly/widgets/drink_icon.dart';
-import 'package:brewly/widgets/venue_hero.dart';
 
 import 'helpers.dart';
 
@@ -26,9 +24,10 @@ void main() {
 
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
-    // Admin vidí oba vstupy.
-    expect(find.text('Vstup pro obsluhu'), findsOneWidget);
-    await scrollAndTap(tester, find.text('Správa menu'));
+    // Admin má na úvodu dlaždice se všemi nástroji.
+    expect(find.text('Objednávky'), findsOneWidget);
+    expect(find.text('Statistiky'), findsOneWidget);
+    await scrollAndTap(tester, find.text('Menu'));
 
     await tester.tap(find.text('Přidat produkt'));
     await tester.pumpAndSettle();
@@ -96,7 +95,7 @@ void main() {
 
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
-    await scrollAndTap(tester, find.text('Správa menu'));
+    await scrollAndTap(tester, find.text('Menu'));
 
     // "tira" najde Tiramisu, nic jiného.
     await tester.enterText(find.byType(TextField), 'tira');
@@ -126,7 +125,7 @@ void main() {
 
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
-    await scrollAndTap(tester, find.text('Nastavení podniku'));
+    await scrollAndTap(tester, find.text('Podnik'));
 
     await tester.enterText(
         find.widgetWithText(TextFormField, 'Název podniku'), 'Bar U Lípy');
@@ -153,17 +152,12 @@ void main() {
     expect(saved['type'], 'bar');
     expect(saved['color'], 'bordo');
 
-    // Zpět na úvod: nový název, ikona baru a celá aplikace v barvě bordó.
+    // Zpět na úvod admina: nový název podniku v záhlaví a celá aplikace
+    // v barvě bordó.
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.text('Bar U Lípy'), findsOneWidget);
-    expect(find.text('powered by Brewly'), findsOneWidget);
-    // Úvod ukazuje ilustraci baru (koktejl).
-    expect(
-        find.byWidgetPredicate(
-            (widget) => widget is VenueHero && widget.type == VenueType.bar),
-        findsOneWidget);
-    final context = tester.element(find.text('Bar U Lípy'));
+    expect(find.textContaining('Bar U Lípy'), findsOneWidget);
+    final context = tester.element(find.textContaining('Bar U Lípy'));
     expect(context.colors.primary, paletteFor('bordo').colors.primary);
   });
 
@@ -174,7 +168,7 @@ void main() {
 
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
-    await scrollAndTap(tester, find.text('Správa menu'));
+    await scrollAndTap(tester, find.text('Menu'));
     await tester.tap(find.byTooltip('Kategorie'));
     await tester.pumpAndSettle();
 
@@ -276,7 +270,7 @@ void main() {
     await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
 
     await pumpApp(tester, await buildTestApp(db: db));
-    await scrollAndTap(tester, find.text('Správa menu'));
+    await scrollAndTap(tester, find.text('Menu'));
     await tester.tap(find.text('Espresso'));
     await tester.pumpAndSettle();
 
@@ -297,5 +291,67 @@ void main() {
         .single
         .data();
     expect(espresso['icon'], 'takeaway');
+  });
+
+  testWidgets('Admin v náhledu pro zákazníka objednávat nemůže',
+      (WidgetTester tester) async {
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
+
+    await pumpApp(tester, await buildTestApp(db: db));
+    await scrollAndTap(tester, find.text('Zobrazit jako zákazník'));
+
+    // Menu i košík fungují…
+    await tester.tap(find.byTooltip('Přidat do košíku').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Košík').last);
+    await tester.pumpAndSettle();
+
+    // …ale objednat nejde.
+    expect(find.textContaining('Náhled pro obsluhu a admina'), findsOneWidget);
+    final button =
+        tester.widget<ElevatedButton>(find.widgetWithText(ElevatedButton, 'Objednat'));
+    expect(button.onPressed, isNull);
+
+    // A v Objednávkách nejsou tlačítka Přivolat obsluhu / Chci zaplatit.
+    await tester.tap(find.text('Objednávky').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Přivolat obsluhu'), findsNothing);
+  });
+
+  testWidgets('Admin přidá zákazníka do obsluhy v Zaměstnancích',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set(
+        {'role': 'admin', 'name': 'Klára', 'email': 'klara@test.cz'});
+    await db.collection('users').doc('tomas').set(
+        {'role': 'obsluha', 'name': 'Tomáš', 'email': 'tomas@test.cz'});
+    await db.collection('users').doc('petra').set(
+        {'role': 'zakaznik', 'name': 'Petra', 'email': 'petra@test.cz'});
+    await db.collection('users').doc('jan').set(
+        {'role': 'zakaznik', 'name': 'Jan', 'email': 'jan@test.cz'});
+
+    await pumpApp(tester, await buildTestApp(db: db));
+    await scrollAndTap(tester, find.text('Zaměstnanci'));
+
+    expect(find.text('Obsluha a admin (2)'), findsOneWidget);
+    expect(find.text('Admin (vy)'), findsOneWidget);
+
+    // Vyhledávání bez diakritiky najde Petru, Jana schová.
+    await tester.enterText(find.byType(TextField), 'petra');
+    await tester.pumpAndSettle();
+    expect(find.text('Jan'), findsNothing);
+
+    await tester.tap(find.text('Do obsluhy'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Přidat'));
+    await tester.pumpAndSettle();
+
+    final petra = await db.collection('users').doc('petra').get();
+    expect(petra.data()!['role'], 'obsluha');
+    expect(find.text('Obsluha a admin (3)'), findsOneWidget);
   });
 }

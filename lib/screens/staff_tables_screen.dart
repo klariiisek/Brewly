@@ -7,12 +7,21 @@ import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
 import '../widgets/empty_state.dart';
 
-// Obrazovka pro obsluhu: QR kódy všech stolů k vytištění.
+// QR kódy všech stolů k vytištění.
 // Každý QR kód obsahuje odkaz s číslem stolu a jeho tajným kódem.
+// Vidí je obsluha i admin, ale nové kódy smí vygenerovat jen admin
+// (vytištěné QR kódy by pak přestaly platit).
 class StaffTablesScreen extends StatefulWidget {
   final TableService tableService;
 
-  const StaffTablesScreen({super.key, required this.tableService});
+  // Smí kódy vygenerovat / obnovit? (jen admin)
+  final bool canEdit;
+
+  const StaffTablesScreen({
+    super.key,
+    required this.tableService,
+    this.canEdit = false,
+  });
 
   @override
   State<StaffTablesScreen> createState() => _StaffTablesScreenState();
@@ -79,7 +88,7 @@ class _StaffTablesScreenState extends State<StaffTablesScreen> {
           appBar: AppBar(
             title: const Text('Stoly a QR kódy'),
             actions: [
-              if (hasCodes)
+              if (hasCodes && widget.canEdit)
                 IconButton(
                   icon: const Icon(Icons.refresh),
                   tooltip: 'Vygenerovat nové kódy',
@@ -108,6 +117,13 @@ class _StaffTablesScreenState extends State<StaffTablesScreen> {
     }
     if (!snapshot.hasData) {
       return const Center(child: CircularProgressIndicator());
+    }
+    if (codes.isEmpty && !widget.canEdit) {
+      return const EmptyState(
+        icon: Icons.qr_code_2,
+        title: 'Stoly zatím nemají kódy',
+        message: 'Kódy stolů vygeneruje admin.',
+      );
     }
     if (codes.isEmpty) {
       return EmptyState(

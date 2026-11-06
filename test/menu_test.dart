@@ -87,7 +87,7 @@ void main() {
 
     await pumpApp(tester, await buildTestApp(db: db));
     await tester.pumpAndSettle();
-    await scrollAndTap(tester, find.text('Správa menu'));
+    await scrollAndTap(tester, find.text('Menu'));
 
     // Admin přepne první produkt (Cappuccino) na vyprodaný.
     await tester.tap(find.byType(Switch).first);
@@ -99,10 +99,12 @@ void main() {
     expect(cappuccino.docs.single.data()['available'], false);
 
     // V menu pro zákazníky je označený a tlačítko + nejde zmáčknout.
+    // (Admin se do menu podívá odkazem „Zobrazit jako zákazník“.)
     await tester.pageBack();
+    // Počkáme, až zmizí hláška „vyprodáno“ – jinak by odkaz zakrývala.
+    await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Prohlédnout menu'));
-    await tester.pumpAndSettle();
+    await scrollAndTap(tester, find.text('Zobrazit jako zákazník'));
 
     // Vyprodané Cappuccino je až na konci, první je teď Espresso.
     List<ProductCard> cards() =>

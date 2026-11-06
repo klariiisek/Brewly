@@ -56,9 +56,12 @@ service cloud.firestore {
     }
 
     // ---------- Stoly ----------
-    // Tajné kódy stolů vidí a mění jen obsluha (generuje je a tiskne QR kódy).
+    // Tajné kódy stolů vidí obsluha i admin (tisknou QR kódy).
+    // Nové kódy smí vygenerovat jen admin – vytištěné QR kódy na stolech
+    // by jinak omylem přestaly platit.
     match /tables/{tableId} {
-      allow read, write: if isStaff();
+      allow read: if isStaff();
+      allow write: if isAdmin();
     }
 
     // ---------- Menu ----------
@@ -187,6 +190,14 @@ service cloud.firestore {
         && request.resource.data.get('avatarColor', '') is string
         && request.resource.data.get('avatarColor', '').size() <= 20;
 
+      // Admin smí jinému účtu změnit roli zákazník ↔ obsluha – nic jiného.
+      // Sobě ani jinému adminovi ne (adminy nastavuje vývojář v konzoli).
+      allow update: if isAdmin()
+        && request.auth.uid != userId
+        && resource.data.get('role', '') != 'admin'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role'])
+        && request.resource.data.role in ['zakaznik', 'obsluha'];
+
       allow delete: if false;
     }
 
@@ -291,7 +302,10 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && hasNumberFromCounter()
         && hasValidTableCode()
-        && isVenueOpen();
+        && isVenueOpen()
+        // Obsluha a admin neobjednávají (zkreslilo by to statistiky
+        // a mohli by si sami dokončovat objednávky a sbírat razítka).
+        && !isStaff();
 
       // Stav objednávky může měnit jen obsluha – a nic jiného než stav.
       // Stav jde jen o jeden krok dopředu:
@@ -399,6 +413,8 @@ service cloud.firestore {
       // povoleného typu, ke stolu 1–10 se správným kódem stolu a ve stavu "cekajici".
       function isValidNewRequest() {
         return isSignedIn()
+          // Obsluha a admin požadavky neposílají – jen je vyřizují.
+          && !isStaff()
           && request.resource.data.userId == request.auth.uid
           && request.resource.data.type in ['obsluha', 'platba']
           && request.resource.data.status == 'cekajici'

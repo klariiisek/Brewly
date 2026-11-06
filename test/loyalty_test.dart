@@ -241,7 +241,7 @@ void main() {
         ));
 
     await pumpApp(tester, app);
-    await scrollAndTap(tester, find.text('Vstup pro obsluhu'));
+    await scrollAndTap(tester, find.text('Objednávky'));
     await tester.tap(find.text('Aktivní (1)'));
     await tester.pumpAndSettle();
 

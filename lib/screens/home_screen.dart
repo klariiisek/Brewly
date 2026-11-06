@@ -10,13 +10,9 @@ import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
 import '../widgets/venue_hero.dart';
 import '../widgets/venue_info_sheet.dart';
-import 'admin_menu_screen.dart';
-import 'attendance_overview_screen.dart';
-import 'attendance_screen.dart';
 import 'login_screen.dart';
 import 'main_screen.dart';
-import 'staff_screen.dart';
-import 'venue_settings_screen.dart';
+import 'staff_home_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Cart cart;
@@ -70,24 +66,46 @@ class _HomeScreenState extends State<HomeScreen> {
           initialData: widget.services.auth.currentUser,
           builder: (context, snapshot) {
             final user = snapshot.data;
-            // Na velké obrazovce (počítač) zůstane obsah úzký uprostřed,
-            // na malé se dá posouvat.
-            return Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 440),
-                  child: Column(
-                    children: [
-                      buildWelcome(user),
-                      const SizedBox(height: 28),
-                      buildButtons(user),
-                    ],
-                  ),
-                ),
-              ),
+            if (user == null) return buildCustomerHome(null);
+            // Obsluha a admin mají vlastní úvod s nástroji (dlaždice).
+            return StreamBuilder<UserRole>(
+              stream: roleFor(user),
+              builder: (context, roleSnapshot) {
+                final role = roleSnapshot.data;
+                if (role != null && role.canServe) {
+                  return StaffHomeScreen(
+                    key: ValueKey(user.uid),
+                    user: user,
+                    role: role,
+                    cart: widget.cart,
+                    services: widget.services,
+                  );
+                }
+                return buildCustomerHome(user);
+              },
             );
           },
+        ),
+      ),
+    );
+  }
+
+  // Úvod pro zákazníka a návštěvníka.
+  // Na velké obrazovce (počítač) zůstane obsah úzký uprostřed,
+  // na malé se dá posouvat.
+  Widget buildCustomerHome(User? user) {
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Column(
+            children: [
+              buildWelcome(user),
+              const SizedBox(height: 32),
+              buildButtons(user),
+            ],
+          ),
         ),
       ),
     );
@@ -299,8 +317,6 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () => showVenueInfo(context),
             ),
           ),
-        // Vstupy pro zaměstnance vidí jen přihlášený s rolí obsluha nebo admin.
-        if (user != null) buildStaffEntry(user),
         // Když má podnik vlastní název, připomeneme, na čem aplikace běží.
         if (VenueScope.of(context).name != 'Brewly') ...[
           const SizedBox(height: 16),
@@ -315,63 +331,5 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ],
     );
-  }
-
-  Widget buildStaffEntry(User user) {
-    return StreamBuilder<UserRole>(
-      stream: roleFor(user),
-      builder: (context, snapshot) {
-        final role = snapshot.data ?? UserRole.zakaznik;
-        if (!role.canServe) {
-          return const SizedBox.shrink(); // zákazník nic nevidí
-        }
-        return Padding(
-          padding: const EdgeInsets.only(top: 8),
-          // Wrap = tlačítka vedle sebe, a když se nevejdou, pod sebe.
-          child: Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 8,
-            children: [
-              TextButton.icon(
-                icon: const Icon(Icons.badge_outlined, size: 18),
-                label: const Text('Vstup pro obsluhu'),
-                onPressed: () =>
-                    openScreen(StaffScreen(services: widget.services)),
-              ),
-              // Docházku si zapisuje obsluha, admin vidí přehled všech.
-              TextButton.icon(
-                icon: const Icon(Icons.schedule, size: 18),
-                label: Text(role.isAdmin ? 'Docházka zaměstnanců' : 'Docházka'),
-                onPressed: () => openScreen(
-                  role.isAdmin
-                      ? AttendanceOverviewScreen(services: widget.services)
-                      : AttendanceScreen(services: widget.services, user: user),
-                ),
-              ),
-              // Správa menu a nastavení podniku jen pro admina.
-              if (role.isAdmin) ...[
-                TextButton.icon(
-                  icon: const Icon(Icons.edit_note, size: 20),
-                  label: const Text('Správa menu'),
-                  onPressed: () =>
-                      openScreen(AdminMenuScreen(services: widget.services)),
-                ),
-                TextButton.icon(
-                  icon: const Icon(Icons.storefront_outlined, size: 18),
-                  label: const Text('Nastavení podniku'),
-                  onPressed: () => openScreen(
-                    VenueSettingsScreen(services: widget.services),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void openScreen(Widget screen) {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
 }

@@ -15,8 +15,8 @@ void main() {
     await db.collection('users').doc(testUser.uid).set({'role': 'obsluha'});
 
     await pumpApp(tester, await buildTestApp(db: db));
-    // Obsluha nevidí přehled všech zaměstnanců – ten je pro admina.
-    expect(find.text('Docházka zaměstnanců'), findsNothing);
+    // Obsluha nemá nástroje admina (statistiky, menu).
+    expect(find.text('Statistiky'), findsNothing);
     await scrollAndTap(tester, find.text('Docházka'));
 
     expect(find.text('Nejste v práci'), findsOneWidget);
@@ -70,7 +70,7 @@ void main() {
     });
 
     await pumpApp(tester, await buildTestApp(db: db));
-    await scrollAndTap(tester, find.text('Docházka zaměstnanců'));
+    await scrollAndTap(tester, find.text('Docházka'));
 
     expect(find.text('Tomáš'), findsOneWidget);
     expect(find.text('2 h 30 min'), findsWidgets);
