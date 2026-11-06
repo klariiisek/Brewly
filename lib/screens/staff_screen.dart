@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/loyalty.dart';
 import '../models/order.dart';
 import '../models/product.dart';
 import '../models/service_request.dart';
@@ -32,13 +33,18 @@ String nextStatusAction(OrderStatus status) {
 // Pravidla databáze neumí projít všechny položky, proto kontroluje obsluha.
 List<String> orderPriceWarnings(Order order, List<Product> menu) {
   final warnings = <String>[];
-  var itemsTotal = 0.0;
-  for (final item in order.items) {
-    itemsTotal += item.product.price * item.quantity;
-  }
-  if ((itemsTotal - order.totalPrice).abs() > 0.01) {
-    warnings.add('Zkontrolujte cenu: položky dávají ${formatPrice(itemsTotal)}, '
+  // Od součtu položek se odečte odměna z razítkové karty.
+  final expected = order.itemsTotal - order.rewardDiscount;
+  if ((expected - order.totalPrice).abs() > 0.01) {
+    warnings.add('Zkontrolujte cenu: položky dávají ${formatPrice(expected)}, '
         'objednávka je za ${formatPrice(order.totalPrice)}.');
+  }
+  // Odměna = přesně jeden kus produktu, který v objednávce opravdu je.
+  final rewardItem = order.rewardItem;
+  if (order.hasReward &&
+      (rewardItem == null ||
+          (rewardItem.product.price - order.rewardDiscount).abs() > 0.01)) {
+    warnings.add('Odměna z razítkové karty nesedí s položkami objednávky.');
   }
   // U dokončených objednávek už porovnání s menu nemá smysl
   // (ceny v menu se mohly mezitím změnit).
@@ -110,6 +116,25 @@ class _StaffScreenState extends State<StaffScreen> {
       if (!mounted) return;
       showAppMessage(context, 'Změnu se nepodařilo uložit');
     }
+  }
+
+  // Ověření odměn: pro každou objednávku s odměnou jednou načteme všechny
+  // objednávky zákazníka a spočítáme, jestli měl kartu opravdu plnou.
+  // (Pravidla databáze to spočítat neumí – proto kontroluje obsluha.)
+  final Map<String, Future<bool>> rewardChecks = {};
+
+  Future<bool> checkReward(Order order) {
+    return rewardChecks.putIfAbsent(order.id, () async {
+      final venue = VenueScope.of(context);
+      final orders =
+          await widget.services.orders.loadCustomerOrders(order.userId);
+      return isRewardValid(
+        orders,
+        order,
+        categoryId: venue.loyaltyCategoryId,
+        goal: venue.loyaltyGoal,
+      );
+    });
   }
 
   // Uloží do databáze další stav objednávky. Obrazovka se pak překreslí
@@ -455,6 +480,7 @@ class _StaffScreenState extends State<StaffScreen> {
                   style: const TextStyle(fontSize: 15),
                 ),
               ),
+            if (order.hasReward) buildRewardNote(order),
 
             // Tlačítko pro posun na další stav (u dokončených se nezobrazí).
             if (!isDone) ...[
@@ -469,6 +495,45 @@ class _StaffScreenState extends State<StaffScreen> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  // Pod položkami: který kus je zdarma a jestli má zákazník kartu plnou.
+  Widget buildRewardNote(Order order) {
+    final name = order.rewardItem?.product.name ?? 'produkt';
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: FutureBuilder<bool>(
+        future: checkReward(order),
+        builder: (context, snapshot) {
+          final isValid = snapshot.data;
+          final color = isValid == false
+              ? Theme.of(context).colorScheme.error
+              : AppColors.success;
+          return Row(
+            children: [
+              Icon(
+                isValid == false
+                    ? Icons.warning_amber_rounded
+                    : Icons.card_giftcard,
+                size: 18,
+                color: color,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  isValid == null
+                      ? '1× $name zdarma – ověřuji kartu…'
+                      : isValid
+                          ? '1× $name zdarma – karta ověřena ✓'
+                          : '1× $name zdarma – zákazník NEMÁ plnou kartu!',
+                  style: TextStyle(color: color, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

@@ -40,6 +40,10 @@ class _MainScreenState extends State<MainScreen> {
   // Poslední známý stav každé objednávky (podle ID).
   Map<String, OrderStatus>? lastStatuses;
 
+  // Objednávky přihlášeného zákazníka – z nich se počítají razítka
+  // na razítkové kartě (košík a profil).
+  List<Order> myOrders = [];
+
   @override
   void initState() {
     super.initState();
@@ -61,6 +65,7 @@ class _MainScreenState extends State<MainScreen> {
     watchedUserId = user?.uid;
     ordersSubscription?.cancel();
     lastStatuses = null;
+    if (mounted) setState(() => myOrders = []);
     if (user == null) return;
 
     ordersSubscription = widget.services.orders
@@ -71,6 +76,7 @@ class _MainScreenState extends State<MainScreen> {
   // Porovná nové stavy s předchozími. Když se objednávka právě teď
   // změnila na „Připravena“, ukáže upozornění.
   void checkForReadyOrders(List<Order> orders) {
+    if (mounted) setState(() => myOrders = orders);
     final previous = lastStatuses;
     lastStatuses = {for (final order in orders) order.id: order.status};
     // Při prvním načtení jen zapamatujeme stavy – staré objednávky,
@@ -166,6 +172,7 @@ class _MainScreenState extends State<MainScreen> {
           CartScreen(
             cart: cart,
             services: widget.services,
+            myOrders: myOrders,
             onCartChanged: refresh,
             onOrderCreated: onOrderCreated,
             onGoToMenu: () => goToTab(0),
@@ -175,7 +182,7 @@ class _MainScreenState extends State<MainScreen> {
             cart: cart,
             onGoToMenu: () => goToTab(0),
           ),
-          ProfileScreen(services: widget.services),
+          ProfileScreen(services: widget.services, myOrders: myOrders),
         ],
       ),
       bottomNavigationBar: NavigationBar(

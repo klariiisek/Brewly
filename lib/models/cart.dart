@@ -23,6 +23,47 @@ class Cart {
     tableCode = null;
   }
 
+  // Odměna z razítkové karty: ID produktu, jehož jeden kus je zdarma.
+  // null = zákazník odměnu neuplatnil.
+  String? rewardProductId;
+
+  // Položka, ze které je jeden kus zdarma.
+  CartItem? get rewardItem {
+    for (final item in items) {
+      if (item.product.id == rewardProductId) return item;
+    }
+    return null;
+  }
+
+  // Kolik se odečte za odměnu (cena jednoho kusu).
+  double get rewardDiscount => rewardItem?.product.price ?? 0;
+
+  // Nejdražší objednatelný kus z kategorie razítkové karty
+  // (ať se zákazníkovi odměna co nejvíc vyplatí). null = v košíku žádný není.
+  CartItem? bestRewardItem(String categoryId) {
+    CartItem? best;
+    for (final item in items) {
+      if (item.product.categoryId != categoryId || !item.canOrder) continue;
+      if (best == null || item.product.price > best.product.price) best = item;
+    }
+    return best;
+  }
+
+  // Zákazník uplatní odměnu na nejdražší kus z kategorie karty.
+  void useReward(String categoryId) {
+    rewardProductId = bestRewardItem(categoryId)?.product.id;
+  }
+
+  void clearReward() {
+    rewardProductId = null;
+  }
+
+  // Vyprázdní košík po odeslání objednávky (stůl zůstává).
+  void clear() {
+    items.clear();
+    clearReward();
+  }
+
   // Přidá položku. Stejný produkt (podle ID) se jen sečte s tím, co už
   // v košíku je.
   void addItem(CartItem item) {
@@ -58,6 +99,10 @@ class Cart {
         item.product = current;
       }
     }
+    // Produkt s odměnou z košíku zmizel nebo se vyprodal → odměna se zruší.
+    if (rewardProductId != null && !(rewardItem?.canOrder ?? false)) {
+      clearReward();
+    }
   }
 
   // Je v košíku něco, co už nejde objednat (vyprodané nebo smazané)?
@@ -74,7 +119,8 @@ class Cart {
     return count;
   }
 
-  double get totalPrice {
+  // Cena všech položek (před odečtením odměny).
+  double get subtotal {
     double total = 0;
 
     for (final item in items) {
@@ -83,4 +129,7 @@ class Cart {
 
     return total;
   }
+
+  // Kolik zákazník zaplatí (s odečtenou odměnou z razítkové karty).
+  double get totalPrice => subtotal - rewardDiscount;
 }

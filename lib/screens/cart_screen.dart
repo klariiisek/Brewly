@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../models/cart.dart';
 import '../models/cart_item.dart';
+import '../models/loyalty.dart';
+import '../models/order.dart';
 import '../models/product.dart';
 import '../models/venue_settings.dart';
 import '../services/app_services.dart';
@@ -19,6 +21,9 @@ class CartScreen extends StatefulWidget {
   final Cart cart;
   final AppServices services;
 
+  // Objednávky zákazníka – podle nich se počítají razítka na kartě.
+  final List<Order> myOrders;
+
   // Zavolá se, když se změní obsah košíku (aby se aktualizovalo číslo v liště).
   final VoidCallback onCartChanged;
 
@@ -32,6 +37,7 @@ class CartScreen extends StatefulWidget {
     super.key,
     required this.cart,
     required this.services,
+    this.myOrders = const [],
     required this.onCartChanged,
     required this.onOrderCreated,
     required this.onGoToMenu,
@@ -123,11 +129,17 @@ class _CartScreenState extends State<CartScreen> {
         tableCode: widget.cart.tableCode!,
         userId: user.uid,
         customerName: userDisplayName(user),
+        rewardProductId: widget.cart.rewardItem?.product.id,
+        rewardDiscount: widget.cart.rewardDiscount,
+        // Kolik razítek odměna stojí teď – kdyby admin počet později
+        // změnil, tahle odměna se nepřepočítá.
+        // (Každá 10. káva zdarma = odměna stojí 9 razítek.)
+        rewardStamps: VenueScope.of(context).loyaltyGoal - 1,
       );
       if (!mounted) return;
 
       setState(() {
-        widget.cart.items.clear();
+        widget.cart.clear();
       });
       widget.onCartChanged();
       showAppMessage(context, 'Objednávka byla odeslána');
@@ -137,6 +149,16 @@ class _CartScreenState extends State<CartScreen> {
       if (error.code == 'permission-denied' && !VenueScope.of(context).isOpen) {
         // Podnik mezitím zavřel – databáze objednávku odmítla.
         showAppMessage(context, 'Teď máme zavřeno, objednat zatím nejde');
+      } else if (error.code == 'permission-denied' &&
+          widget.cart.rewardItem != null) {
+        // Databáze odmítla odměnu – např. admin mezitím změnil počet razítek
+        // nebo kartu vypnul. Odměnu zrušíme, zákazník může objednat znovu.
+        setState(widget.cart.clearReward);
+        showAppMessage(
+          context,
+          'Odměnu se nepodařilo uplatnit, razítková karta se mezitím změnila. '
+          'Zkuste to prosím znovu.',
+        );
       } else if (error.code == 'permission-denied') {
         // Databáze odmítla kód stolu (špatně opsaný nebo už neplatný).
         setState(() => widget.cart.clearTable());
@@ -346,6 +368,7 @@ class _CartScreenState extends State<CartScreen> {
             ],
           ),
           const Divider(height: 24),
+          buildReward(),
           Row(
             children: [
               const Text(
@@ -394,6 +417,82 @@ class _CartScreenState extends State<CartScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // Razítková karta v košíku: kolik razítek chybí, nebo tlačítko
+  // „Uplatnit odměnu“, když má zákazník plnou kartu.
+  Widget buildReward() {
+    final venue = VenueScope.of(context);
+    final cart = widget.cart;
+    if (!venue.hasLoyalty || widget.services.auth.currentUser == null) {
+      return const SizedBox.shrink();
+    }
+    final status = loyaltyStatus(
+      widget.myOrders,
+      categoryId: venue.loyaltyCategoryId,
+      goal: venue.loyaltyGoal,
+    );
+    final colors = context.colors;
+    final rewardItem = cart.rewardItem;
+
+    Widget row(IconData icon, String text, {Widget? trailing, Color? color}) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: color ?? colors.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(text, style: TextStyle(color: color ?? colors.dark)),
+            ),
+            ?trailing, // ? = přidá se, jen když není null
+          ],
+        ),
+      );
+    }
+
+    // Odměna je uplatněná: ukážeme slevu a možnost ji zrušit.
+    if (rewardItem != null) {
+      return row(
+        Icons.card_giftcard,
+        '${rewardItem.product.name} zdarma  −${formatPrice(cart.rewardDiscount)}',
+        color: AppColors.success,
+        trailing: TextButton(
+          onPressed: () => setState(cart.clearReward),
+          child: const Text('Zrušit'),
+        ),
+      );
+    }
+    if (!status.hasReward) {
+      return row(
+        Icons.loyalty_outlined,
+        'Razítková karta: ${status.filled}/${status.needed} – '
+        'do odměny zbývá ${formatStampCount(status.missing)}',
+      );
+    }
+    // Plná karta, ale v košíku není nic z kategorie karty.
+    final best = cart.bestRewardItem(venue.loyaltyCategoryId);
+    if (best == null) {
+      return row(
+        Icons.card_giftcard,
+        'Máte plnou razítkovou kartu! Přidejte si něco z menu a bude to zdarma.',
+        color: AppColors.success,
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          icon: const Icon(Icons.card_giftcard),
+          label: Text('Uplatnit odměnu: ${best.product.name} zdarma'),
+          onPressed: () {
+            setState(() => cart.useReward(venue.loyaltyCategoryId));
+            widget.onCartChanged();
+          },
+        ),
       ),
     );
   }

@@ -55,6 +55,13 @@ class Order {
   // databáze ještě nedoplnila – pak je null.
   final DateTime? createdAt;
 
+  // Odměna z razítkové karty: který produkt byl zdarma a kolik se odečetlo.
+  // Prázdné ID = objednávka bez odměny.
+  final String rewardProductId;
+  final double rewardDiscount;
+  // Kolik razítek odměna stála (počet platný v době objednání).
+  final int rewardStamps;
+
   const Order({
     required this.id,
     required this.number,
@@ -65,7 +72,31 @@ class Order {
     required this.userId,
     required this.customerName,
     this.createdAt,
+    this.rewardProductId = '',
+    this.rewardDiscount = 0,
+    this.rewardStamps = 0,
   });
+
+  // Uplatnil zákazník v objednávce odměnu z razítkové karty?
+  bool get hasReward => rewardProductId.isNotEmpty;
+
+  // Položka, ze které byl jeden kus zdarma (null = žádná).
+  CartItem? get rewardItem {
+    if (!hasReward) return null;
+    for (final item in items) {
+      if (item.product.id == rewardProductId) return item;
+    }
+    return null;
+  }
+
+  // Cena všech položek před odečtením odměny.
+  double get itemsTotal {
+    var total = 0.0;
+    for (final item in items) {
+      total += item.product.price * item.quantity;
+    }
+    return total;
+  }
 
   // Čas pro řazení a zobrazení. Bez času (právě odeslaná) = teď.
   DateTime get time => createdAt ?? DateTime.now();
@@ -90,6 +121,9 @@ class Order {
       userId: data['userId'] as String? ?? '',
       customerName: data['customerName'] as String? ?? '',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
+      rewardProductId: data['rewardProductId'] as String? ?? '',
+      rewardDiscount: (data['rewardDiscount'] as num? ?? 0).toDouble(),
+      rewardStamps: data['rewardStamps'] as int? ?? 0,
     );
   }
 }

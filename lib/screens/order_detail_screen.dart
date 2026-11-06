@@ -122,6 +122,28 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       ],
                     ),
                   ),
+                // Odměna z razítkové karty – jeden kus zdarma.
+                if (order.hasReward)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.card_giftcard,
+                            size: 20, color: AppColors.success),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            'Odměna z razítkové karty',
+                            style: TextStyle(color: AppColors.success),
+                          ),
+                        ),
+                        Text(
+                          '−${formatPrice(order.rewardDiscount)}',
+                          style: const TextStyle(color: AppColors.success),
+                        ),
+                      ],
+                    ),
+                  ),
                 const Divider(height: 24),
                 Row(
                   children: [

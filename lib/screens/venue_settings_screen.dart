@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../config/app_config.dart';
+import '../models/menu_category.dart';
 import '../models/venue_settings.dart';
 import '../services/app_services.dart';
 import '../theme/app_theme.dart';
 import '../config/palettes.dart';
+import '../utils/format.dart';
 import '../widgets/app_message.dart';
 import 'categories_screen.dart';
 
@@ -31,6 +33,18 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
   late String colorKey;
   late VenueType type;
 
+  // Razítková karta.
+  late bool loyaltyEnabled;
+  late String loyaltyCategoryId;
+  late int loyaltyGoal;
+  late final Stream<List<MenuCategory>> categoriesStream;
+
+  @override
+  void initState() {
+    super.initState();
+    categoriesStream = widget.services.products.categories.watchCategories();
+  }
+
   bool isLoaded = false;
   bool isSaving = false;
 
@@ -51,6 +65,9 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
     wifiPasswordController.text = settings.wifiPassword;
     colorKey = settings.colorKey;
     type = settings.type;
+    loyaltyEnabled = settings.loyaltyEnabled;
+    loyaltyCategoryId = settings.loyaltyCategoryId;
+    loyaltyGoal = settings.loyaltyGoal;
   }
 
   @override
@@ -67,6 +84,10 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
 
   Future<void> save() async {
     if (!formKey.currentState!.validate()) return;
+    if (loyaltyEnabled && loyaltyCategoryId.isEmpty) {
+      showAppMessage(context, 'Vyberte kategorii pro razítkovou kartu');
+      return;
+    }
 
     // Vezmeme současné nastavení a změníme jen to, co je na této obrazovce
     // (pořadí kategorií a otevřeno/zavřeno zůstanou, jak jsou).
@@ -80,6 +101,9 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
       openingHours: hoursController.text.trim(),
       wifiName: wifiNameController.text.trim(),
       wifiPassword: wifiPasswordController.text.trim(),
+      loyaltyEnabled: loyaltyEnabled,
+      loyaltyCategoryId: loyaltyCategoryId,
+      loyaltyGoal: loyaltyGoal,
     );
 
     setState(() => isSaving = true);
@@ -192,6 +216,9 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
               ),
               maxLength: AppConfig.maxWifiLength,
             ),
+            const SizedBox(height: 24),
+            buildSectionTitle('Razítková karta'),
+            buildLoyaltySettings(),
             const SizedBox(height: 24),
             // Kategorie mají vlastní obrazovku (změny se tam ukládají hned).
             Card(
@@ -390,6 +417,104 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
             ),
           ),
       ],
+    );
+  }
+
+  // Razítková karta: zapnout, vybrat kategorii a počet razítek.
+  Widget buildLoyaltySettings() {
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Zapnout razítkovou kartu'),
+              subtitle: Text(
+                'Za každý kus z vybrané kategorie dostane zákazník razítko. '
+                'Když kartu nasbírá, další kus má zdarma.',
+                style: TextStyle(color: context.colors.muted),
+              ),
+              value: loyaltyEnabled,
+              onChanged: (value) => setState(() => loyaltyEnabled = value),
+            ),
+            if (loyaltyEnabled) ...[
+              const SizedBox(height: 8),
+              Text('Razítka za kategorii',
+                  style: TextStyle(color: context.colors.muted)),
+              const SizedBox(height: 8),
+              StreamBuilder<List<MenuCategory>>(
+                stream: categoriesStream,
+                builder: (context, snapshot) {
+                  final categories = snapshot.data ?? [];
+                  return Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final category in categories)
+                        ChoiceChip(
+                          label: Text(category.name),
+                          selected: category.id == loyaltyCategoryId,
+                          onSelected: (_) => setState(
+                            () => loyaltyCategoryId = category.id,
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+              Text('Kolikátý kus je zdarma',
+                  style: TextStyle(color: context.colors.muted)),
+              const SizedBox(height: 8),
+              // Velké − a + kolem čísla (povoleno 3 až 20 razítek).
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton.filledTonal(
+                    icon: const Icon(Icons.remove),
+                    tooltip: 'Méně',
+                    onPressed: loyaltyGoal > AppConfig.minLoyaltyGoal
+                        ? () => setState(() => loyaltyGoal--)
+                        : null,
+                  ),
+                  SizedBox(
+                    width: 64,
+                    child: Text(
+                      '$loyaltyGoal',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: context.colors.dark,
+                      ),
+                    ),
+                  ),
+                  IconButton.filledTonal(
+                    icon: const Icon(Icons.add),
+                    tooltip: 'Více',
+                    onPressed: loyaltyGoal < AppConfig.maxLoyaltyGoal
+                        ? () => setState(() => loyaltyGoal++)
+                        : null,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Každý $loyaltyGoal. kus zdarma – zákazník nasbírá '
+                '${formatStampCount(loyaltyGoal - 1)} '
+                '(můžete nastavit ${AppConfig.minLoyaltyGoal}. až '
+                '${AppConfig.maxLoyaltyGoal}. kus). '
+                'Nezapomeňte nastavení uložit.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: context.colors.muted, fontSize: 13),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

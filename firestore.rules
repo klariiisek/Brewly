@@ -43,6 +43,18 @@ service cloud.firestore {
       return !exists(settingsPath) || get(settingsPath).data.get('isOpen', true) == true;
     }
 
+    // Kolikátý kus je zdarma (10 = každá 10. káva). (Volá se až po
+    // isLoyaltyEnabled(), takže nastavení určitě existuje.)
+    function loyaltyGoal() {
+      return get(/databases/$(database)/documents/settings/venue).data.get('loyaltyGoal', 10);
+    }
+
+    // Má podnik zapnutou razítkovou kartu?
+    function isLoyaltyEnabled() {
+      let settingsPath = /databases/$(database)/documents/settings/venue;
+      return exists(settingsPath) && get(settingsPath).data.get('loyaltyEnabled', false) == true;
+    }
+
     // ---------- Stoly ----------
     // Tajné kódy stolů vidí a mění jen obsluha (generuje je a tiskne QR kódy).
     match /tables/{tableId} {
@@ -106,7 +118,8 @@ service cloud.firestore {
       function isValidSettings() {
         let settings = request.resource.data;
         return settings.keys().hasOnly(['name', 'slogan', 'color', 'type', 'categoryOrder',
-            'isOpen', 'announcement', 'address', 'openingHours', 'wifiName', 'wifiPassword'])
+            'isOpen', 'announcement', 'address', 'openingHours', 'wifiName', 'wifiPassword',
+            'loyaltyEnabled', 'loyaltyCategoryId', 'loyaltyGoal'])
           && settings.name is string && settings.name.size() > 0 && settings.name.size() <= 40
           && settings.slogan is string && settings.slogan.size() <= 80
           && settings.color in ['kava', 'bordo', 'terakota', 'olivova', 'lesni', 'namornicka', 'levandulova', 'grafitova']
@@ -119,7 +132,13 @@ service cloud.firestore {
           && isShortText('address', 100)
           && isShortText('openingHours', 300)
           && isShortText('wifiName', 50)
-          && isShortText('wifiPassword', 50);
+          && isShortText('wifiPassword', 50)
+          // Razítková karta: zapnutá, kategorie a počet razítek (3–20).
+          && settings.get('loyaltyEnabled', false) is bool
+          && isShortText('loyaltyCategoryId', 100)
+          && settings.get('loyaltyGoal', 10) is int
+          && settings.get('loyaltyGoal', 10) >= 3
+          && settings.get('loyaltyGoal', 10) <= 20;
       }
 
       // Admin smí měnit vše (ve správném tvaru).
@@ -228,9 +247,30 @@ service cloud.firestore {
       // ve stavu "prijata", ke stolu 1–10, se správným kódem stolu (z QR kódu),
       // s číslem z počítadla, s časem serveru a jen když má podnik otevřeno.
       // Objednávka smí mít jen tato pole – nic navíc.
+      // Odměna z razítkové karty: buď v objednávce není vůbec, nebo má
+      // ID produktu a kladnou slevu – a podnik musí mít kartu zapnutou.
+      // Že má zákazník kartu opravdu plnou, pravidla nespočítají (musela by
+      // projít všechny jeho objednávky) – ověří to obsluha v aplikaci.
+      function isValidReward() {
+        let order = request.resource.data;
+        return (!('rewardProductId' in order) && !('rewardDiscount' in order)
+            && !('rewardStamps' in order))
+          || (order.rewardProductId is string
+            && order.rewardProductId.size() > 0
+            && order.rewardProductId.size() <= 100
+            && order.rewardDiscount is number
+            && order.rewardDiscount > 0
+            && order.rewardDiscount <= 10000
+            && isLoyaltyEnabled()
+            // Odměna stojí přesně tolik razítek, kolik je teď nastaveno:
+            // každá 10. káva zdarma = 9 razítek.
+            && order.rewardStamps == loyaltyGoal() - 1);
+      }
+
       allow create: if isSignedIn()
         && request.resource.data.keys().hasOnly(['number', 'items', 'totalPrice',
-            'tableNumber', 'tableCode', 'status', 'userId', 'customerName', 'createdAt'])
+            'tableNumber', 'tableCode', 'status', 'userId', 'customerName', 'createdAt',
+            'rewardProductId', 'rewardDiscount', 'rewardStamps'])
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'prijata'
         && request.resource.data.tableNumber is int
@@ -241,8 +281,11 @@ service cloud.firestore {
         && request.resource.data.items.size() > 0
         && request.resource.data.items.size() <= 50
         && request.resource.data.totalPrice is number
-        && request.resource.data.totalPrice > 0
+        // Za 0 Kč jen tehdy, když je jediná položka odměna zdarma.
+        && (request.resource.data.totalPrice > 0
+          || (request.resource.data.totalPrice == 0 && 'rewardProductId' in request.resource.data))
         && request.resource.data.totalPrice <= 100000
+        && isValidReward()
         && request.resource.data.customerName is string
         && request.resource.data.customerName.size() <= 100
         && request.resource.data.createdAt == request.time

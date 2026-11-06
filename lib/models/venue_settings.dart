@@ -35,6 +35,12 @@ class VenueSettings {
   final String wifiName;
   final String wifiPassword;
 
+  // Razítková karta: zapnutá?, za kterou kategorii jsou razítka
+  // a kolik razítek je potřeba na odměnu.
+  final bool loyaltyEnabled;
+  final String loyaltyCategoryId;
+  final int loyaltyGoal;
+
   // Výchozí nastavení (než ho admin poprvé uloží) – z konfigurace aplikace.
   static final defaults = VenueSettings(
     name: AppConfig.defaultVenueName,
@@ -54,7 +60,13 @@ class VenueSettings {
     this.openingHours = '',
     this.wifiName = '',
     this.wifiPassword = '',
+    this.loyaltyEnabled = false,
+    this.loyaltyCategoryId = '',
+    this.loyaltyGoal = AppConfig.defaultLoyaltyGoal,
   });
+
+  // Je razítková karta zapnutá a má vybranou kategorii?
+  bool get hasLoyalty => loyaltyEnabled && loyaltyCategoryId.isNotEmpty;
 
   // Vyplnil admin nějaké informace pro zákazníky?
   bool get hasInfo =>
@@ -81,6 +93,9 @@ class VenueSettings {
       openingHours: text('openingHours', ''),
       wifiName: text('wifiName', ''),
       wifiPassword: text('wifiPassword', ''),
+      loyaltyEnabled: data['loyaltyEnabled'] as bool? ?? false,
+      loyaltyCategoryId: text('loyaltyCategoryId', ''),
+      loyaltyGoal: data['loyaltyGoal'] as int? ?? AppConfig.defaultLoyaltyGoal,
     );
   }
 
@@ -96,6 +111,9 @@ class VenueSettings {
     String? openingHours,
     String? wifiName,
     String? wifiPassword,
+    bool? loyaltyEnabled,
+    String? loyaltyCategoryId,
+    int? loyaltyGoal,
   }) {
     return VenueSettings(
       name: name ?? this.name,
@@ -108,6 +126,9 @@ class VenueSettings {
       openingHours: openingHours ?? this.openingHours,
       wifiName: wifiName ?? this.wifiName,
       wifiPassword: wifiPassword ?? this.wifiPassword,
+      loyaltyEnabled: loyaltyEnabled ?? this.loyaltyEnabled,
+      loyaltyCategoryId: loyaltyCategoryId ?? this.loyaltyCategoryId,
+      loyaltyGoal: loyaltyGoal ?? this.loyaltyGoal,
     );
   }
   Map<String, dynamic> toMap() {
@@ -122,6 +143,9 @@ class VenueSettings {
       'openingHours': openingHours,
       'wifiName': wifiName,
       'wifiPassword': wifiPassword,
+      'loyaltyEnabled': loyaltyEnabled,
+      'loyaltyCategoryId': loyaltyCategoryId,
+      'loyaltyGoal': loyaltyGoal,
     };
   }
 }

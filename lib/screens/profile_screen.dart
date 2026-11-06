@@ -2,21 +2,34 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../config/app_config.dart';
+import '../models/loyalty.dart';
+import '../models/menu_category.dart';
+import '../models/order.dart';
 import '../models/user_profile.dart';
+import '../models/venue_settings.dart';
 import '../services/app_services.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
 import '../widgets/change_password_dialog.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/loyalty_card.dart';
 import '../widgets/user_avatar.dart';
 import 'login_screen.dart';
 
-// Záložka Profil: avatar, jméno, e-mail, změna hesla a odhlášení.
+// Záložka Profil: avatar, jméno, e-mail, razítková karta, změna hesla
+// a odhlášení.
 class ProfileScreen extends StatefulWidget {
   final AppServices services;
 
-  const ProfileScreen({super.key, required this.services});
+  // Objednávky zákazníka – z nich se počítají razítka na kartě.
+  final List<Order> myOrders;
+
+  const ProfileScreen({
+    super.key,
+    required this.services,
+    this.myOrders = const [],
+  });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -24,6 +37,9 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late final Stream<User?> userStream;
+
+  // Kategorie menu – kvůli názvu kategorie razítkové karty.
+  late final Stream<List<MenuCategory>> categoriesStream;
 
   // Proud profilu – vytvoří se znovu, jen když se přihlásí někdo jiný.
   String? profileUserId;
@@ -35,6 +51,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     userStream = auth.userChanges();
+    categoriesStream = widget.services.products.categories.watchCategories();
   }
 
   Stream<UserProfile> profileFor(User user) {
@@ -310,6 +327,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         const SizedBox(height: 16),
+        buildLoyaltyCard(),
         Card(
           margin: EdgeInsets.zero,
           child: Column(
@@ -348,6 +366,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onPressed: signOut,
         ),
       ],
+    );
+  }
+
+  // Razítková karta – jen když ji admin zapnul.
+  Widget buildLoyaltyCard() {
+    final venue = VenueScope.of(context);
+    if (!venue.hasLoyalty) return const SizedBox.shrink();
+
+    final status = loyaltyStatus(
+      widget.myOrders,
+      categoryId: venue.loyaltyCategoryId,
+      goal: venue.loyaltyGoal,
+    );
+    return StreamBuilder<List<MenuCategory>>(
+      stream: categoriesStream,
+      builder: (context, snapshot) {
+        var categoryName = '';
+        for (final category in snapshot.data ?? <MenuCategory>[]) {
+          if (category.id == venue.loyaltyCategoryId) {
+            categoryName = category.name;
+          }
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: LoyaltyCard(status: status, categoryName: categoryName),
+        );
+      },
     );
   }
 }

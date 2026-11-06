@@ -30,6 +30,13 @@ String formatShiftCount(int count) {
   return '$count směn';
 }
 
+// Správný český tvar: 1 razítko, 2–4 razítka, 0 nebo 5 a víc razítek.
+String formatStampCount(int count) {
+  if (count == 1) return '1 razítko';
+  if (count >= 2 && count <= 4) return '$count razítka';
+  return '$count razítek';
+}
+
 // Je datum dnes?
 bool isToday(DateTime time) {
   final now = DateTime.now();

@@ -45,6 +45,10 @@ class OrderService {
     required String tableCode,
     required String userId,
     required String customerName,
+    // Odměna z razítkové karty (null = bez odměny).
+    String? rewardProductId,
+    double rewardDiscount = 0,
+    int rewardStamps = 0,
   }) async {
     final newOrder = _orders.doc();
 
@@ -69,6 +73,11 @@ class OrderService {
         'userId': userId,
         'customerName': customerName,
         'createdAt': FieldValue.serverTimestamp(),
+        if (rewardProductId != null) ...{
+          'rewardProductId': rewardProductId,
+          'rewardDiscount': rewardDiscount,
+          'rewardStamps': rewardStamps,
+        },
       });
     });
 
@@ -129,6 +138,13 @@ class OrderService {
       // vyžadovala zvláštní index.
       return _sortByTime(orders);
     });
+  }
+
+  // Jednorázově načte všechny objednávky zákazníka – obsluha podle nich
+  // ověří, že má zákazník na odměnu opravdu plnou razítkovou kartu.
+  Future<List<Order>> loadCustomerOrders(String userId) async {
+    final snapshot = await _orders.where('userId', isEqualTo: userId).get();
+    return _ordersFrom(snapshot);
   }
 
   // Živý proud jedné objednávky (pro detail). Když neexistuje, pošle null.

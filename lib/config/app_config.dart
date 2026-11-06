@@ -58,6 +58,14 @@ class AppConfig {
   static const int maxCategoryNameLength = 40; // [pravidla]
   static const int maxUserNameLength = 40;
 
+  // ---------- Razítková karta ----------
+
+  // Kolikátý kus je zdarma, např. 10 = každá 10. káva zdarma
+  // (zákazník nasbírá 9 razítek). Admin může změnit v nastavení.
+  static const int defaultLoyaltyGoal = 10;
+  static const int minLoyaltyGoal = 3; // [pravidla]
+  static const int maxLoyaltyGoal = 20; // [pravidla]
+
   // ---------- Docházka ----------
 
   // Po kolika hodinách v práci upozorníme admina na možná zapomenutý odchod.

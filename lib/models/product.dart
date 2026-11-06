@@ -59,6 +59,8 @@ class Product {
     return {
       'name': name,
       'price': price,
+      // Podle kategorie se počítají razítka na razítkové kartě.
+      'categoryId': categoryId,
       'category': category,
       'description': description,
     };

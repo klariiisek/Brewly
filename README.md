@@ -57,7 +57,8 @@ Aplikace rozlišuje čtyři typy uživatelů. Co kdo smí, nehlídá jen aplikac
 - **upozornění „Vaše objednávka je připravená! 🎉“**, ať je zákazník v aplikaci kdekoli,
 - historie objednávek s detailem,
 - **profil**: avatar (ikonka a barva, nebo fotka z Google), změna jména a hesla,
-- tlačítka **Přivolat obsluhu** a **Chci zaplatit**.
+- tlačítka **Přivolat obsluhu** a **Chci zaplatit**,
+- **razítková karta** v profilu (např. **každá 10. káva zdarma**): za každý kus z vybrané kategorie jedno razítko, s plnou kartou se v košíku objeví **Uplatnit odměnu** a nejdražší kus z kategorie je zdarma.
 
 ### 👩‍🍳 Obsluha
 - živý přehled v záložkách **Požadavky**, **Aktivní** a **Dokončené**,
@@ -77,6 +78,7 @@ Umí všechno co obsluha, a navíc:
   - **barva aplikace** z 8 palet: celá aplikace se přebarví živě, i zákazníkům,
   - **oznámení v menu** (např. „Dnes −20 % na dezerty“),
   - informace pro zákazníky: adresa, otevírací doba, Wi-Fi,
+  - **razítková karta**: zapnutí, kategorie, za kterou jsou razítka, a kolikátý kus je zdarma (3.–20.),
 - **docházka zaměstnanců**: kdo je právě v práci, odpracované hodiny každého za měsíc a **ukončení zapomenuté směny** (po 12 hodinách aplikace upozorní na možná zapomenutý odchod).
 
 ### 📸 Ukázky
@@ -301,7 +303,7 @@ Transakce zaručí, že když objednají dva zákazníci ve stejnou chvíli, jed
 |---|---|---|
 | `id` | text (ID dokumentu) | jedinečné ID objednávky |
 | `number` | číslo | číslo pro lidi („dvanáctka je hotová“), každý den od 1 |
-| `items` | seznam | položky objednávky (název, cena, kategorie, množství) |
+| `items` | seznam | položky objednávky (ID produktu, název, cena, kategorie, množství) |
 | `totalPrice` | číslo | celková cena |
 | `tableNumber` | číslo | **odkaz na stůl** |
 | `tableCode` | text | tajný kód stolu z QR kódu |
@@ -309,6 +311,16 @@ Transakce zaručí, že když objednají dva zákazníci ve stejnou chvíli, jed
 | `userId` | text | **odkaz na uživatele** |
 | `customerName` | text | jméno zákazníka pro obsluhu |
 | `createdAt` | čas | čas serveru |
+| `rewardProductId` | text | jen u odměny z razítkové karty: který produkt byl zdarma |
+| `rewardDiscount` | číslo | kolik se za odměnu odečetlo (cena jednoho kusu) |
+| `rewardStamps` | číslo | kolik razítek odměna stála **v době objednání** |
+
+#### Jak se počítají razítka
+Razítka se **nikam neukládají**, aplikace je spočítá z objednávek zákazníka (jako `SUM` v SQL). Prochází je podle času, jako by obsluha razítkovala skutečnou kartičku:
+- **dokončená** objednávka přidá razítko za každý kus z kategorie karty (kus zdarma razítko nedává),
+- objednávka s odměnou odečte `rewardStamps`.
+
+Stav „dokončena“ smí nastavit jen obsluha, takže si zákazník razítka sám nepřidá. Počet razítek na odměnu se ukládá do každé objednávky s odměnou: když admin později změní „každou 10. kávu“ třeba na „každou 8.“, staré odměny se nepřepočítají. Je to stejný princip jako u ceny, objednávka si pamatuje údaje platné v době nákupu.
 
 #### `requests`: požadavky na obsluhu
 | Pole | Typ | Popis |
@@ -357,7 +369,7 @@ V MySQL by objednávky dostávaly čísla 1, 2, 3… samy díky **AUTO_INCREMENT
 Transakce zaručí, že dva zákazníci objednávající ve stejnou chvíli nedostanou stejné číslo. Pravidla navíc hlídají, že číslo objednávky opravdu pochází z počítadla a že den se bere z hodin serveru.
 
 #### `settings/venue`: nastavení podniku
-Jediný dokument s tím, co **mění admin přímo v aplikaci**: `name`, `slogan`, `color`, `type`, `isOpen`, `announcement`, `address`, `openingHours`, `wifiName`, `wifiPassword`. Proč to není v konfiguračním souboru, vysvětluje kapitola [Konfigurace vs. databáze](#️-konfigurace-vs-databáze).
+Jediný dokument s tím, co **mění admin přímo v aplikaci**: `name`, `slogan`, `color`, `type`, `isOpen`, `announcement`, `address`, `openingHours`, `wifiName`, `wifiPassword` a razítková karta `loyaltyEnabled`, `loyaltyCategoryId`, `loyaltyGoal` (kolikátý kus je zdarma). Proč to není v konfiguračním souboru, vysvětluje kapitola [Konfigurace vs. databáze](#️-konfigurace-vs-databáze).
 
 ### Vztahy
 - **uživatel 1 : N objednávky** (`orders.userId` → `users.uid`)
@@ -389,6 +401,7 @@ Pravidla v souboru [`firestore.rules`](firestore.rules) běží na serveru Fireb
 - **menu a nastavení** mění jen admin. Obsluha smí přepnout jen Otevřeno / Zavřeno,
 - **čísla objednávek** se nulují jen v opravdu novém dni podle hodin serveru,
 - **docházka:** čas příchodu i odchodu je **čas serveru**, ne telefonu. Hotová směna vznikne jen spolu s odchodem a se stejným časem příchodu, jaký byl zapsaný. Směny už pak nejde změnit ani smazat. Admin smí zadat čas zapomenutého odchodu, ale jen po příchodu a ne v budoucnosti,
+- **razítková karta:** odměna musí stát přesně tolik razítek, kolik je právě nastaveno, a jde jen při zapnuté kartě. Objednávka za 0 Kč projde jen s odměnou. Jestli měl zákazník kartu opravdu plnou, pravidla spočítat neumí (musela by projít všechny jeho objednávky), proto to **ověřuje obsluha**: u objednávky vidí „karta ověřena ✓“, nebo červené upozornění,
 - všechna data se kontrolují i **tvarem** (typy, délky textů, povolené hodnoty).
 
 ### Kontrola ceny objednávky
@@ -445,20 +458,20 @@ firebase deploy --only hosting
 flutter test
 ```
 
-Projekt má **60 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
+Projekt má **66 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
 - objednávku od menu přes košík až po stav u obsluhy,
 - role (zákazník nevidí obsluhu, obsluha nevidí správu menu),
 - čtení CSV souboru a hlášení chybných řádků,
 - denní nulování čísel objednávek,
 - zavřený podnik (nejde objednat),
 - převod starých dat kategorií,
-- docházku (příchod, odchod, ukončení zapomenuté směny, noční směna přes půlnoc).
+- docházku (příchod, odchod, ukončení zapomenuté směny, noční směna přes půlnoc),
+- razítkovou kartu (počítání razítek, odměna v košíku, změna počtu razítek, odhalení neoprávněné odměny).
 
 ---
 
 ## 🗺️ Plánované funkce
 
-- 🎟️ **razítková karta**: každá 10. káva zdarma,
 - 📊 **statistiky pro admina**: tržby, počet objednávek, nejprodávanější produkty.
 
 ---
