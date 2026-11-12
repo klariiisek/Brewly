@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import '../config/app_config.dart';
@@ -87,16 +89,11 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
     super.dispose();
   }
 
-  Future<void> save() async {
-    if (!formKey.currentState!.validate()) return;
-    if (loyaltyEnabled && loyaltyCategoryId.isEmpty) {
-      showAppMessage(context, 'Vyberte kategorii pro razítkovou kartu');
-      return;
-    }
-
-    // Vezmeme současné nastavení a změníme jen to, co je na této obrazovce
-    // (pořadí kategorií a otevřeno/zavřeno zůstanou, jak jsou).
-    final settings = VenueScope.of(context).copyWith(
+  // Nastavení tak, jak je právě vyplněné na obrazovce. Vezmeme současné
+  // nastavení a změníme jen to, co je na této obrazovce (otevřeno/zavřeno
+  // zůstane, jak je).
+  VenueSettings editedSettings() {
+    return VenueScope.of(context).copyWith(
       name: nameController.text.trim(),
       slogan: sloganController.text.trim(),
       colorKey: colorKey,
@@ -111,150 +108,209 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
       loyaltyGoal: loyaltyGoal,
       reservationHours: reservationHours,
     );
+  }
 
+  // Liší se vyplněné nastavení od uloženého? (Porovnáme je jako text.)
+  bool get hasChanges =>
+      jsonEncode(editedSettings().toMap()) !=
+      jsonEncode(VenueScope.of(context).toMap());
+
+  // Uloží nastavení. Vrátí true, když se to povedlo.
+  Future<bool> save() async {
+    if (!formKey.currentState!.validate()) return false;
+    if (loyaltyEnabled && loyaltyCategoryId.isEmpty) {
+      showAppMessage(context, 'Vyberte kategorii pro razítkovou kartu');
+      return false;
+    }
+
+    final settings = editedSettings();
     setState(() => isSaving = true);
     try {
       await widget.services.settings.saveSettings(settings);
-      if (!mounted) return;
+      if (!mounted) return false;
       showAppMessage(context, 'Nastavení uloženo');
+      return true;
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) return false;
       showAppMessage(context, 'Nastavení se nepodařilo uložit');
+      return false;
     } finally {
       if (mounted) setState(() => isSaving = false);
     }
   }
 
+  // Odchod z obrazovky (šipka zpět, gesto, tlačítko prohlížeče).
+  // S neuloženými změnami se nejdřív zeptáme – jinak by se tiše zahodily.
+  Future<void> leave() async {
+    if (!hasChanges) {
+      Navigator.pop(context);
+      return;
+    }
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Máte neuložené změny'),
+        content: const Text('Chcete změny v nastavení podniku uložit?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'zustat'),
+            child: const Text('Zůstat'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'zahodit'),
+            child: const Text('Zahodit'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, 'ulozit'),
+            child: const Text('Uložit'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (choice == 'zahodit' || (choice == 'ulozit' && await save())) {
+      if (mounted) Navigator.pop(context);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Nastavení podniku')),
-      body: Form(
-        key: formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            buildPreview(),
-            const SizedBox(height: 24),
-            buildSectionTitle('Název a slogan'),
-            TextFormField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Název podniku'),
-              maxLength: AppConfig.maxVenueNameLength,
-              textCapitalization: TextCapitalization.sentences,
-              // Při psaní se hned překreslí náhled.
-              onChanged: (_) => setState(() {}),
-              validator: (value) => value == null || value.trim().isEmpty
-                  ? 'Zadejte název podniku'
-                  : null,
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: sloganController,
-              decoration: const InputDecoration(
-                labelText: 'Slogan',
-                hintText: 'Např. Vítejte v naší kavárně',
+    // PopScope zachytí odchod z obrazovky, aby šlo upozornit na
+    // neuložené změny (o odchodu rozhoduje leave()).
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) leave();
+      },
+      child: Scaffold(
+        appBar: AppBar(title: const Text('Nastavení podniku')),
+        body: Form(
+          key: formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              buildPreview(),
+              const SizedBox(height: 24),
+              buildSectionTitle('Název a slogan'),
+              TextFormField(
+                controller: nameController,
+                decoration: const InputDecoration(labelText: 'Název podniku'),
+                maxLength: AppConfig.maxVenueNameLength,
+                textCapitalization: TextCapitalization.sentences,
+                // Při psaní se hned překreslí náhled.
+                onChanged: (_) => setState(() {}),
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Zadejte název podniku'
+                    : null,
               ),
-              maxLength: AppConfig.maxSloganLength,
-              textCapitalization: TextCapitalization.sentences,
-              onChanged: (_) => setState(() {}),
-            ),
-            const SizedBox(height: 16),
-            buildSectionTitle('Typ podniku'),
-            buildTypePicker(),
-            const SizedBox(height: 24),
-            buildSectionTitle('Barva aplikace'),
-            buildPalettePicker(),
-            const SizedBox(height: 24),
-            buildSectionTitle('Oznámení v menu'),
-            TextFormField(
-              controller: announcementController,
-              decoration: const InputDecoration(
-                labelText: 'Oznámení (nepovinné)',
-                hintText: 'Např. Dnes −20 % na všechny dezerty',
-                prefixIcon: Icon(Icons.campaign_outlined),
-              ),
-              maxLength: AppConfig.maxAnnouncementLength,
-              textCapitalization: TextCapitalization.sentences,
-            ),
-            Text(
-              'Zobrazí se zákazníkům nahoře v menu. '
-              'Když pole vymažete, oznámení zmizí.',
-              style: TextStyle(color: context.colors.muted),
-            ),
-            const SizedBox(height: 24),
-            buildSectionTitle('Informace pro zákazníky'),
-            TextFormField(
-              controller: addressController,
-              decoration: const InputDecoration(
-                labelText: 'Adresa',
-                prefixIcon: Icon(Icons.place_outlined),
-              ),
-              maxLength: AppConfig.maxAddressLength,
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: hoursController,
-              decoration: const InputDecoration(
-                labelText: 'Otevírací doba',
-                hintText: 'Po–Pá 8:00–20:00\nSo–Ne 9:00–18:00',
-                prefixIcon: Icon(Icons.schedule),
-              ),
-              minLines: 2,
-              maxLines: 5,
-              maxLength: AppConfig.maxOpeningHoursLength,
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: wifiNameController,
-              decoration: const InputDecoration(
-                labelText: 'Název Wi-Fi',
-                prefixIcon: Icon(Icons.wifi),
-              ),
-              maxLength: AppConfig.maxWifiLength,
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: wifiPasswordController,
-              decoration: const InputDecoration(
-                labelText: 'Heslo k Wi-Fi',
-                prefixIcon: Icon(Icons.key_outlined),
-              ),
-              maxLength: AppConfig.maxWifiLength,
-            ),
-            const SizedBox(height: 24),
-            buildSectionTitle('Časy rezervací'),
-            buildReservationHours(),
-            const SizedBox(height: 24),
-            buildSectionTitle('Razítková karta'),
-            buildLoyaltySettings(),
-            const SizedBox(height: 24),
-            // Kategorie mají vlastní obrazovku (změny se tam ukládají hned).
-            Card(
-              margin: EdgeInsets.zero,
-              child: ListTile(
-                leading: Icon(
-                  Icons.category_outlined,
-                  color: context.colors.primary,
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: sloganController,
+                decoration: const InputDecoration(
+                  labelText: 'Slogan',
+                  hintText: 'Např. Vítejte v naší kavárně',
                 ),
-                title: const Text('Kategorie a jejich pořadí'),
-                subtitle: const Text('Přidat, přejmenovat, seřadit'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        CategoriesScreen(services: widget.services),
+                maxLength: AppConfig.maxSloganLength,
+                textCapitalization: TextCapitalization.sentences,
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 16),
+              buildSectionTitle('Typ podniku'),
+              buildTypePicker(),
+              const SizedBox(height: 24),
+              buildSectionTitle('Barva aplikace'),
+              buildPalettePicker(),
+              const SizedBox(height: 24),
+              buildSectionTitle('Oznámení v menu'),
+              TextFormField(
+                controller: announcementController,
+                decoration: const InputDecoration(
+                  labelText: 'Oznámení (nepovinné)',
+                  hintText: 'Např. Dnes −20 % na všechny dezerty',
+                  prefixIcon: Icon(Icons.campaign_outlined),
+                ),
+                maxLength: AppConfig.maxAnnouncementLength,
+                textCapitalization: TextCapitalization.sentences,
+              ),
+              Text(
+                'Zobrazí se zákazníkům nahoře v menu. '
+                'Když pole vymažete, oznámení zmizí.',
+                style: TextStyle(color: context.colors.muted),
+              ),
+              const SizedBox(height: 24),
+              buildSectionTitle('Informace pro zákazníky'),
+              TextFormField(
+                controller: addressController,
+                decoration: const InputDecoration(
+                  labelText: 'Adresa',
+                  prefixIcon: Icon(Icons.place_outlined),
+                ),
+                maxLength: AppConfig.maxAddressLength,
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: hoursController,
+                decoration: const InputDecoration(
+                  labelText: 'Otevírací doba',
+                  hintText: 'Po–Pá 8:00–20:00\nSo–Ne 9:00–18:00',
+                  prefixIcon: Icon(Icons.schedule),
+                ),
+                minLines: 2,
+                maxLines: 5,
+                maxLength: AppConfig.maxOpeningHoursLength,
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: wifiNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Název Wi-Fi',
+                  prefixIcon: Icon(Icons.wifi),
+                ),
+                maxLength: AppConfig.maxWifiLength,
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: wifiPasswordController,
+                decoration: const InputDecoration(
+                  labelText: 'Heslo k Wi-Fi',
+                  prefixIcon: Icon(Icons.key_outlined),
+                ),
+                maxLength: AppConfig.maxWifiLength,
+              ),
+              const SizedBox(height: 24),
+              buildSectionTitle('Časy rezervací'),
+              buildReservationHours(),
+              const SizedBox(height: 24),
+              buildSectionTitle('Razítková karta'),
+              buildLoyaltySettings(),
+              const SizedBox(height: 24),
+              // Kategorie mají vlastní obrazovku (změny se tam ukládají hned).
+              Card(
+                margin: EdgeInsets.zero,
+                child: ListTile(
+                  leading: Icon(
+                    Icons.category_outlined,
+                    color: context.colors.primary,
+                  ),
+                  title: const Text('Kategorie a jejich pořadí'),
+                  subtitle: const Text('Přidat, přejmenovat, seřadit'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          CategoriesScreen(services: widget.services),
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: isSaving ? null : save,
-              child: Text(isSaving ? 'Ukládám…' : 'Uložit nastavení'),
-            ),
-          ],
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: isSaving ? null : save,
+                child: Text(isSaving ? 'Ukládám…' : 'Uložit nastavení'),
+              ),
+            ],
+          ),
         ),
       ),
     );

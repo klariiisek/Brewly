@@ -39,7 +39,17 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
     );
   }
 
-  void openNewReservation() {
+  // Nová rezervace – nejvýš 3 nadcházející najednou, aby si jeden
+  // zákazník nezabral půl podniku nebo databázi nezaplnil spamem.
+  void openNewReservation(int upcomingCount) {
+    if (upcomingCount >= AppConfig.maxActiveReservations) {
+      showAppMessage(
+        context,
+        'Máte už ${AppConfig.maxActiveReservations} rezervace – '
+        'nejdřív některou zrušte',
+      );
+      return;
+    }
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -119,7 +129,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.add),
                       label: const Text('Nová rezervace'),
-                      onPressed: openNewReservation,
+                      onPressed: () => openNewReservation(upcoming.length),
                     ),
                   ),
                   const SizedBox(height: 20),

@@ -90,6 +90,10 @@ class AppConfig {
   static const int reservationMinAdvanceMinutes = 30;
 
   static const int maxReservationPeople = 12; // [pravidla]
+
+  // Kolik nadcházejících rezervací smí mít jeden zákazník najednou
+  // (ochrana proti spamu – hlídá jen aplikace, pravidla počítat neumí).
+  static const int maxActiveReservations = 3;
   static const int maxReservationNoteLength = 200; // [pravidla]
 
   // ---------- Docházka ----------

@@ -59,7 +59,7 @@ Aplikace rozlišuje čtyři typy uživatelů. Co kdo smí, nehlídá jen aplikac
 - historie objednávek s detailem,
 - **profil**: avatar (ikonka a barva, nebo fotka z Google), změna jména a hesla, **světlý / tmavý vzhled** (nebo podle systému, volba se uloží k účtu),
 - tlačítka **Přivolat obsluhu** a **Chci zaplatit**,
-- **rezervace stolu** z úvodní obrazovky: den, čas a počet osob (plus poznámka). Nabízí se jen dny a časy, které podnik nastavil, Rezervace čeká na potvrzení obsluhou, stav se mění živě a zákazník ji může zrušit,
+- **rezervace stolu** z úvodní obrazovky: den, čas a počet osob (plus poznámka). Nabízí se jen dny a časy, které podnik nastavil, Rezervace čeká na potvrzení obsluhou, stav se mění živě a zákazník ji může zrušit. Najednou smí mít nejvýš 3 nadcházející rezervace (ochrana proti spamu),
 - **razítková karta** v profilu (např. **každá 10. káva zdarma**): za každý kus z vybrané kategorie jedno razítko, s plnou kartou se v košíku objeví **Uplatnit odměnu** a nejdražší kus z kategorie je zdarma.
 
 ### 👩‍🍳 Obsluha
@@ -95,6 +95,10 @@ Umí všechno co obsluha, a navíc:
 
 ![Úvod pro admina a obsluhu](docs/screenshots/uvod-admin-a-obsluha.png)
 
+**Červená čísla na dlaždicích** ukazují, co čeká na vyřízení: nové objednávky a požadavky zákazníků, nepotvrzené rezervace a u admina možná zapomenuté odchody.
+
+<img src="docs/screenshots/cisla-na-dlazdicich.png" alt="Červená čísla na dlaždicích" width="600">
+
 **Tmavý režim.** Každý si v profilu (obsluha a admin tlačítkem s měsícem na úvodu) vybere světlý nebo tmavý vzhled, případně „Systém“ podle nastavení zařízení. Tmavé varianty všech palet aplikace dopočítá sama.
 
 ![Tmavý režim](docs/screenshots/tmavy-rezim.png)
@@ -102,6 +106,18 @@ Umí všechno co obsluha, a navíc:
 **Oblíbené produkty.** Zákazník si srdíčkem označí, co si dává nejčastěji. Hned za „Vše“ se objeví štítek Oblíbené, který ukáže jen tyto produkty. Oblíbené se ukládají k účtu, takže je zákazník uvidí i na jiném zařízení.
 
 ![Oblíbené produkty v menu](docs/screenshots/oblibene.png)
+
+**Rezervace stolu.** Zákazník vybere den, čas a počet osob. Nabízí se jen dny a časy, které admin nastavil v Nastavení podniku. Obsluha vidí čekající žádosti nahoře a při potvrzení může rovnou přidělit stůl. Stůl, který má v tu dobu jiná rezervace, nejde vybrat.
+
+![Nová rezervace a potvrzení obsluhou](docs/screenshots/rezervace.png)
+
+**Časy rezervací.** Každý podnik má jinou otevírací dobu, proto admin v Nastavení podniku určí pro každý den v týdnu první a poslední čas rezervace, nebo den vypne. Zákazníkovi se pak nabízí jen tyto dny a časy (na snímku vpravo chybí neděle). Když admin odchází s neuloženými změnami, aplikace se zeptá, jestli je uložit.
+
+![Časy rezervací v nastavení a nabídka pro zákazníka](docs/screenshots/casy-rezervaci.png)
+
+**Statistiky.** Admin vidí tržbu, počet objednávek a průměrnou útratu se srovnáním s předchozím obdobím, graf tržby (klepnutím na sloupec se ukáže detail), nejprodávanější produkty a tržbu podle kategorií.
+
+<img src="docs/screenshots/statistiky.png" alt="Statistiky pro admina" width="600">
 
 **Zaměstnanci.** Admin přidá nového zaměstnance do obsluhy jedním klepnutím. Zaměstnanec se zaregistruje jako zákazník a admin ho tu vyhledá. E-maily jsou na snímku rozmazané.
 
@@ -518,7 +534,7 @@ firebase deploy --only hosting
 flutter test
 ```
 
-Projekt má **86 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`, `reservation_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
+Projekt má **88 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`, `reservation_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
 - objednávku od menu přes košík až po stav u obsluhy,
 - role (zákazník nevidí obsluhu, obsluha nevidí správu menu),
 - čtení CSV souboru a hlášení chybných řádků,

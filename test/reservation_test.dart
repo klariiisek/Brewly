@@ -344,4 +344,79 @@ void main() {
     );
     expect(table3.onSelected, isNotNull);
   });
+
+  testWidgets('Zákazník nemůže mít víc než 3 nadcházející rezervace', (
+    WidgetTester tester,
+  ) async {
+    useTallScreen(tester);
+    final db = FakeFirebaseFirestore();
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    for (final hour in [10, 12, 14]) {
+      await db.collection('reservations').add({
+        'userId': testUser.uid,
+        'customerName': 'Klára',
+        'time': Timestamp.fromDate(
+          DateTime(tomorrow.year, tomorrow.month, tomorrow.day, hour),
+        ),
+        'people': 2,
+        'note': '',
+        'status': 'ceka',
+        'tableNumber': 0,
+      });
+    }
+
+    await pumpApp(tester, await buildTestApp(db: db));
+    await scrollAndTap(tester, find.text('Rezervovat stůl'));
+    await tester.tap(find.text('Nová rezervace'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Máte už 3 rezervace – nejdřív některou zrušte'),
+      findsOneWidget,
+    );
+    expect(find.text('Vyberte čas'), findsNothing); // formulář se neotevřel
+  });
+
+  testWidgets('Odchod z nastavení s neuloženými změnami se nejdřív zeptá',
+      (WidgetTester tester) async {
+    useTallScreen(tester);
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
+    await pumpApp(tester, await buildTestApp(db: db));
+
+    // Bez změn se odejde hned, bez otázky.
+    await scrollAndTap(tester, find.text('Podnik'));
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Máte neuložené změny'), findsNothing);
+    expect(find.text('Nastavení podniku'), findsNothing);
+
+    // Vypnout neděli a odejít → otázka.
+    await scrollAndTap(tester, find.text('Podnik'));
+    final sundaySwitch = find.descendant(
+      of: find.ancestor(of: find.text('Ne'), matching: find.byType(Row)).first,
+      matching: find.byType(Switch),
+    );
+    await tester.ensureVisible(sundaySwitch);
+    await tester.tap(sundaySwitch);
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('Máte neuložené změny'), findsOneWidget);
+
+    // Zůstat → nic se neuloží a obrazovka zůstane otevřená.
+    await tester.tap(find.text('Zůstat'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nastavení podniku'), findsOneWidget);
+    expect((await db.collection('settings').doc('venue').get()).exists, false);
+
+    // Uložit → uloží se a obrazovka se zavře.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Uložit'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nastavení podniku'), findsNothing);
+    final settings = await db.collection('settings').doc('venue').get();
+    expect((settings.data()!['reservationHours'] as List).last, '');
+  });
 }
