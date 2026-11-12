@@ -1,8 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import '../config/app_config.dart';
 import '../models/cart.dart';
 import '../models/order.dart';
+import '../models/reservation.dart';
+import '../models/service_request.dart';
 import '../models/shift.dart';
 import '../models/user_role.dart';
 import '../models/venue_settings.dart';
@@ -11,11 +14,13 @@ import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../widgets/app_message.dart';
+import '../widgets/upcoming_reservations_banner.dart';
 import 'admin_menu_screen.dart';
 import 'attendance_overview_screen.dart';
 import 'attendance_screen.dart';
 import 'employees_screen.dart';
 import 'main_screen.dart';
+import 'staff_reservations_screen.dart';
 import 'staff_screen.dart';
 import 'staff_tables_screen.dart';
 import 'statistics_screen.dart';
@@ -32,6 +37,7 @@ class ToolColors {
   static const venue = Color(0xFF5C6BC0); // modrá
   static const tables = Color(0xFFAB5CB8); // fialová
   static const employees = Color(0xFFD9667A); // růžová
+  static const reservations = Color(0xFFE0A030); // žlutá
 }
 
 // Úvodní obrazovka pro obsluhu a admina: místo menu pro zákazníky
@@ -61,6 +67,13 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
   // Je zaměstnanec v práci? (jen obsluha – admin docházku nemá)
   late final Stream<ActiveShift?> shiftStream;
 
+  // Pro červená čísla na dlaždicích (co čeká na vyřízení):
+  // nevyřízené požadavky, rezervace a kdo je v práci (admin – zapomenuté
+  // odchody).
+  late final Stream<List<ServiceRequest>> requestsStream;
+  late final Stream<List<Reservation>> reservationsStream;
+  late final Stream<List<ActiveShift>> activeShiftsStream;
+
   bool get isAdmin => widget.role.isAdmin;
 
   @override
@@ -68,6 +81,13 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     super.initState();
     ordersStream = widget.services.orders.watchStaffOrders();
     shiftStream = widget.services.attendance.watchActiveShift(widget.user.uid);
+    requestsStream = widget.services.requests.watchPendingRequests();
+    reservationsStream =
+        widget.services.reservations.watchUpcomingReservations();
+    // Docházku všech vidí jen admin; obsluze stačí prázdný seznam.
+    activeShiftsStream = isAdmin
+        ? widget.services.attendance.watchActiveShifts()
+        : Stream.value(const []);
   }
 
   void open(Widget screen) {
@@ -120,14 +140,24 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
               buildHeader(),
               const SizedBox(height: 16),
               buildOpenSwitch(),
+              UpcomingReservationsBanner(
+                reservationService: widget.services.reservations,
+                margin: const EdgeInsets.only(top: 12),
+              ),
               const SizedBox(height: 12),
               StreamBuilder<List<Order>>(
                 stream: ordersStream,
-                builder: (context, snapshot) =>
-                    buildNumbers(snapshot.data ?? []),
+                builder: (context, snapshot) {
+                  final orders = snapshot.data ?? [];
+                  return Column(
+                    children: [
+                      buildNumbers(orders),
+                      const SizedBox(height: 32),
+                      buildToolsWithBadges(orders),
+                    ],
+                  );
+                },
               ),
-              const SizedBox(height: 32),
-              buildTools(),
               if (isAdmin) ...[
                 const SizedBox(height: 32),
                 // Admin si může menu vyzkoušet očima zákazníka.
@@ -316,15 +346,65 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
     );
   }
 
-  // Dlaždice s nástroji. Obsluha má jen objednávky, docházku a stoly.
-  Widget buildTools() {
+  // Spočítá, co na kterém nástroji čeká, a nakreslí dlaždice s čísly:
+  // Objednávky = nové objednávky (Přijata) + nevyřízené požadavky,
+  // Rezervace = čekající na potvrzení, Docházka (admin) = možná
+  // zapomenuté odchody.
+  Widget buildToolsWithBadges(List<Order> orders) {
+    final newOrders =
+        orders.where((order) => order.status == OrderStatus.prijata).length;
+    return StreamBuilder<List<ServiceRequest>>(
+      stream: requestsStream,
+      builder: (context, requestsSnapshot) {
+        final requests = requestsSnapshot.data?.length ?? 0;
+        return StreamBuilder<List<Reservation>>(
+          stream: reservationsStream,
+          builder: (context, reservationsSnapshot) {
+            final pendingReservations = (reservationsSnapshot.data ?? [])
+                .where((r) => r.status == ReservationStatus.ceka)
+                .length;
+            return StreamBuilder<List<ActiveShift>>(
+              stream: activeShiftsStream,
+              builder: (context, shiftsSnapshot) {
+                final forgottenShifts = (shiftsSnapshot.data ?? [])
+                    .where((shift) =>
+                        shift.elapsed.inHours >= AppConfig.forgottenShiftHours)
+                    .length;
+                return buildTools(
+                  ordersBadge: newOrders + requests,
+                  reservationsBadge: pendingReservations,
+                  attendanceBadge: forgottenShifts,
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Dlaždice s nástroji. Obsluha má jen objednávky, rezervace, docházku
+  // a stoly.
+  Widget buildTools({
+    required int ordersBadge,
+    required int reservationsBadge,
+    required int attendanceBadge,
+  }) {
     final services = widget.services;
     final tools = [
       ToolTile(
         icon: Icons.receipt_long,
         label: 'Objednávky',
         color: ToolColors.orders,
+        badge: ordersBadge,
         onTap: () => open(StaffScreen(services: services)),
+      ),
+      ToolTile(
+        icon: Icons.event_seat_outlined,
+        label: 'Rezervace',
+        color: ToolColors.reservations,
+        badge: reservationsBadge,
+        onTap: () => open(StaffReservationsScreen(services: services)),
       ),
       if (isAdmin)
         ToolTile(
@@ -344,6 +424,7 @@ class _StaffHomeScreenState extends State<StaffHomeScreen> {
         icon: Icons.schedule,
         label: 'Docházka',
         color: ToolColors.attendance,
+        badge: attendanceBadge,
         onTap: openAttendance,
       ),
       if (isAdmin)
@@ -438,6 +519,8 @@ class ToolTile extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback onTap;
+  // Číslo v rohu (např. čekající rezervace); 0 = bez čísla.
+  final int badge;
 
   const ToolTile({
     super.key,
@@ -445,6 +528,7 @@ class ToolTile extends StatelessWidget {
     required this.label,
     required this.color,
     required this.onTap,
+    this.badge = 0,
   });
 
   @override
@@ -456,21 +540,26 @@ class ToolTile extends StatelessWidget {
         onTap: onTap,
         child: Column(
           children: [
-            Container(
-              width: 84,
-              height: 84,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.35),
-                    blurRadius: 12,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
+            Badge(
+              isLabelVisible: badge > 0,
+              label: Text('$badge'),
+              offset: const Offset(-2, 2),
+              child: Container(
+                width: 84,
+                height: 84,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.35),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Icon(icon, color: Colors.white, size: 40),
               ),
-              child: Icon(icon, color: Colors.white, size: 40),
             ),
             const SizedBox(height: 8),
             Text(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/app_config.dart';
+import 'reservation.dart';
 
 // Typ podniku – podle něj se mění ikona a emoji v aplikaci.
 enum VenueType {
@@ -41,6 +42,10 @@ class VenueSettings {
   final String loyaltyCategoryId;
   final int loyaltyGoal;
 
+  // Časy rezervací pro každý den v týdnu (0 = pondělí … 6 = neděle).
+  // null = v ten den rezervace nejdou (např. zavřeno).
+  final List<DayHours?> reservationHours;
+
   // Výchozí nastavení (než ho admin poprvé uloží) – z konfigurace aplikace.
   static final defaults = VenueSettings(
     name: AppConfig.defaultVenueName,
@@ -63,7 +68,22 @@ class VenueSettings {
     this.loyaltyEnabled = false,
     this.loyaltyCategoryId = '',
     this.loyaltyGoal = AppConfig.defaultLoyaltyGoal,
+    this.reservationHours = defaultReservationHours,
   });
+
+  // Výchozí časy rezervací – každý den stejné (z konfigurace aplikace).
+  static const defaultReservationHours = <DayHours?>[
+    _defaultDayHours, _defaultDayHours, _defaultDayHours, _defaultDayHours,
+    _defaultDayHours, _defaultDayHours, _defaultDayHours,
+  ];
+  static const _defaultDayHours = DayHours(
+    AppConfig.defaultReservationFrom,
+    AppConfig.defaultReservationTo,
+  );
+
+  // Časy rezervací v konkrétní den (null = ten den rezervace nejdou).
+  DayHours? reservationHoursOn(DateTime day) =>
+      reservationHours[day.weekday - 1];
 
   // Je razítková karta zapnutá a má vybranou kategorii?
   bool get hasLoyalty => loyaltyEnabled && loyaltyCategoryId.isNotEmpty;
@@ -96,7 +116,14 @@ class VenueSettings {
       loyaltyEnabled: data['loyaltyEnabled'] as bool? ?? false,
       loyaltyCategoryId: text('loyaltyCategoryId', ''),
       loyaltyGoal: data['loyaltyGoal'] as int? ?? AppConfig.defaultLoyaltyGoal,
+      reservationHours: _reservationHoursFrom(data['reservationHours']),
     );
+  }
+
+  // V databázi je seznam 7 textů "08:00-20:00" (prázdný = ten den ne).
+  static List<DayHours?> _reservationHoursFrom(Object? value) {
+    if (value is! List || value.length != 7) return defaultReservationHours;
+    return [for (final day in value) DayHours.parse(day as String? ?? '')];
   }
 
   // Kopie nastavení, ve které se změní jen zadané údaje.
@@ -114,6 +141,7 @@ class VenueSettings {
     bool? loyaltyEnabled,
     String? loyaltyCategoryId,
     int? loyaltyGoal,
+    List<DayHours?>? reservationHours,
   }) {
     return VenueSettings(
       name: name ?? this.name,
@@ -129,6 +157,7 @@ class VenueSettings {
       loyaltyEnabled: loyaltyEnabled ?? this.loyaltyEnabled,
       loyaltyCategoryId: loyaltyCategoryId ?? this.loyaltyCategoryId,
       loyaltyGoal: loyaltyGoal ?? this.loyaltyGoal,
+      reservationHours: reservationHours ?? this.reservationHours,
     );
   }
   Map<String, dynamic> toMap() {
@@ -146,6 +175,9 @@ class VenueSettings {
       'loyaltyEnabled': loyaltyEnabled,
       'loyaltyCategoryId': loyaltyCategoryId,
       'loyaltyGoal': loyaltyGoal,
+      'reservationHours': [
+        for (final day in reservationHours) day?.toString() ?? '',
+      ],
     };
   }
 }

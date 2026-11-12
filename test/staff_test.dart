@@ -330,4 +330,58 @@ void main() {
     final profile = await db.collection('users').doc(testUser.uid).get();
     expect(profile.data()!['themeMode'], 'dark');
   });
+
+  testWidgets('Červená čísla na dlaždicích ukazují, co čeká na vyřízení',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
+    final now = DateTime.now();
+    // Nová objednávka + rozpracovaná (ta se nepočítá) + požadavek = 2.
+    for (final status in ['prijata', 'pripravujeSe']) {
+      await db.collection('orders').add({
+        'number': 1,
+        'status': status,
+        'items': [],
+        'totalPrice': 55,
+        'tableNumber': 3,
+        'createdAt': Timestamp.fromDate(now),
+      });
+    }
+    await db.collection('requests').doc('petr_platba').set({
+      'type': 'platba',
+      'tableNumber': 3,
+      'userId': 'petr',
+      'customerName': 'Petr',
+      'status': 'cekajici',
+    });
+    // Tomáš je „v práci“ už 13 hodin – možná zapomněl dát odchod.
+    await db.collection('activeShifts').doc('tomas').set({
+      'userId': 'tomas',
+      'userName': 'Tomáš',
+      'start': Timestamp.fromDate(now.subtract(const Duration(hours: 13))),
+    });
+
+    await pumpApp(tester, await buildTestApp(db: db));
+
+    Finder badgeOn(String label) => find.descendant(
+          of: find.ancestor(
+            of: find.text(label),
+            matching: find.byType(Column),
+          ).first,
+          matching: find.byType(Badge),
+        );
+    String badgeText(String label) {
+      final badge = tester.widget<Badge>(badgeOn(label));
+      if (!(badge.isLabelVisible)) return '';
+      return (badge.label as Text).data!;
+    }
+
+    expect(badgeText('Objednávky'), '2');
+    expect(badgeText('Docházka'), '1');
+    expect(badgeText('Rezervace'), '');
+  });
 }

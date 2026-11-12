@@ -13,6 +13,7 @@ import 'package:brewly/services/auth_service.dart';
 import 'package:brewly/services/order_service.dart';
 import 'package:brewly/services/product_service.dart';
 import 'package:brewly/services/request_service.dart';
+import 'package:brewly/services/reservation_service.dart';
 import 'package:brewly/services/settings_service.dart';
 import 'package:brewly/services/table_service.dart';
 import 'package:brewly/services/user_service.dart';
@@ -48,6 +49,7 @@ Future<Widget> buildTestApp({
       tables: TableService(database),
       settings: SettingsService(database),
       attendance: AttendanceService(database),
+      reservations: ReservationService(database),
     ),
   );
 }

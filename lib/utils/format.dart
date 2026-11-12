@@ -44,6 +44,13 @@ String formatOrderCount(int count) {
   return '$count objednávek';
 }
 
+// Správný český tvar: 1 osoba, 2–4 osoby, 5 a víc osob.
+String formatPeopleCount(int count) {
+  if (count == 1) return '1 osoba';
+  if (count >= 2 && count <= 4) return '$count osoby';
+  return '$count osob';
+}
+
 // Je datum dnes?
 bool isToday(DateTime time) {
   final now = DateTime.now();
@@ -78,4 +85,11 @@ String formatMonth(DateTime date) {
 // Den s názvem, např. "čt 23. 10.".
 String formatDay(DateTime date) {
   return '${_weekdayNames[date.weekday - 1]} ${date.day}. ${date.month}.';
+}
+
+// Den pro rezervace: "dnes", "zítra", jinak "čt 23. 10.".
+String formatRelativeDay(DateTime date) {
+  if (isToday(date)) return 'dnes';
+  if (isToday(date.subtract(const Duration(days: 1)))) return 'zítra';
+  return formatDay(date);
 }

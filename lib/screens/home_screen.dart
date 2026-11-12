@@ -12,6 +12,7 @@ import '../widgets/venue_hero.dart';
 import '../widgets/venue_info_sheet.dart';
 import 'login_screen.dart';
 import 'main_screen.dart';
+import 'reservations_screen.dart';
 import 'staff_home_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -45,6 +46,27 @@ class _HomeScreenState extends State<HomeScreen> {
       roleStream = widget.services.users.watchRole(user);
     }
     return roleStream!;
+  }
+
+  // Rezervace jsou vázané na účet – nepřihlášeného nejdřív pošleme přihlásit.
+  void openReservations(User? user) {
+    if (user == null) {
+      showAppMessage(context, 'Pro rezervaci se prosím přihlaste');
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => LoginScreen(authService: widget.services.auth),
+        ),
+      );
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            ReservationsScreen(services: widget.services, user: user),
+      ),
+    );
   }
 
   Future<void> signOut() async {
@@ -283,6 +305,15 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
             child: const Text('Prohlédnout menu'),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            icon: const Icon(Icons.event_seat_outlined),
+            label: const Text('Rezervovat stůl'),
+            onPressed: () => openReservations(user),
           ),
         ),
         const SizedBox(height: 12),

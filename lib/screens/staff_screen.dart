@@ -11,6 +11,7 @@ import '../utils/format.dart';
 import '../widgets/app_message.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/status_badge.dart';
+import '../widgets/upcoming_reservations_banner.dart';
 
 // Text tlačítka podle toho, co obsluha s objednávkou udělá jako další.
 String nextStatusAction(OrderStatus status) {
@@ -212,23 +213,33 @@ class _StaffScreenState extends State<StaffScreen> {
             ],
           ),
         ),
-        body: TabBarView(
+        body: Column(
           children: [
-            buildRequestList(requests),
-            buildOrderList(
-              activeOrders,
-              emptyState: const EmptyState(
-                icon: Icons.coffee_maker_outlined,
-                title: 'Žádné aktivní objednávky',
-                message: 'Nové objednávky od zákazníků se objeví tady.',
-              ),
+            // Upozornění na hosty s rezervací v nejbližší hodině.
+            UpcomingReservationsBanner(
+              reservationService: widget.services.reservations,
             ),
-            buildOrderList(
-              doneOrders,
-              emptyState: const EmptyState(
-                icon: Icons.task_alt,
-                title: 'Dnes zatím nic dokončeného',
-                message: 'Dnešní vyřízené objednávky se přesunou sem.',
+            Expanded(
+              child: TabBarView(
+                children: [
+                  buildRequestList(requests),
+                  buildOrderList(
+                    activeOrders,
+                    emptyState: const EmptyState(
+                      icon: Icons.coffee_maker_outlined,
+                      title: 'Žádné aktivní objednávky',
+                      message: 'Nové objednávky od zákazníků se objeví tady.',
+                    ),
+                  ),
+                  buildOrderList(
+                    doneOrders,
+                    emptyState: const EmptyState(
+                      icon: Icons.task_alt,
+                      title: 'Dnes zatím nic dokončeného',
+                      message: 'Dnešní vyřízené objednávky se přesunou sem.',
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

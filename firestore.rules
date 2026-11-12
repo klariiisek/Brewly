@@ -122,7 +122,7 @@ service cloud.firestore {
         let settings = request.resource.data;
         return settings.keys().hasOnly(['name', 'slogan', 'color', 'type', 'categoryOrder',
             'isOpen', 'announcement', 'address', 'openingHours', 'wifiName', 'wifiPassword',
-            'loyaltyEnabled', 'loyaltyCategoryId', 'loyaltyGoal'])
+            'loyaltyEnabled', 'loyaltyCategoryId', 'loyaltyGoal', 'reservationHours'])
           && settings.name is string && settings.name.size() > 0 && settings.name.size() <= 40
           && settings.slogan is string && settings.slogan.size() <= 80
           && settings.color in ['kava', 'bordo', 'terakota', 'olivova', 'lesni', 'namornicka', 'levandulova', 'grafitova']
@@ -141,7 +141,10 @@ service cloud.firestore {
           && isShortText('loyaltyCategoryId', 100)
           && settings.get('loyaltyGoal', 10) is int
           && settings.get('loyaltyGoal', 10) >= 3
-          && settings.get('loyaltyGoal', 10) <= 20;
+          && settings.get('loyaltyGoal', 10) <= 20
+          // Časy rezervací: 7 textů "08:00-20:00" (pondělí až neděle).
+          && settings.get('reservationHours', ['', '', '', '', '', '', '']) is list
+          && settings.get('reservationHours', ['', '', '', '', '', '', '']).size() == 7;
       }
 
       // Admin smí měnit vše (ve správném tvaru).
@@ -405,6 +408,72 @@ service cloud.firestore {
 
       // Hotové směny se nemění ani nemažou (jsou podkladem pro výplatu).
       allow update, delete: if false;
+    }
+
+    // ---------- Rezervace ----------
+    // Zákazník si zarezervuje stůl na den a čas (počet osob). Obsluha
+    // rezervaci potvrdí (a může přidělit stůl), nebo odmítne.
+    match /reservations/{reservationId} {
+      // Zákazník vidí své rezervace, obsluha všechny.
+      allow read: if isSignedIn()
+        && (resource.data.get('userId', '') == request.auth.uid || isStaff());
+
+      // Nová rezervace: zákazník sám za sebe, v budoucnu (nejvýš 31 dní
+      // dopředu), 1–12 osob, krátká poznámka, stav „čeká“ a zatím bez stolu.
+      function isValidNewReservation() {
+        let reservation = request.resource.data;
+        return isSignedIn()
+          // Obsluha a admin nerezervují – jen rezervace vyřizují.
+          && !isStaff()
+          && reservation.keys().hasOnly(['userId', 'customerName', 'time', 'people',
+                                         'note', 'status', 'tableNumber', 'createdAt'])
+          && reservation.userId == request.auth.uid
+          && reservation.customerName is string
+          && reservation.customerName.size() > 0
+          && reservation.customerName.size() <= 100
+          && reservation.time is timestamp
+          && reservation.time > request.time
+          && reservation.time < request.time + duration.value(31, 'd')
+          && reservation.people is int
+          && reservation.people >= 1
+          && reservation.people <= 12
+          && reservation.note is string
+          && reservation.note.size() <= 200
+          && reservation.status == 'ceka'
+          && reservation.tableNumber == 0
+          && reservation.createdAt == request.time;
+      }
+
+      allow create: if isValidNewReservation();
+
+      // Zákazník smí svou rezervaci jen zrušit (dokud čeká nebo je potvrzená).
+      function isCustomerCancel() {
+        return isSignedIn()
+          && resource.data.userId == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && resource.data.status in ['ceka', 'potvrzena']
+          && request.resource.data.status == 'zrusena';
+      }
+
+      // Obsluha čekající rezervaci potvrdí (se stolem 0–10, 0 = bez stolu)
+      // nebo odmítne; potvrzenou může ještě odmítnout.
+      function isStaffDecision() {
+        let newData = request.resource.data;
+        return isStaff()
+          && newData.diff(resource.data).affectedKeys().hasOnly(['status', 'tableNumber'])
+          && newData.tableNumber is int
+          && newData.tableNumber >= 0
+          && newData.tableNumber <= 10
+          && (
+            (resource.data.status == 'ceka' && newData.status in ['potvrzena', 'odmitnuta'])
+            || (resource.data.status == 'potvrzena' && newData.status == 'odmitnuta')
+          );
+      }
+
+      allow update: if isCustomerCancel() || isStaffDecision();
+
+      // Rezervace se nemažou (zůstávají jako historie).
+      allow delete: if false;
     }
 
     // ---------- Požadavky na obsluhu ----------

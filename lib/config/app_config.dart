@@ -66,6 +66,32 @@ class AppConfig {
   static const int minLoyaltyGoal = 3; // [pravidla]
   static const int maxLoyaltyGoal = 20; // [pravidla]
 
+  // ---------- Rezervace ----------
+
+  // Na kolik dní dopředu jde rezervovat. [pravidla: o den víc, 31]
+  static const int reservationDaysAhead = 30;
+
+  // Výchozí časy rezervací (první a poslední čas) pro každý den, dokud
+  // admin v Nastavení podniku nenastaví vlastní.
+  // V minutách od půlnoci: 8:00 až 20:00.
+  static const int defaultReservationFrom = 8 * 60;
+  static const int defaultReservationTo = 20 * 60;
+
+  // Jak dlouho hosté s rezervací sedí u stolu. Podle toho aplikace pozná,
+  // že je stůl v tu dobu obsazený jinou rezervací (18:00 a 19:00 se
+  // překrývají, 18:00 a 20:00 už ne).
+  static const int reservationDurationMinutes = 120;
+
+  // Obsluze se ukáže upozornění „brzy přijdou hosté“ tolik minut
+  // před rezervací.
+  static const int reservationWarningMinutes = 60;
+
+  // Dnešní rezervace nejdřív za tolik minut od teď.
+  static const int reservationMinAdvanceMinutes = 30;
+
+  static const int maxReservationPeople = 12; // [pravidla]
+  static const int maxReservationNoteLength = 200; // [pravidla]
+
   // ---------- Docházka ----------
 
   // Po kolika hodinách v práci upozorníme admina na možná zapomenutý odchod.

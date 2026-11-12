@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/app_config.dart';
 import '../models/menu_category.dart';
+import '../models/reservation.dart';
 import '../models/venue_settings.dart';
 import '../services/app_services.dart';
 import '../theme/app_theme.dart';
@@ -39,6 +40,9 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
   late int loyaltyGoal;
   late final Stream<List<MenuCategory>> categoriesStream;
 
+  // Časy rezervací po dnech (0 = pondělí; null = ten den rezervace nejdou).
+  late List<DayHours?> reservationHours;
+
   @override
   void initState() {
     super.initState();
@@ -68,6 +72,7 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
     loyaltyEnabled = settings.loyaltyEnabled;
     loyaltyCategoryId = settings.loyaltyCategoryId;
     loyaltyGoal = settings.loyaltyGoal;
+    reservationHours = List.of(settings.reservationHours);
   }
 
   @override
@@ -104,6 +109,7 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
       loyaltyEnabled: loyaltyEnabled,
       loyaltyCategoryId: loyaltyCategoryId,
       loyaltyGoal: loyaltyGoal,
+      reservationHours: reservationHours,
     );
 
     setState(() => isSaving = true);
@@ -216,6 +222,9 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
               ),
               maxLength: AppConfig.maxWifiLength,
             ),
+            const SizedBox(height: 24),
+            buildSectionTitle('Časy rezervací'),
+            buildReservationHours(),
             const SizedBox(height: 24),
             buildSectionTitle('Razítková karta'),
             buildLoyaltySettings(),
@@ -515,6 +524,111 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // Časy rezervací pro každý den v týdnu: přepínač (jde ten den
+  // rezervovat?) a první a poslední čas. Zákazníkům se pak nabídnou jen
+  // časy v tomto rozmezí – každý podnik má jinou otevírací dobu.
+  Widget buildReservationHours() {
+    const dayNames = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'];
+    final colors = context.colors;
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'První a poslední čas, na který si zákazník může stůl '
+              'zarezervovat. Vypnutý den = ten den rezervace nejdou.',
+              style: TextStyle(color: colors.muted),
+            ),
+            const SizedBox(height: 8),
+            for (var day = 0; day < 7; day++)
+              Row(
+                children: [
+                  SizedBox(
+                    width: 32,
+                    child: Text(
+                      dayNames[day],
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: colors.dark,
+                      ),
+                    ),
+                  ),
+                  Switch(
+                    value: reservationHours[day] != null,
+                    onChanged: (isOn) => setState(() {
+                      reservationHours[day] = isOn
+                          ? VenueSettings.defaultReservationHours[day]
+                          : null;
+                    }),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(child: buildDayHours(day)),
+                ],
+              ),
+            const SizedBox(height: 4),
+            TextButton.icon(
+              icon: const Icon(Icons.copy_all_outlined, size: 18),
+              label: const Text('Všem dnům nastavit časy jako v pondělí'),
+              onPressed: () => setState(() {
+                reservationHours = List.filled(7, reservationHours[0]);
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Výběr „od – do“ pro jeden den (nebo text, že ten den rezervace nejdou).
+  Widget buildDayHours(int day) {
+    final hours = reservationHours[day];
+    if (hours == null) {
+      return Text(
+        'bez rezervací',
+        style: TextStyle(color: context.colors.muted),
+      );
+    }
+    // Celý den po půl hodinách: 00:00, 00:30 … 23:30.
+    final times = [for (var minute = 0; minute < 24 * 60; minute += 30) minute];
+    DropdownButton<int> picker(int value, ValueChanged<int> onChanged) {
+      return DropdownButton<int>(
+        value: value,
+        isDense: true,
+        underline: const SizedBox.shrink(),
+        menuMaxHeight: 320,
+        items: [
+          for (final minute in times)
+            DropdownMenuItem(value: minute, child: Text(minutesText(minute))),
+        ],
+        onChanged: (minute) {
+          if (minute != null) setState(() => onChanged(minute));
+        },
+      );
+    }
+
+    // Když by začátek byl po konci, posune se i druhý čas.
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 6,
+      children: [
+        picker(
+          hours.from,
+          (from) => reservationHours[day] =
+              DayHours(from, from > hours.to ? from : hours.to),
+        ),
+        const Text('–'),
+        picker(
+          hours.to,
+          (to) => reservationHours[day] =
+              DayHours(to < hours.from ? to : hours.from, to),
+        ),
+      ],
     );
   }
 }

@@ -59,14 +59,16 @@ Aplikace rozlišuje čtyři typy uživatelů. Co kdo smí, nehlídá jen aplikac
 - historie objednávek s detailem,
 - **profil**: avatar (ikonka a barva, nebo fotka z Google), změna jména a hesla, **světlý / tmavý vzhled** (nebo podle systému, volba se uloží k účtu),
 - tlačítka **Přivolat obsluhu** a **Chci zaplatit**,
+- **rezervace stolu** z úvodní obrazovky: den, čas a počet osob (plus poznámka). Nabízí se jen dny a časy, které podnik nastavil, Rezervace čeká na potvrzení obsluhou, stav se mění živě a zákazník ji může zrušit,
 - **razítková karta** v profilu (např. **každá 10. káva zdarma**): za každý kus z vybrané kategorie jedno razítko, s plnou kartou se v košíku objeví **Uplatnit odměnu** a nejdražší kus z kategorie je zdarma.
 
 ### 👩‍🍳 Obsluha
 - živý přehled v záložkách **Požadavky**, **Aktivní** a **Dokončené**,
 - posouvání objednávek do dalšího stavu jedním tlačítkem,
 - vyřizování požadavků zákazníků,
+- **rezervace**: přehled po dnech, potvrzení (případně rovnou s číslem stolu; stůl, který má v tu dobu jiná rezervace, nejde vybrat) nebo odmítnutí. Hodinu před příchodem hostů se na úvodu i u objednávek ukáže **upozornění „Brzy přijdou hosté s rezervací“** (stůl, čas, počet osob), aby obsluha stůl včas uvolnila, Na dlaždicích svítí **červená čísla**, co čeká na vyřízení: nové objednávky a požadavky, nepotvrzené rezervace a u admina možná zapomenuté odchody,
 - přepínač **Otevřeno / Zavřeno** (když je zavřeno, nejde objednat),
-- vlastní **úvodní obrazovka s barevnými dlaždicemi** (Objednávky, Docházka, Stoly), přepínačem Otevřeno / Zavřeno a živými čísly (aktivní objednávky, od kdy je v práci),
+- vlastní **úvodní obrazovka s barevnými dlaždicemi** (Objednávky, Rezervace, Docházka, Stoly), přepínačem Otevřeno / Zavřeno a živými čísly (aktivní objednávky, od kdy je v práci),
 - **QR kódy stolů** k vytištění (obnovit je smí jen admin, aby obsluha omylem nezneplatnila vytištěné kódy),
 - **docházka** (jako v pokladním systému Dotykačka): tlačítka **Příchod** a **Odchod**, běžící čas směny a **odpracované hodiny za měsíc** se seznamem směn.
 
@@ -252,6 +254,7 @@ flowchart TB
     categories[("categories<br/>kategorie menu")]
     active[("activeShifts<br/>kdo je právě v práci")]
     shifts[("shifts<br/>hotové směny")]
+    reservations[("reservations<br/>rezervace stolů")]
 
     numbers -. "přidělí číslo" .-> orders
     orders --- items
@@ -264,11 +267,12 @@ flowchart TB
     active -- "userId" --> users
     shifts -- "userId" --> users
     active -. "při odchodu se přesune" .-> shifts
+    reservations -- "userId" --> users
 
     classDef kolekce fill:#F3E9DF,stroke:#6F4E37,color:#3E2723
     classDef dokument fill:#FFF6D6,stroke:#C8894B,color:#3E2723
     classDef vnorene fill:#FFFFFF,stroke:#8D7B6F,stroke-dasharray:4 3,color:#3E2723
-    class users,categories,products,orders,requests,tables,active,shifts kolekce
+    class users,categories,products,orders,requests,tables,active,shifts,reservations kolekce
     class numbers,settings dokument
     class items vnorene
 ```
@@ -374,6 +378,17 @@ Počítají se jen **dokončené** objednávky. Srovnání je férové: dnešek 
 | `userId`, `customerName` | text | kdo požadavek poslal |
 | `createdAt` | čas | |
 
+#### `reservations`: rezervace stolů
+| Pole | Typ | Popis |
+|---|---|---|
+| `userId`, `customerName` | text | kdo rezervuje |
+| `time` | čas | den a čas rezervace |
+| `people` | číslo | počet osob (1–12) |
+| `note` | text | poznámka zákazníka (nepovinná) |
+| `status` | text | `ceka` / `potvrzena` / `odmitnuta` / `zrusena` |
+| `tableNumber` | číslo | stůl přidělený obsluhou, `0` = zatím žádný |
+| `createdAt` | čas | |
+
 #### `tables`: stoly
 | Pole | Typ | Popis |
 |---|---|---|
@@ -411,11 +426,12 @@ V MySQL by objednávky dostávaly čísla 1, 2, 3… samy díky **AUTO_INCREMENT
 Transakce zaručí, že dva zákazníci objednávající ve stejnou chvíli nedostanou stejné číslo. Pravidla navíc hlídají, že číslo objednávky opravdu pochází z počítadla a že den se bere z hodin serveru.
 
 #### `settings/venue`: nastavení podniku
-Jediný dokument s tím, co **mění admin přímo v aplikaci**: `name`, `slogan`, `color`, `type`, `isOpen`, `announcement`, `address`, `openingHours`, `wifiName`, `wifiPassword` a razítková karta `loyaltyEnabled`, `loyaltyCategoryId`, `loyaltyGoal` (kolikátý kus je zdarma). Proč to není v konfiguračním souboru, vysvětluje kapitola [Konfigurace vs. databáze](#️-konfigurace-vs-databáze).
+Jediný dokument s tím, co **mění admin přímo v aplikaci**: `name`, `slogan`, `color`, `type`, `isOpen`, `announcement`, `address`, `openingHours`, `wifiName`, `wifiPassword` razítková karta `loyaltyEnabled`, `loyaltyCategoryId`, `loyaltyGoal` (kolikátý kus je zdarma) a `reservationHours`: časy rezervací pro každý den v týdnu jako 7 textů `"08:00-20:00"` (prázdný text = ten den rezervace nejdou). Proč to není v konfiguračním souboru, vysvětluje kapitola [Konfigurace vs. databáze](#️-konfigurace-vs-databáze).
 
 ### Vztahy
 - **uživatel 1 : N objednávky** (`orders.userId` → `users.uid`)
 - **uživatel 1 : N požadavky** (`requests.userId` → `users.uid`)
+- **uživatel 1 : N rezervace** (`reservations.userId` → `users.uid`)
 - **zaměstnanec 1 : N směny** (`shifts.userId` → `users.uid`), **1 : 0..1 právě běžící směna** (`activeShifts/{uid}`)
 - **kategorie 1 : N produkty** (`products.categoryId` → `categories.id`)
 - **stůl 1 : N objednávky a požadavky** (`tableNumber` → `tables`)
@@ -440,6 +456,7 @@ Pravidla v souboru [`firestore.rules`](firestore.rules) běží na serveru Fireb
 - **stav objednávky** mění jen obsluha, a to jen o jeden krok dopředu (Přijata → Připravuje se → Připravena → Dokončena),
 - **QR kódy:** tajné kódy stolů vidí jen obsluha a admin, vygenerovat nové smí jen admin. Kdo u stolu nesedí, nemůže k němu objednat ani přivolat obsluhu,
 - **požadavky:** ochrana proti spamu, další požadavek jde poslat až po vyřízení předchozího,
+- **rezervace:** zákazník rezervuje jen sám za sebe, jen do budoucna (nejvýš měsíc dopředu) a s rozumným počtem osob. Svou rezervaci smí jen zrušit. Potvrdit nebo odmítnout ji smí jen obsluha, stůl jí nikdo jiný nepřidělí,
 - **oddělení rolí:** obsluha a admin nemůžou vytvářet objednávky ani požadavky. Nezkreslují tak statistiky a nemůžou si sami dokončovat objednávky a sbírat razítka. Zákaznická část je pro ně jen náhled,
 - **menu a nastavení** mění jen admin. Obsluha smí přepnout jen Otevřeno / Zavřeno,
 - **čísla objednávek** se nulují jen v opravdu novém dni podle hodin serveru,
@@ -501,7 +518,7 @@ firebase deploy --only hosting
 flutter test
 ```
 
-Projekt má **75 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
+Projekt má **86 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`, `reservation_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
 - objednávku od menu přes košík až po stav u obsluhy,
 - role (zákazník nevidí obsluhu, obsluha nevidí správu menu),
 - čtení CSV souboru a hlášení chybných řádků,
@@ -510,7 +527,8 @@ Projekt má **75 automatických testů** rozdělených do souborů podle témat 
 - převod starých dat kategorií,
 - docházku (příchod, odchod, ukončení zapomenuté směny, noční směna přes půlnoc),
 - razítkovou kartu (počítání razítek, odměna v košíku, změna počtu razítek, odhalení neoprávněné odměny),
-- statistiky (období od pondělí, férové srovnání se stejně dlouhým úsekem, součty, žebříčky, graf).
+- statistiky (období od pondělí, férové srovnání se stejně dlouhým úsekem, součty, žebříčky, graf),
+- rezervace (časy podle nastavení admina, zrušení zákazníkem, potvrzení se stolem u obsluhy, upozornění na brzký příchod hostů).
 
 ---
 
