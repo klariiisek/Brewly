@@ -164,11 +164,15 @@ class _CartScreenState extends State<CartScreen> {
           'Zkuste to prosím znovu.',
         );
       } else if (error.code == 'permission-denied') {
-        // Databáze odmítla kód stolu (špatně opsaný nebo už neplatný).
+        // Databáze objednávku odmítla. Nejčastěji kvůli kódu stolu (špatně
+        // opsaný nebo už neplatný), ale může to být i špatné datum v telefonu
+        // (číslo objednávky se počítá podle dnešního dne). Přesný důvod
+        // databáze neprozradí, proto zmíníme obojí.
         setState(() => widget.cart.clearTable());
         showAppMessage(
           context,
-          'Kód stolu neplatí. Naskenujte prosím QR kód na stole znovu.',
+          'Objednávku se nepodařilo odeslat. Naskenujte prosím QR kód na stole '
+          'znovu a zkontrolujte, že máte v telefonu správné datum a čas.',
         );
       } else {
         showAppMessage(context, 'Objednávku se nepodařilo odeslat');

@@ -344,6 +344,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             TextFormField(
               controller: nameController,
               decoration: const InputDecoration(labelText: 'Název'),
+              maxLength: AppConfig.maxProductNameLength,
               // Při psaní se aktualizuje automaticky odhadnutá ikona.
               onChanged: (_) => setState(() {}),
               textCapitalization: TextCapitalization.sentences,
@@ -368,6 +369,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             TextFormField(
               controller: descriptionController,
               decoration: const InputDecoration(labelText: 'Popis'),
+              maxLength: AppConfig.maxProductDescriptionLength,
               textCapitalization: TextCapitalization.sentences,
               minLines: 2,
               maxLines: 4,

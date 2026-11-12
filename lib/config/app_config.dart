@@ -37,8 +37,12 @@ class AppConfig {
 
   // ---------- Menu a objednávky ----------
 
-  // Nejvyšší cena jednoho produktu v Kč.
+  // Nejvyšší cena jednoho produktu v Kč. [pravidla]
   static const double maxProductPrice = 10000;
+
+  // Nejdelší název a popis produktu (počet znaků). [pravidla]
+  static const int maxProductNameLength = 60;
+  static const int maxProductDescriptionLength = 300;
 
   // Nejvíc položek v jedné objednávce. [pravidla]
   static const int maxOrderItems = 50;

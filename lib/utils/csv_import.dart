@@ -80,6 +80,16 @@ CsvImportResult parseProductsCsv(String text) {
       errors.add('Řádek $lineNumber ($name): chybí kategorie');
       continue;
     }
+    if (name.length > AppConfig.maxProductNameLength) {
+      errors.add('Řádek $lineNumber: název je delší než '
+          '${AppConfig.maxProductNameLength} znaků');
+      continue;
+    }
+    if (description.length > AppConfig.maxProductDescriptionLength) {
+      errors.add('Řádek $lineNumber ($name): popis je delší než '
+          '${AppConfig.maxProductDescriptionLength} znaků');
+      continue;
+    }
     if (!seenNames.add(normalizeText(name))) {
       errors.add('Řádek $lineNumber: $name je v souboru dvakrát');
       continue;

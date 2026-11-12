@@ -90,6 +90,7 @@ String formatDay(DateTime date) {
 // Den pro rezervace: "dnes", "zítra", jinak "čt 23. 10.".
 String formatRelativeDay(DateTime date) {
   if (isToday(date)) return 'dnes';
-  if (isToday(date.subtract(const Duration(days: 1)))) return 'zítra';
+  // Den předem jako datum (ne „před 24 hodinami“ – kvůli posunu času).
+  if (isToday(DateTime(date.year, date.month, date.day - 1))) return 'zítra';
   return formatDay(date);
 }

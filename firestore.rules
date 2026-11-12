@@ -78,10 +78,13 @@ service cloud.firestore {
         let product = request.resource.data;
         return product.keys().hasOnly(['name', 'price', 'categoryId', 'description', 'icon', 'available'])
           && product.name is string && product.name.size() > 0
+          && product.name.size() <= 60
           && product.price is number && product.price > 0
+          && product.price <= 10000
           && product.categoryId is string
           && existsAfter(/databases/$(database)/documents/categories/$(product.categoryId))
           && product.description is string
+          && product.description.size() <= 300
           && product.get('icon', '') is string
           && product.get('icon', '').size() <= 20
           && product.get('available', true) is bool;

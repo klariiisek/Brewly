@@ -74,4 +74,19 @@ void main() {
     expect(VenueSettings.defaults.type.name, AppConfig.defaultVenueType);
     expect(VenueSettings.defaults.name, AppConfig.defaultVenueName);
   });
+
+  test('CSV: příliš dlouhý název nebo popis se nenahraje', () {
+    final longName = 'K' * 61;
+    final longDescription = 'a' * 301;
+    final result = parseProductsCsv(
+      '$longName;50;Káva;\n'
+      'Espresso;55;Káva;$longDescription\n'
+      'Latte;70;Káva;Krátký popis',
+    );
+    expect(result.products.map((p) => p.name), ['Latte']);
+    expect(result.errors, [
+      'Řádek 1: název je delší než 60 znaků',
+      'Řádek 2 (Espresso): popis je delší než 300 znaků',
+    ]);
+  });
 }

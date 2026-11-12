@@ -1,26 +1,36 @@
 # ☕ Brewly
 
-**Brewly** je webová aplikace pro objednávání přímo ke stolu: zákazník ji otevře v mobilu přes QR kód, bez instalace. Je to můj maturitní projekt ve **Flutteru** s databází **Firebase**.
+**Brewly** je webová aplikace pro objednávání přímo ke stolu. Zákazník ji otevře v mobilu přes QR kód na stole, bez instalace, a objedná si sám. Je to můj maturitní projekt ve **Flutteru** s databází **Firebase**.
 
-Zákazník naskenuje QR kód na stole, prohlédne si menu, objedná a sleduje, jak se jeho objednávka připravuje. Obsluha vidí objednávky i požadavky zákazníků živě. Vedoucí podniku (admin) si v aplikaci sám spravuje menu, vzhled i provoz. Aplikace je navržená pro kavárnu, ale díky nastavení ji může používat i bar, cukrárna nebo restaurace.
+Obsluha vidí objednávky, požadavky i rezervace živě. Vedoucí podniku (admin) si v aplikaci sám spravuje menu, vzhled i provoz. Aplikace je navržená pro kavárnu, ale díky nastavení ji může používat i bar, cukrárna, pivnice nebo restaurace.
 
 🌐 **Vyzkoušet:** [brewly-9e944.web.app](https://brewly-9e944.web.app)
+
+| V kostce | |
+|---|---|
+| **Pro koho** | zákazník (host), obsluha, admin (vedoucí podniku) |
+| **Kde běží** | v prohlížeči, na počítači i v mobilu |
+| **Technologie** | Flutter / Dart, Firebase (Authentication, Firestore, Hosting) |
+| **Zabezpečení** | bezpečnostní pravidla databáze na serveru |
+| **Testy** | 89 automatických testů |
 
 ---
 
 ## 📋 Obsah
 
-- [💡 Proč Brewly vzniklo](#-proč-brewly-vzniklo)
-- [✨ Co aplikace umí](#-co-aplikace-umí)
-- [🛠️ Technologie](#️-technologie)
-- [🧭 Jak to funguje](#-jak-to-funguje)
-- [⚙️ Konfigurace vs. databáze](#️-konfigurace-vs-databáze)
-- [🗄️ Databáze](#️-databáze)
-- [🔒 Zabezpečení](#-zabezpečení)
-- [📁 Struktura projektu](#-struktura-projektu)
-- [🚀 Spuštění projektu](#-spuštění-projektu)
-- [🧪 Testy](#-testy)
-- [🗺️ Plánované funkce](#️-plánované-funkce)
+1. [💡 Proč Brewly vzniklo](#-proč-brewly-vzniklo)
+2. [✨ Co aplikace umí](#-co-aplikace-umí)
+3. [📸 Ukázky](#-ukázky)
+4. [🛠️ Technologie](#️-technologie)
+5. [🧭 Jak to funguje](#-jak-to-funguje)
+6. [⚙️ Konfigurace vs. databáze](#️-konfigurace-vs-databáze)
+7. [🗄️ Databáze](#️-databáze)
+8. [🔒 Zabezpečení](#-zabezpečení)
+9. [📁 Struktura projektu](#-struktura-projektu)
+10. [🚀 Spuštění projektu](#-spuštění-projektu)
+11. [🧪 Testy](#-testy)
+12. [💰 Návrh zpoplatnění](#-návrh-zpoplatnění)
+13. [🗺️ Plánované funkce](#️-plánované-funkce)
 
 ---
 
@@ -28,7 +38,7 @@ Zákazník naskenuje QR kód na stole, prohlédne si menu, objedná a sleduje, j
 
 Sama pracuji v kavárně a každý den vidím, kolik času zabere obyčejné objednávání. Chodím od stolu ke stolu, zapisuji si objednávky, běhám k baru a zpátky. Když je plno, zákazníci čekají, až si jich někdo všimne. A když chtějí zaplatit, musí mávat přes celou místnost.
 
-Chtěla jsem, aby to šlo jednodušeji, pro zákazníky i pro nás za barem. Proto jsem se rozhodla vytvořit vlastní aplikaci:
+Chtěla jsem, aby to šlo jednodušeji, pro zákazníky i pro nás za barem:
 
 - **zákazník** si objedná sám ze stolu, kdy se mu to hodí, a vidí, v jakém stavu jeho objednávka je,
 - **obsluha** má všechny objednávky přehledně na jednom místě a hned ví, ke kterému stolu co nést,
@@ -43,105 +53,85 @@ Kavárna, ve které pracuji, mi byla inspirací. Aplikaci jsem ale od začátku 
 
 Aplikace rozlišuje čtyři typy uživatelů. Co kdo smí, nehlídá jen aplikace, ale i bezpečnostní pravidla databáze.
 
+| Role | Ve zkratce |
+|---|---|
+| 👤 **Návštěvník** | prohlíží si menu a informace o podniku |
+| ☕ **Zákazník** | objednává ke stolu, sleduje objednávku, rezervuje stůl, sbírá razítka |
+| 👩‍🍳 **Obsluha** | vyřizuje objednávky, požadavky a rezervace, zapisuje docházku |
+| 🧑‍💼 **Admin** | totéž co obsluha + menu, nastavení podniku, statistiky, zaměstnanci |
+
 ### 👤 Návštěvník (nepřihlášený)
-- prohlíží si menu podle kategorií a detail produktu,
-- vidí informace o podniku (adresa, otevírací doba, Wi-Fi),
-- může si naplnit košík. Před objednáním se musí přihlásit.
+- prohlíží si **menu** podle kategorií a detail produktu,
+- vidí **informace o podniku** (adresa, otevírací doba, Wi-Fi),
+- může si naplnit košík, před objednáním se ale musí přihlásit.
 
 ### ☕ Zákazník
+
+**Objednávání**
+- **QR kód na stole** otevře rovnou menu a aplikace ví, u kterého stolu zákazník sedí. Stůl jde zadat i opsaným kódem.
+- **Košík** hlídá vyprodané produkty a změny cen. V menu je **plovoucí lišta košíku** („2 položky · 135 Kč“).
+- Po odeslání objednávky se hned otevře **sledování s ukazatelem průběhu** (Přijata → Připravuje se → Připravena → Dokončena).
+- **Upozornění „Vaše objednávka je připravená! 🎉“** se ukáže, ať je zákazník v aplikaci kdekoli.
+- Tlačítka **Přivolat obsluhu** a **Chci zaplatit**.
+- **Historie objednávek** s detailem.
+
+**Navíc**
+- **Rezervace stolu** z úvodní obrazovky: den, čas, počet osob a poznámka. Nabízí se jen dny a časy, které podnik nastavil. Rezervaci potvrzuje obsluha, zákazník ji může zrušit a najednou smí mít nejvýš 3 nadcházející.
+- **Razítková karta** (např. každá 10. káva zdarma): za každý kus z vybrané kategorie jedno razítko. S plnou kartou se v košíku objeví **Uplatnit odměnu**.
+- **Oblíbené produkty**: srdíčko u produktu a štítek „Oblíbené“ v menu.
+
+**Účet**
 - registrace a přihlášení **e-mailem a heslem** nebo **přes Google**, obnovení zapomenutého hesla,
-- **QR kód na stole** otevře **rovnou menu** a aplikace ví, u kterého stolu zákazník sedí (stůl jde zadat i opsaným kódem),
-- **košík**: změna množství, hlídání vyprodaných produktů a změn cen,
-- **oblíbené produkty**: srdíčko u produktu a štítek „Oblíbené“ v menu (uloží se k účtu),
-- **plovoucí lišta košíku** v menu („2 položky · 135 Kč → Do košíku“), takže se nemusí hledat záložka,
-- **objednávka ke stolu**: po odeslání se hned otevře **sledování s ukazatelem průběhu** (Přijata → Připravuje se → Připravena → Dokončena),
-- **upozornění „Vaše objednávka je připravená! 🎉“**, ať je zákazník v aplikaci kdekoli,
-- historie objednávek s detailem,
-- **profil**: avatar (ikonka a barva, nebo fotka z Google), změna jména a hesla, **světlý / tmavý vzhled** (nebo podle systému, volba se uloží k účtu),
-- tlačítka **Přivolat obsluhu** a **Chci zaplatit**,
-- **rezervace stolu** z úvodní obrazovky: den, čas a počet osob (plus poznámka). Nabízí se jen dny a časy, které podnik nastavil, Rezervace čeká na potvrzení obsluhou, stav se mění živě a zákazník ji může zrušit. Najednou smí mít nejvýš 3 nadcházející rezervace (ochrana proti spamu),
-- **razítková karta** v profilu (např. **každá 10. káva zdarma**): za každý kus z vybrané kategorie jedno razítko, s plnou kartou se v košíku objeví **Uplatnit odměnu** a nejdražší kus z kategorie je zdarma.
+- **profil**: avatar (ikonka a barva, nebo fotka z Google), změna jména a hesla,
+- **světlý / tmavý vzhled**, nebo podle systému. Volba se uloží k účtu.
 
 ### 👩‍🍳 Obsluha
-- živý přehled v záložkách **Požadavky**, **Aktivní** a **Dokončené**,
-- posouvání objednávek do dalšího stavu jedním tlačítkem,
-- vyřizování požadavků zákazníků,
-- **rezervace**: přehled po dnech, potvrzení (případně rovnou s číslem stolu; stůl, který má v tu dobu jiná rezervace, nejde vybrat) nebo odmítnutí. Hodinu před příchodem hostů se na úvodu i u objednávek ukáže **upozornění „Brzy přijdou hosté s rezervací“** (stůl, čas, počet osob), aby obsluha stůl včas uvolnila, Na dlaždicích svítí **červená čísla**, co čeká na vyřízení: nové objednávky a požadavky, nepotvrzené rezervace a u admina možná zapomenuté odchody,
-- přepínač **Otevřeno / Zavřeno** (když je zavřeno, nejde objednat),
-- vlastní **úvodní obrazovka s barevnými dlaždicemi** (Objednávky, Rezervace, Docházka, Stoly), přepínačem Otevřeno / Zavřeno a živými čísly (aktivní objednávky, od kdy je v práci),
-- **QR kódy stolů** k vytištění (obnovit je smí jen admin, aby obsluha omylem nezneplatnila vytištěné kódy),
-- **docházka** (jako v pokladním systému Dotykačka): tlačítka **Příchod** a **Odchod**, běžící čas směny a **odpracované hodiny za měsíc** se seznamem směn.
+- **úvodní obrazovka s barevnými dlaždicemi** (Objednávky, Rezervace, Docházka, Stoly), přepínačem **Otevřeno / Zavřeno** a živými čísly,
+- **červená čísla na dlaždicích** ukazují, co čeká na vyřízení (nové objednávky a požadavky, nepotvrzené rezervace),
+- **objednávky** v záložkách Požadavky, Aktivní a Dokončené, posun do dalšího stavu jedním tlačítkem,
+- **rezervace**: nahoře čekající žádosti, pod nimi potvrzené po dnech. Při potvrzení jde rovnou přidělit stůl. Stůl, který má v tu dobu jiná rezervace, nejde vybrat.
+- **upozornění „Brzy přijdou hosté s rezervací“** hodinu předem (stůl, čas, počet osob), aby obsluha stůl včas uvolnila,
+- **QR kódy stolů** k vytištění (obnovit je smí jen admin),
+- **docházka** (jako v pokladním systému Dotykačka): Příchod, Odchod a odpracované hodiny za měsíc.
 
 ### 🧑‍💼 Admin (vedoucí podniku)
 Umí všechno co obsluha, a navíc:
-- **úvodní obrazovka jako ovládací panel**: dnešní tržba, aktivní objednávky a sedm barevných dlaždic (Objednávky, Menu, Statistiky, Docházka, Zaměstnanci, Podnik, Stoly). Každý nástroj má pořád stejnou barvu, aby si ji člověk zapamatoval. Odkaz **Zobrazit jako zákazník** ukáže menu očima hosta (jen náhled, objednat z něj nejde),
-- **obnovení QR kódů stolů**, kdyby kód unikl,
-- **zaměstnanci**: přehled obsluhy a přidání nového zaměstnance jedním klepnutím (zaregistruje se jako zákazník, admin ho najde a dá mu roli obsluha), případně odebrání,
-- **správa menu**: přidání, úprava a smazání produktu, přepínač **vyprodáno**, vyhledávání,
-- **nahrání celého menu ze souboru CSV** (např. z Excelu) s kontrolou chyb před uložením,
+- **ovládací panel** na úvodu: dnešní tržba, aktivní objednávky a osm dlaždic. Každý nástroj má pořád stejnou barvu, aby si ji člověk zapamatoval. **Zobrazit jako zákazník** ukáže menu očima hosta (jen náhled, objednat z něj nejde).
+- **správa menu**: přidání, úprava a smazání produktu, **vyprodáno**, vyhledávání, výběr ikony, **nahrání celého menu z CSV** (např. z Excelu) s kontrolou chyb,
 - **kategorie**: přidání, přejmenování, smazání a řazení přetažením,
 - **nastavení podniku**:
-  - název, slogan a typ podniku (kavárna, cukrárna, bar, pivnice, restaurace),
-  - **barva aplikace** z 8 palet: celá aplikace se přebarví živě, i zákazníkům,
-  - **oznámení v menu** (např. „Dnes −20 % na dezerty“),
-  - informace pro zákazníky: adresa, otevírací doba, Wi-Fi,
-  - **razítková karta**: zapnutí, kategorie, za kterou jsou razítka, a kolikátý kus je zdarma (3.–20.),
-- **statistiky** za dnešek, týden nebo měsíc: tržba, počet objednávek a průměrná útrata se **srovnáním s předchozím obdobím**, **interaktivní graf tržeb** po hodinách nebo dnech (po klepnutí na sloupec se ukáže detail), **nejprodávanější produkty** s ikonami, **barevný prstencový graf** tržby podle kategorií a vydané odměny z razítkové karty,
-- **docházka zaměstnanců**: kdo je právě v práci, odpracované hodiny každého za měsíc a **ukončení zapomenuté směny** (po 12 hodinách aplikace upozorní na možná zapomenutý odchod).
+  - název, slogan, typ podniku a **barva aplikace** z 8 palet (přebarví se živě i zákazníkům),
+  - **oznámení v menu** (např. „Dnes −20 % na dezerty“) a informace pro zákazníky,
+  - **razítková karta**: zapnutí, kategorie a kolikátý kus je zdarma (3.–20.),
+  - **časy rezervací** pro každý den v týdnu,
+  - při odchodu s neuloženými změnami se aplikace zeptá, jestli je uložit,
+- **statistiky** za dnešek, týden nebo měsíc: tržba, počet objednávek a průměrná útrata se **srovnáním s předchozím obdobím**, interaktivní graf tržeb, nejprodávanější produkty, tržba podle kategorií a vydané odměny,
+- **docházka zaměstnanců**: kdo je právě v práci, hodiny každého za měsíc a **ukončení zapomenuté směny** (po 12 hodinách aplikace upozorní),
+- **zaměstnanci**: přidání nového zaměstnance do obsluhy jedním klepnutím, případně odebrání,
+- **obnovení QR kódů stolů**, kdyby kód unikl.
 
-### 📸 Ukázky
+---
 
-**Úvod pro admina a obsluhu.** Po přihlášení zaměstnanec místo menu vidí ovládací panel: přepínač Otevřeno, živá čísla a barevné dlaždice s nástroji. Každý nástroj má vždy stejnou barvu, pozadí se mění podle palety podniku. Vlevo admin (7 nástrojů), vpravo obsluha (jen Objednávky, Docházka a Stoly).
+## 📸 Ukázky
 
-![Úvod pro admina a obsluhu](docs/screenshots/uvod-admin-a-obsluha.png)
+Klepnutím na název skupiny se snímky rozbalí.
 
-**Červená čísla na dlaždicích** ukazují, co čeká na vyřízení: nové objednávky a požadavky zákazníků, nepotvrzené rezervace a u admina možná zapomenuté odchody.
+<details>
+<summary><b>☕ Zákazník: menu, oblíbené, rezervace, razítková karta</b></summary>
 
-<img src="docs/screenshots/cisla-na-dlazdicich.png" alt="Červená čísla na dlaždicích" width="600">
-
-**Tmavý režim.** Každý si v profilu (obsluha a admin tlačítkem s měsícem na úvodu) vybere světlý nebo tmavý vzhled, případně „Systém“ podle nastavení zařízení. Tmavé varianty všech palet aplikace dopočítá sama.
-
-![Tmavý režim](docs/screenshots/tmavy-rezim.png)
-
-**Oblíbené produkty.** Zákazník si srdíčkem označí, co si dává nejčastěji. Hned za „Vše“ se objeví štítek Oblíbené, který ukáže jen tyto produkty. Oblíbené se ukládají k účtu, takže je zákazník uvidí i na jiném zařízení.
-
-![Oblíbené produkty v menu](docs/screenshots/oblibene.png)
-
-**Rezervace stolu.** Zákazník vybere den, čas a počet osob. Nabízí se jen dny a časy, které admin nastavil v Nastavení podniku. Obsluha vidí čekající žádosti nahoře a při potvrzení může rovnou přidělit stůl. Stůl, který má v tu dobu jiná rezervace, nejde vybrat.
-
-![Nová rezervace a potvrzení obsluhou](docs/screenshots/rezervace.png)
-
-**Časy rezervací.** Každý podnik má jinou otevírací dobu, proto admin v Nastavení podniku určí pro každý den v týdnu první a poslední čas rezervace, nebo den vypne. Zákazníkovi se pak nabízí jen tyto dny a časy (na snímku vpravo chybí neděle). Když admin odchází s neuloženými změnami, aplikace se zeptá, jestli je uložit.
-
-![Časy rezervací v nastavení a nabídka pro zákazníka](docs/screenshots/casy-rezervaci.png)
-
-**Statistiky.** Admin vidí tržbu, počet objednávek a průměrnou útratu se srovnáním s předchozím obdobím, graf tržby (klepnutím na sloupec se ukáže detail), nejprodávanější produkty a tržbu podle kategorií.
-
-<img src="docs/screenshots/statistiky.png" alt="Statistiky pro admina" width="600">
-
-**Zaměstnanci.** Admin přidá nového zaměstnance do obsluhy jedním klepnutím. Zaměstnanec se zaregistruje jako zákazník a admin ho tu vyhledá. E-maily jsou na snímku rozmazané.
-
-<img src="docs/screenshots/zamestnanci.png" alt="Správa zaměstnanců" width="600">
-
-**Úvodní obrazovka podle typu podniku.** Admin zvolí typ podniku a barvu: změní se ilustrace (u kavárny s animovanou párou) i vzor v pozadí celé aplikace. Kavárna má kávová zrnka, cukrárna posypky, bar hvězdičky a pivnice bublinky.
-
-![Úvodní obrazovka pro kavárnu, cukrárnu, bar a pivnici](docs/screenshots/uvod-typy-podniku.png)
+&nbsp;
 
 **Menu s vlastními ikonami nápojů.** Každý druh kávy má svůj šálek nebo sklenici, aplikace je kreslí sama. Dole plovoucí lišta košíku.
 
 ![Menu s ikonami](docs/screenshots/menu-ikony.png)
 
-**Výběr ikony produktu.** Admin ikonu vybere, nebo nechá „Automaticky“ a aplikace ji odhadne podle názvu.
+**Oblíbené produkty.** Zákazník si srdíčkem označí, co si dává nejčastěji. Hned za „Vše“ se objeví štítek Oblíbené, který ukáže jen tyto produkty. Oblíbené se ukládají k účtu, takže je zákazník uvidí i na jiném zařízení.
 
-<img src="docs/screenshots/vyber-ikony.png" alt="Výběr ikony produktu" width="500">
+![Oblíbené produkty v menu](docs/screenshots/oblibene.png)
 
-**Docházka.** Vpravo obsluha: Příchod / Odchod a odpracované hodiny za měsíc. Vlevo admin: kdo je v práci a kolik kdo odpracoval.
+**Rezervace stolu.** Zákazník vybere den, čas a počet osob. Obsluha vidí čekající žádosti nahoře a při potvrzení může rovnou přidělit stůl.
 
-![Docházka obsluhy a přehled pro admina](docs/screenshots/dochazka.png)
-
-**Zapomenutý odchod.** Admin zadá čas odchodu (čas v budoucnosti aplikace nepřijme). Směna pak má poznámku „Odchod doplnil admin“.
-
-![Ukončení zapomenuté směny adminem](docs/screenshots/dochazka-oprava-adminem.png)
+![Nová rezervace a potvrzení obsluhou](docs/screenshots/rezervace.png)
 
 **Razítková karta.** Vlevo karta zákazníka v profilu: za každou kávu razítko, 10. políčko je dárek a při plné kartě zezelená. Vpravo admin v nastavení zvolí kategorii a kolikátý kus je zdarma.
 
@@ -151,13 +141,71 @@ Umí všechno co obsluha, a navíc:
 
 ![Odměna v košíku před a po uplatnění](docs/screenshots/karta-kosik.png)
 
-**Kontrola u obsluhy.** Obsluha u objednávky vidí, který kus je zdarma, a aplikace jí potvrdí, že zákazník měl kartu opravdu plnou. Vpravo stejná objednávka u zákazníka.
+**Tmavý režim.** Každý si v profilu (obsluha a admin tlačítkem s měsícem na úvodu) vybere světlý nebo tmavý vzhled, případně „Systém“ podle nastavení zařízení. Tmavé varianty všech palet aplikace dopočítá sama.
+
+![Tmavý režim](docs/screenshots/tmavy-rezim.png)
+
+</details>
+
+<details>
+<summary><b>👩‍🍳 Obsluha a admin: úvod, docházka, zaměstnanci, statistiky</b></summary>
+
+&nbsp;
+
+**Úvod pro admina a obsluhu.** Po přihlášení zaměstnanec místo menu vidí ovládací panel: přepínač Otevřeno, živá čísla a barevné dlaždice. Pozadí se mění podle palety podniku, barvy dlaždic zůstávají. (Snímek je z doby před přidáním rezervací, dnes má admin 8 dlaždic a obsluha 4.)
+
+![Úvod pro admina a obsluhu](docs/screenshots/uvod-admin-a-obsluha.png)
+
+**Červená čísla na dlaždicích** ukazují, co čeká na vyřízení: nové objednávky a požadavky zákazníků, nepotvrzené rezervace a u admina možná zapomenuté odchody.
+
+<img src="docs/screenshots/cisla-na-dlazdicich.png" alt="Červená čísla na dlaždicích" width="600">
+
+**Kontrola odměny u obsluhy.** Obsluha u objednávky vidí, který kus je zdarma, a aplikace jí potvrdí, že zákazník měl kartu opravdu plnou. Vpravo stejná objednávka u zákazníka.
 
 ![Odměna u obsluhy a v detailu objednávky](docs/screenshots/karta-overeni-obsluhou.png)
+
+**Docházka.** Vpravo obsluha: Příchod / Odchod a odpracované hodiny za měsíc. Vlevo admin: kdo je v práci a kolik kdo odpracoval.
+
+![Docházka obsluhy a přehled pro admina](docs/screenshots/dochazka.png)
+
+**Zapomenutý odchod.** Admin zadá čas odchodu (čas v budoucnosti aplikace nepřijme). Směna pak má poznámku „Odchod doplnil admin“.
+
+![Ukončení zapomenuté směny adminem](docs/screenshots/dochazka-oprava-adminem.png)
+
+**Zaměstnanci.** Admin přidá nového zaměstnance do obsluhy jedním klepnutím. Zaměstnanec se zaregistruje jako zákazník a admin ho tu vyhledá. E-maily jsou na snímku rozmazané.
+
+<img src="docs/screenshots/zamestnanci.png" alt="Správa zaměstnanců" width="600">
+
+**Statistiky.** Tržba, počet objednávek a průměrná útrata se srovnáním s předchozím obdobím, graf tržby (klepnutím na sloupec se ukáže detail), nejprodávanější produkty a tržba podle kategorií.
+
+<img src="docs/screenshots/statistiky.png" alt="Statistiky pro admina" width="600">
+
+</details>
+
+<details>
+<summary><b>🧑‍💼 Admin: nastavení podniku, menu, CSV, časy rezervací</b></summary>
+
+&nbsp;
+
+**Úvodní obrazovka podle typu podniku.** Admin zvolí typ podniku a barvu: změní se ilustrace (u kavárny s animovanou párou) i vzor v pozadí celé aplikace. Kavárna má kávová zrnka, cukrárna posypky, bar hvězdičky a pivnice bublinky.
+
+![Úvodní obrazovka pro kavárnu, cukrárnu, bar a pivnici](docs/screenshots/uvod-typy-podniku.png)
+
+**Přizpůsobení podniku.** Admin změní název, typ podniku a barvu. Vpravo živý náhled, vlevo stejná aplikace přebarvená pro cukrárnu „Cukřík“.
+
+![Nastavení podniku](docs/screenshots/nastaveni-podniku.png)
+
+**Časy rezervací.** Každý podnik má jinou otevírací dobu, proto admin pro každý den v týdnu určí první a poslední čas rezervace, nebo den vypne. Zákazníkovi se pak nabízí jen tyto dny a časy (na snímku vpravo chybí neděle).
+
+![Časy rezervací v nastavení a nabídka pro zákazníka](docs/screenshots/casy-rezervaci.png)
 
 **Košík a správa menu.** Vlevo košík zákazníka: produkt, který admin mezitím označil jako vyprodaný, se zešedí a objednat nejde, dokud ho zákazník neodebere. Vpravo správa menu s vyhledáváním a přepínačem vyprodáno.
 
 ![Košík a správa menu](docs/screenshots/kosik-a-sprava-menu.png)
+
+**Výběr ikony produktu.** Admin ikonu vybere, nebo nechá „Automaticky“ a aplikace ji odhadne podle názvu.
+
+<img src="docs/screenshots/vyber-ikony.png" alt="Výběr ikony produktu" width="500">
 
 **Nahrání menu ze souboru CSV.** Návod, jak má soubor vypadat, a výběr souboru (např. uloženého z Excelu).
 
@@ -167,9 +215,7 @@ Umí všechno co obsluha, a navíc:
 
 <img src="docs/screenshots/csv-kontrola-chyb.png" alt="Kontrola chyb v CSV" width="600">
 
-**Přizpůsobení podniku.** Admin změní název, typ podniku a barvu. Vpravo živý náhled, vlevo stejná aplikace přebarvená pro cukrárnu „Cukřík“.
-
-![Nastavení podniku](docs/screenshots/nastaveni-podniku.png)
+</details>
 
 ---
 
@@ -182,7 +228,7 @@ Umí všechno co obsluha, a navíc:
 | **Cloud Firestore** | databáze s živými aktualizacemi |
 | **Firestore Security Rules** | kdo smí co číst a měnit (zabezpečení na straně serveru) |
 | **Firebase Hosting** | zveřejnění aplikace na webu |
-| **CustomPainter** (Flutter) | sloupcový a prstencový graf ve statistikách, vlastní ikony nápojů, ilustrace na úvodní obrazovce (s animovanou párou) a vzor v pozadí podle typu podniku – aplikace je sama kreslí a přebarvuje podle barvy podniku |
+| **CustomPainter** (Flutter) | aplikace sama kreslí grafy ve statistikách, ikony nápojů, ilustraci na úvodu (s animovanou párou) a vzor v pozadí a přebarvuje je podle barvy podniku |
 | písmo **Lexend** | písmo navržené pro snadné čtení, přibalené přímo v aplikaci |
 | `qr_flutter` | generování QR kódů stolů |
 | `file_picker` | výběr CSV souboru s menu |
@@ -221,7 +267,9 @@ flowchart LR
     class Z,O,A role
 ```
 
-Aplikace se načte z **Firebase Hosting** (čárkovaná šipka). Obrazovky volají **služby**, které zajišťují přihlášení a práci s databází. Šipka mezi službami a pravidly vede oběma směry: aplikace data čte a zapisuje a databáze jí sama posílá změny, takže se nová objednávka obsluze ukáže hned. Hodnoty, které nastavuje programátor, jsou v konfiguraci (viz [Konfigurace vs. databáze](#️-konfigurace-vs-databáze)).
+- Aplikace se načte z **Firebase Hosting** (čárkovaná šipka).
+- Obrazovky volají **služby**, které zajišťují přihlášení a práci s databází.
+- Šipka mezi službami a pravidly vede oběma směry: aplikace data čte a zapisuje a databáze jí sama posílá změny. Nová objednávka se tak obsluze ukáže hned.
 
 ---
 
@@ -234,7 +282,7 @@ Nastavení aplikace je rozdělené na dvě části podle toho, **kdo ho mění a
 | Kdo mění | programátor | vedoucí podniku (admin) v aplikaci |
 | Kdy | při nasazení aplikace pro podnik | kdykoli za provozu |
 | Jak se změna projeví | upravit soubor, znovu sestavit a nahrát aplikaci | **hned, všem zákazníkům** |
-| Co obsahuje | adresa aplikace, **počet stolů**, délka kódu stolu, **barevné palety**, výchozí vzhled, limity (max. cena, délky textů, počet položek) | název, slogan, typ podniku, vybraná barva, otevřeno/zavřeno, oznámení, adresa, otevírací doba, Wi-Fi |
+| Co obsahuje | adresa aplikace, **počet stolů**, délka kódu stolu, **barevné palety**, výchozí vzhled, limity (max. cena, délky textů, počet položek, počet osob a rezervací…) | název, slogan, typ podniku, barva, otevřeno/zavřeno, oznámení, adresa, otevírací doba, Wi-Fi, razítková karta, časy rezervací |
 
 Konfigurace je v souborech [`lib/config/app_config.dart`](lib/config/app_config.dart) a [`lib/config/palettes.dart`](lib/config/palettes.dart).
 
@@ -251,7 +299,7 @@ Používám **Cloud Firestore**. Je to **NoSQL** databáze: data nejsou v tabulk
 - **přímé napojení na přihlašování**: bezpečnostní pravidla znají přihlášeného uživatele a jeho roli.
 
 ### Diagram databáze
-Klasický ER diagram je stavěný pro relační databáze s tabulkami a cizími klíči. Firestore pracuje s **kolekcemi dokumentů**, proto diagram ukazuje kolekce, jednotlivé dokumenty a **odkazy mezi nimi**. Pole každé kolekce jsou v tabulkách pod diagramem.
+Klasický ER diagram je stavěný pro relační databáze s tabulkami a cizími klíči. Firestore pracuje s **kolekcemi dokumentů**, proto diagram ukazuje kolekce, jednotlivé dokumenty a **odkazy mezi nimi**.
 
 ```mermaid
 flowchart TB
@@ -300,31 +348,26 @@ flowchart TB
 - **plná šipka** = odkaz pomocí ID (jako cizí klíč, správnost hlídají pravidla),
 - **čárkovaná šipka** = kopie dat nebo přidělení čísla.
 
-### Jak se ukládá objednávka
-Tady je vidět, k čemu slouží `orderNumbers/today` a co všechno kontrolují pravidla:
+### Přehled kolekcí
 
-```mermaid
-sequenceDiagram
-    actor Z as Zákazník
-    participant A as Aplikace
-    participant P as Pravidla
-    participant DB as Firestore
-    actor O as Obsluha
+| Kolekce | Co obsahuje | Odkazuje na |
+|---|---|---|
+| `users` | uživatelé, role, avatar, vzhled, oblíbené | – |
+| `categories` | kategorie menu a jejich pořadí | – |
+| `products` | produkty menu | `categories` |
+| `orders` | objednávky s vnořenými položkami | `users`, `tables` |
+| `orderNumbers/today` | poslední číslo objednávky (náhrada AUTO_INCREMENT) | – |
+| `requests` | Přivolat obsluhu, Chci zaplatit | `users`, `tables` |
+| `reservations` | rezervace stolů | `users` |
+| `tables` | stoly a jejich tajné kódy | – |
+| `activeShifts` | kdo je právě v práci | `users` |
+| `shifts` | hotové směny (docházka) | `users` |
+| `settings/venue` | nastavení podniku | – |
 
-    Z->>A: Objednat (stůl 4)
-    A->>DB: transakce: přečti orderNumbers/today
-    DB-->>A: last = 11, day = dnes
-    A->>P: ulož last = 12 a objednávku č. 12
-    Note over P: kód stolu sedí?<br/>číslo je z počítadla?<br/>čas je čas serveru?<br/>podnik má otevřeno?
-    P->>DB: vše v pořádku, uložit
-    DB-->>A: uloženo
-    A-->>Z: Objednávka č. 12 přijata
-    DB-->>O: nová objednávka se hned objeví
-```
+<details>
+<summary><b>Pole všech kolekcí (tabulky)</b></summary>
 
-Transakce zaručí, že když objednají dva zákazníci ve stejnou chvíli, jeden dostane č. 12 a druhý č. 13. Nikdy ne oba stejné číslo.
-
-### Kolekce
+&nbsp;
 
 #### `users`: uživatelé
 | Pole | Typ | Popis |
@@ -334,6 +377,9 @@ Transakce zaručí, že když objednají dva zákazníci ve stejnou chvíli, jed
 | `email` | text | e-mail |
 | `role` | text | `zakaznik` / `obsluha` / `admin` |
 | `createdAt` | čas | kdy byl profil založen |
+| `avatarIcon`, `avatarColor` | text | vybraný avatar (ikonka a barva) |
+| `themeMode` | text | vzhled: `system` / `light` / `dark` |
+| `favorites` | seznam | ID oblíbených produktů (nejvýš 100) |
 
 #### `categories`: kategorie menu
 | Pole | Typ | Popis |
@@ -350,6 +396,7 @@ Transakce zaručí, že když objednají dva zákazníci ve stejnou chvíli, jed
 | `price` | číslo | cena v Kč |
 | `categoryId` | text | **odkaz na kategorii** (cizí klíč) |
 | `description` | text | popis |
+| `icon` | text | vybraná ikona nápoje (prázdné = odhad podle názvu) |
 | `available` | ano/ne | `false` = vyprodáno |
 
 #### `orders`: objednávky
@@ -369,20 +416,11 @@ Transakce zaručí, že když objednají dva zákazníci ve stejnou chvíli, jed
 | `rewardDiscount` | číslo | kolik se za odměnu odečetlo (cena jednoho kusu) |
 | `rewardStamps` | číslo | kolik razítek odměna stála **v době objednání** |
 
-#### Jak se počítají razítka
-Razítka se **nikam neukládají**, aplikace je spočítá z objednávek zákazníka (jako `SUM` v SQL). Prochází je podle času, jako by obsluha razítkovala skutečnou kartičku:
-- **dokončená** objednávka přidá razítko za každý kus z kategorie karty (kus zdarma razítko nedává),
-- objednávka s odměnou odečte `rewardStamps`.
-
-Stav „dokončena“ smí nastavit jen obsluha, takže si zákazník razítka sám nepřidá. Počet razítek na odměnu se ukládá do každé objednávky s odměnou: když admin později změní „každou 10. kávu“ třeba na „každou 8.“, staré odměny se nepřepočítají. Je to stejný princip jako u ceny, objednávka si pamatuje údaje platné v době nákupu.
-
-#### Jak se počítají statistiky
-Statistiky se také **nikam neukládají**. Obrazovka načte objednávky od začátku předchozího období a spočítá z nich (jako `SUM`, `COUNT` a `GROUP BY` v SQL):
-- **tržbu** (součet `totalPrice`, tedy už po odečtení odměn), **počet objednávek** a **průměrnou útratu**,
-- **nejprodávanější produkty** a **tržbu podle kategorií** (seskupení položek podle názvu),
-- **graf** (součty po hodinách, nebo po dnech).
-
-Počítají se jen **dokončené** objednávky. Srovnání je férové: dnešek do 14:00 se porovná se včerejškem do 14:00, ne s celým včerejším dnem.
+#### `orderNumbers/today`: čísla objednávek
+| Pole | Typ | Popis |
+|---|---|---|
+| `last` | číslo | poslední přidělené číslo objednávky |
+| `day` | číslo | den, ke kterému číslo patří (`YYYYMMDD`) |
 
 #### `requests`: požadavky na obsluhu
 | Pole | Typ | Popis |
@@ -425,24 +463,58 @@ Počítají se jen **dokončené** objednávky. Srovnání je férové: dnešek 
 | `start`, `end` | čas | příchod a odchod |
 | `edited` | ano/ne | `true` = odchod doplnil admin (zaměstnanec se zapomněl odhlásit) |
 
-Při **Odchodu** se v jednom hromadném zápisu (**batch**) vytvoří hotová směna a smaže záznam v `activeShifts`: buď se povede obojí, nebo nic. Odpracované hodiny za měsíc se nikam neukládají, aplikace je sečte ze směn (jako `SUM` v SQL).
+#### `settings/venue`: nastavení podniku
+Jediný dokument s tím, co **mění admin přímo v aplikaci**:
+- vzhled: `name`, `slogan`, `color`, `type`,
+- provoz: `isOpen`, `announcement`, `address`, `openingHours`, `wifiName`, `wifiPassword`,
+- razítková karta: `loyaltyEnabled`, `loyaltyCategoryId`, `loyaltyGoal` (kolikátý kus je zdarma),
+- `reservationHours`: časy rezervací pro každý den v týdnu jako 7 textů `"08:00-20:00"` (prázdný text = ten den rezervace nejdou).
 
-#### `orderNumbers/today`: čísla objednávek (náhrada AUTO_INCREMENT)
-| Pole | Typ | Popis |
-|---|---|---|
-| `last` | číslo | poslední přidělené číslo objednávky |
-| `day` | číslo | den, ke kterému číslo patří (`YYYYMMDD`) |
+</details>
 
-V MySQL by objednávky dostávaly čísla 1, 2, 3… samy díky **AUTO_INCREMENT**. **Firestore nic takového nemá**: ID dokumentu je náhodný řetězec (např. `xK8f2mQa…`), který se obsluze špatně vyvolává. Proto si v tomto jediném dokumentu pamatuji poslední přidělené číslo:
+### Jak se ukládá objednávka
+Tady je vidět, k čemu slouží `orderNumbers/today` a co všechno kontrolují pravidla:
+
+```mermaid
+sequenceDiagram
+    actor Z as Zákazník
+    participant A as Aplikace
+    participant P as Pravidla
+    participant DB as Firestore
+    actor O as Obsluha
+
+    Z->>A: Objednat (stůl 4)
+    A->>DB: transakce: přečti orderNumbers/today
+    DB-->>A: last = 11, day = dnes
+    A->>P: ulož last = 12 a objednávku č. 12
+    Note over P: kód stolu sedí?<br/>číslo je z počítadla?<br/>čas je čas serveru?<br/>podnik má otevřeno?
+    P->>DB: vše v pořádku, uložit
+    DB-->>A: uloženo
+    A-->>Z: Objednávka č. 12 přijata
+    DB-->>O: nová objednávka se hned objeví
+```
+
+**Čísla objednávek (náhrada AUTO_INCREMENT).** V MySQL by objednávky dostávaly čísla 1, 2, 3… samy díky AUTO_INCREMENT. **Firestore nic takového nemá**: ID dokumentu je náhodný řetězec (např. `xK8f2mQa…`), který se obsluze špatně vyvolává. Proto si v dokumentu `orderNumbers/today` pamatuji poslední přidělené číslo:
 
 1. zákazník odešle objednávku,
-2. aplikace v **transakci** přečte `last`, zvýší ho o 1 a stejné číslo uloží do nové objednávky (`orders.number`),
-3. když je nový den (`day` se liší od dneška), začne znovu od 1.
+2. aplikace v **transakci** přečte `last`, zvýší ho o 1 a stejné číslo uloží do nové objednávky,
+3. když je nový den, začne znovu od 1.
 
-Transakce zaručí, že dva zákazníci objednávající ve stejnou chvíli nedostanou stejné číslo. Pravidla navíc hlídají, že číslo objednávky opravdu pochází z počítadla a že den se bere z hodin serveru.
+Transakce zaručí, že když objednají dva zákazníci ve stejnou chvíli, jeden dostane č. 12 a druhý č. 13, nikdy ne oba stejné číslo. Pravidla navíc hlídají, že číslo opravdu pochází z počítadla a že den se bere z hodin serveru.
 
-#### `settings/venue`: nastavení podniku
-Jediný dokument s tím, co **mění admin přímo v aplikaci**: `name`, `slogan`, `color`, `type`, `isOpen`, `announcement`, `address`, `openingHours`, `wifiName`, `wifiPassword` razítková karta `loyaltyEnabled`, `loyaltyCategoryId`, `loyaltyGoal` (kolikátý kus je zdarma) a `reservationHours`: časy rezervací pro každý den v týdnu jako 7 textů `"08:00-20:00"` (prázdný text = ten den rezervace nejdou). Proč to není v konfiguračním souboru, vysvětluje kapitola [Konfigurace vs. databáze](#️-konfigurace-vs-databáze).
+**Docházka.** Při Odchodu se v jednom hromadném zápisu (**batch**) vytvoří hotová směna a smaže záznam v `activeShifts`: buď se povede obojí, nebo nic.
+
+### Co se nikam neukládá
+Některé údaje aplikace **nepočítá dopředu ani neukládá**, ale spočítá je z existujících dat, podobně jako `SUM`, `COUNT` a `GROUP BY` v SQL. Nemůžou se tak „rozejít“ se skutečností.
+
+| Údaj | Z čeho se počítá |
+|---|---|
+| **Razítka na kartě** | z objednávek zákazníka podle času: **dokončená** objednávka přidá razítko za každý kus z kategorie karty (kus zdarma ne), objednávka s odměnou odečte `rewardStamps`. Stav „dokončena“ smí nastavit jen obsluha, takže si zákazník razítka sám nepřidá. |
+| **Statistiky** | z dokončených objednávek od začátku předchozího období: tržba (už po odečtení odměn), počet, průměrná útrata, nejprodávanější produkty a tržba podle kategorií (seskupení položek), graf po hodinách nebo dnech. Srovnání je férové: dnešek do 14:00 se porovná se včerejškem do 14:00. |
+| **Odpracované hodiny** | součet směn v daném měsíci |
+| **Červená čísla na dlaždicích** | z objednávek, požadavků, rezervací a docházky, které obsluha stejně sleduje |
+
+Počet razítek na odměnu se ukládá do každé objednávky s odměnou. Když admin později změní „každou 10. kávu“ třeba na „každou 8.“, staré odměny se nepřepočítají. Je to stejný princip jako u ceny: objednávka si pamatuje údaje platné v době nákupu.
 
 ### Vztahy
 - **uživatel 1 : N objednávky** (`orders.userId` → `users.uid`)
@@ -460,31 +532,39 @@ Jediný dokument s tím, co **mění admin přímo v aplikaci**: `name`, `slogan
 | **Kategorie** | samostatná kolekce `categories`, produkt na ni odkazuje přes `categoryId` | **Normalizace**: název kategorie je uložený jen jednou. Přejmenování změní jediný dokument a nehrozí překlepy v názvech. |
 | **Cizí klíče** | Firestore je sám nehlídá | Hlídají je **bezpečnostní pravidla**, např. produkt nejde uložit s neexistující kategorií a objednávka musí mít platný kód stolu. |
 | **Pořadové číslo objednávky** (AUTO_INCREMENT) | dokument `orderNumbers/today` zvyšovaný v **transakci** | Dva zákazníci objednávající ve stejnou chvíli nikdy nedostanou stejné číslo. |
+| **Mazání starých dat** | objednávky, rezervace a směny se nemažou | Slouží jako historie (statistiky, razítka, docházka). Obsluha načítá jen dnešní a budoucí data, takže staré záznamy aplikaci nezpomalují. |
 
 ---
 
 ## 🔒 Zabezpečení
 
-Pravidla v souboru [`firestore.rules`](firestore.rules) běží na serveru Firebase, takže je nejde obejít ani mimo aplikaci:
+Pravidla v souboru [`firestore.rules`](firestore.rules) běží na serveru Firebase, takže je nejde obejít ani mimo aplikaci. Co je výslovně nepovolené, je zakázané.
 
-- **role:** zákazník si nemůže sám přidělit roli obsluhy nebo admina. Admin smí jinému účtu přepnout jen zákazník ↔ obsluha, sobě ani jinému adminovi roli měnit nesmí,
-- **objednávky:** zákazník vytvoří objednávku jen sám za sebe, se správným **kódem stolu** a jen když má podnik otevřeno. Objednávka smí mít jen povolená pole, **číslo musí pocházet z počítadla** ve stejné transakci a **čas je čas serveru**,
-- **stav objednávky** mění jen obsluha, a to jen o jeden krok dopředu (Přijata → Připravuje se → Připravena → Dokončena),
-- **QR kódy:** tajné kódy stolů vidí jen obsluha a admin, vygenerovat nové smí jen admin. Kdo u stolu nesedí, nemůže k němu objednat ani přivolat obsluhu,
-- **požadavky:** ochrana proti spamu, další požadavek jde poslat až po vyřízení předchozího,
-- **rezervace:** zákazník rezervuje jen sám za sebe, jen do budoucna (nejvýš měsíc dopředu) a s rozumným počtem osob. Svou rezervaci smí jen zrušit. Potvrdit nebo odmítnout ji smí jen obsluha, stůl jí nikdo jiný nepřidělí,
-- **oddělení rolí:** obsluha a admin nemůžou vytvářet objednávky ani požadavky. Nezkreslují tak statistiky a nemůžou si sami dokončovat objednávky a sbírat razítka. Zákaznická část je pro ně jen náhled,
-- **menu a nastavení** mění jen admin. Obsluha smí přepnout jen Otevřeno / Zavřeno,
-- **čísla objednávek** se nulují jen v opravdu novém dni podle hodin serveru,
-- **docházka:** čas příchodu i odchodu je **čas serveru**, ne telefonu. Hotová směna vznikne jen spolu s odchodem a se stejným časem příchodu, jaký byl zapsaný. Směny už pak nejde změnit ani smazat. Admin smí zadat čas zapomenutého odchodu, ale jen po příchodu a ne v budoucnosti,
-- **razítková karta:** odměna musí stát přesně tolik razítek, kolik je právě nastaveno, a jde jen při zapnuté kartě. Objednávka za 0 Kč projde jen s odměnou. Jestli měl zákazník kartu opravdu plnou, pravidla spočítat neumí (musela by projít všechny jeho objednávky), proto to **ověřuje obsluha**: u objednávky vidí „karta ověřena ✓“, nebo červené upozornění,
-- všechna data se kontrolují i **tvarem** (typy, délky textů, povolené hodnoty).
+| Oblast | Co hlídají pravidla |
+|---|---|
+| **Role** | zákazník si nemůže sám přidělit roli obsluhy nebo admina. Admin smí jinému účtu přepnout jen zákazník ↔ obsluha, sobě ani jinému adminovi ne. |
+| **Oddělení rolí** | obsluha a admin nemůžou vytvářet objednávky, požadavky ani rezervace. Nezkreslují tak statistiky a nemůžou si sami dokončovat objednávky a sbírat razítka. |
+| **Objednávky** | zákazník objednává jen sám za sebe, se správným **kódem stolu** a jen když má podnik otevřeno. Objednávka smí mít jen povolená pole, **číslo z počítadla** a **čas serveru**. |
+| **Stav objednávky** | mění jen obsluha, a to jen o jeden krok dopředu (Přijata → Připravuje se → Připravena → Dokončena). |
+| **QR kódy** | tajné kódy stolů vidí jen obsluha a admin, nové smí vygenerovat jen admin. Kdo u stolu nesedí, nemůže k němu objednat ani přivolat obsluhu. |
+| **Požadavky** | ochrana proti spamu: další požadavek jde poslat až po vyřízení předchozího. |
+| **Rezervace** | zákazník rezervuje jen sám za sebe, jen do budoucna (nejvýš měsíc dopředu) a pro 1–12 osob. Svou rezervaci smí jen zrušit. Potvrdit nebo odmítnout ji smí jen obsluha. |
+| **Menu a nastavení** | mění jen admin. Obsluha smí přepnout jen Otevřeno / Zavřeno. |
+| **Čísla objednávek** | nulují se jen v opravdu novém dni podle hodin serveru. |
+| **Docházka** | příchod i odchod mají **čas serveru**, ne telefonu. Hotová směna vznikne jen spolu s odchodem. Směny pak nejde změnit ani smazat. Admin smí zadat čas zapomenutého odchodu, ale jen po příchodu a ne v budoucnosti. |
+| **Razítková karta** | odměna musí stát přesně tolik razítek, kolik je nastaveno, a jde jen při zapnuté kartě. Objednávka za 0 Kč projde jen s odměnou. |
+| **Tvar dat** | všechna data se kontrolují i **tvarem** (typy, délky textů, povolené hodnoty, např. název produktu nejvýš 60 znaků a cena nejvýš 10 000 Kč). |
 
-### Kontrola ceny objednávky
-Cenu počítá aplikace v mobilu zákazníka. Bezpečnostní pravidla Firestore neumí projít seznam položek a sečíst je, takže úplnou kontrolu by musela dělat serverová funkce (**Cloud Functions**). Ta ale vyžaduje placený tarif Firebase. Proto:
-- pravidla pohlídají, že cena je kladná, v rozumné výši a položek je rozumný počet,
-- **obsluha u každé objednávky vidí výrazné upozornění**, když součet položek nesedí s celkovou cenou nebo když se cena položky liší od aktuálního menu,
-- obsluha objednávku vždy předává osobně a platba probíhá u ní, takže podvod s cenou neprojde bez povšimnutí.
+### Co hlídá aplikace a obsluha (a proč ne pravidla)
+Bezpečnostní pravidla neumí projít víc dokumentů najednou ani sečíst seznam. Úplnou kontrolu by musela dělat serverová funkce (**Cloud Functions**), která ale vyžaduje placený tarif Firebase. Proto tyto věci hlídá aplikace, a ty důležité ještě obsluha:
+
+| Co | Kdo to hlídá | Proč to stačí |
+|---|---|---|
+| **Cena objednávky** | pravidla jen to, že je kladná a rozumně vysoká. Obsluha u každé objednávky vidí **výrazné upozornění**, když součet nesedí nebo cena položky nesouhlasí s menu. | Obsluha objednávku předává osobně a platba probíhá u ní. |
+| **Plná razítková karta** | obsluha u objednávky s odměnou vidí „karta ověřena ✓“, nebo červené upozornění | Pravidla by musela projít všechny objednávky zákazníka. |
+| **Obsazený stůl u rezervace** | aplikace nedovolí vybrat stůl, který má v tu dobu jiná rezervace | Rezervace potvrzuje vždy obsluha. |
+| **Časy rezervací a limit 3 rezervací** | aplikace nabízí jen povolené dny a časy a hlídá limit | Každá rezervace stejně čeká na potvrzení obsluhou. |
+| **Smazání jen prázdné kategorie** | aplikace | Smí to jen admin. |
 
 ---
 
@@ -494,14 +574,14 @@ Cenu počítá aplikace v mobilu zákazníka. Bezpečnostní pravidla Firestore 
 lib/
 ├── main.dart            spuštění aplikace, napojení na Firebase, téma podle nastavení
 ├── config/              KONFIGURACE: počet stolů, palety, výchozí vzhled, limity
-├── models/              datové třídy (Product, Order, Cart, VenueSettings…)
+├── models/              datové třídy (Product, Order, Cart, Reservation, VenueSettings…)
 ├── services/            práce s databází a přihlášením (ProductService, OrderService…)
-├── screens/             obrazovky (menu, košík, obsluha, správa menu…)
-├── widgets/             znovupoužitelné části obrazovek (karta produktu, okna…)
+├── screens/             obrazovky (menu, košík, obsluha, rezervace, správa menu…)
+├── widgets/             znovupoužitelné části obrazovek (karta produktu, grafy, okna…)
 ├── theme/               vzhled aplikace sestavený z vybrané palety
-└── utils/               pomocné funkce (formátování cen, čtení CSV…)
+└── utils/               pomocné funkce (formátování cen a dat, čtení CSV…)
 test/                    automatické testy
-docs/                    diagram databáze, ukázkové CSV menu
+docs/                    snímky obrazovky, ukázkové CSV menu
 firestore.rules          bezpečnostní pravidla databáze
 ```
 
@@ -534,22 +614,74 @@ firebase deploy --only hosting
 flutter test
 ```
 
-Projekt má **88 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`, `reservation_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze. Testují například:
+Projekt má **89 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`, `reservation_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze.
+
+Testují například:
 - objednávku od menu přes košík až po stav u obsluhy,
 - role (zákazník nevidí obsluhu, obsluha nevidí správu menu),
 - čtení CSV souboru a hlášení chybných řádků,
-- denní nulování čísel objednávek,
-- zavřený podnik (nejde objednat),
-- převod starých dat kategorií,
-- docházku (příchod, odchod, ukončení zapomenuté směny, noční směna přes půlnoc),
-- razítkovou kartu (počítání razítek, odměna v košíku, změna počtu razítek, odhalení neoprávněné odměny),
-- statistiky (období od pondělí, férové srovnání se stejně dlouhým úsekem, součty, žebříčky, graf),
-- rezervace (časy podle nastavení admina, zrušení zákazníkem, potvrzení se stolem u obsluhy, upozornění na brzký příchod hostů).
+- denní nulování čísel objednávek a zavřený podnik,
+- docházku (příchod, odchod, zapomenutá směna, noční směna přes půlnoc),
+- razítkovou kartu (počítání razítek, odměna v košíku, odhalení neoprávněné odměny),
+- statistiky (období, férové srovnání, součty, žebříčky, graf),
+- rezervace (časy podle nastavení, limit, zrušení, potvrzení se stolem, obsazené stoly, upozornění),
+- upozornění na neuložené změny v nastavení.
+
+**Co testy neověřují:** bezpečnostní pravidla. Falešná databáze pravidla nekontroluje, ta jsem ověřovala ručně ve skutečné aplikaci.
+
+---
+
+## 💰 Návrh zpoplatnění
+
+> Jen **návrh** do budoucna. Aplikace je teď zdarma a nic z této kapitoly není naprogramované.
+
+**Kdo platí:** hosté aplikaci používají **zdarma**, platí **podnik**. Stejně jako u pokladních systémů by šlo o **měsíční předplatné** (model *SaaS*, software jako služba): podnik si aplikaci nekupuje, ale platí za její používání, aktualizace a provoz serveru.
+
+### Tarify (orientační ceny)
+
+| | **Start** | **Standard** | **Pro** |
+|---|:---:|:---:|:---:|
+| **Cena** | 290 Kč / měsíc | 590 Kč / měsíc | 990 Kč / měsíc |
+| Menu, objednávky přes QR kód, obsluha, požadavky | ✅ | ✅ | ✅ |
+| Vzhled podniku (barvy, typ, oznámení) | ✅ | ✅ | ✅ |
+| Statistiky | jen dnešek | ✅ | ✅ |
+| Rezervace stolů | – | ✅ | ✅ |
+| Razítková karta | – | ✅ | ✅ |
+| Docházka zaměstnanců | – | – | ✅ |
+| Počet stolů | do 10 | do 30 | bez omezení |
+| Vlastní doména a aplikace s logem podniku | – | – | ✅ |
+
+- **30 dní zdarma** na vyzkoušení, při **roční platbě** dva měsíce zdarma.
+- **Jednorázově za příplatek:** nastavení podniku „na klíč“ (nahrání menu, tisk QR kódů na stoly).
+- Ceny jsou odhad: mají pokrýt náklady a být dostupné i pro malou kavárnu. Přesné ceny by chtěly průzkum trhu.
+
+### Do budoucna: online platby
+Zákazník by mohl zaplatit přímo v aplikaci přes **platební bránu**. Brána si bere poplatek z každé platby (řádově jednotky procent) a Brewly by mohlo přidat malý poplatek za transakci.
+
+Platby by otevřely i **objednávku předem s vyzvednutím** (kafe s sebou bez fronty). Tu jsem zatím nedělala, protože bez platby předem hrozí, že zákazník nepřijde a podnik zůstane s připravenou objednávkou.
+
+### Náklady provozu
+
+| Položka | Cena | Poznámka |
+|---|---|---|
+| **Firebase** | do limitů zdarma (tarif Spark), pak platba podle využití (tarif Blaze) | Blaze je potřeba i pro serverové funkce: úplná kontrola ceny, online platby |
+| **Google Play** (Android) | jednorázově 25 USD | zveřejnění aplikace v obchodě |
+| **App Store** (iPhone) | 99 USD ročně | navíc je potřeba počítač Mac |
+| **Doména** | stovky Kč ročně | jen pro tarif Pro |
+
+### Co by se v aplikaci muselo změnit
+1. **Víc podniků:** teď platí *jedna instalace = jeden podnik* (vlastní Firebase projekt). Pro prodej buď každý podnik dostane vlastní projekt (jednoduché, ale hodně ruční práce), nebo budou všechny podniky v jednom projektu a každý bude mít svá data odděleně (víc práce, ale lépe se to rozrůstá).
+2. **Tarif v databázi:** pravidla by podle tarifu povolila nebo zakázala funkce, např. rezervace jen ve Standard a Pro. Nestačí jen schovat tlačítko, to by šlo obejít.
+3. **Registrace podniku a placení předplatného** přes platební bránu s opakovanými platbami.
 
 ---
 
 ## 🗺️ Plánované funkce
 
+- 📱 **Aplikace pro Android**: stejný kód sestavený jako aplikace do telefonu.
+- 📷 **Skener QR kódů přímo v aplikaci**: tlačítko „Naskenovat stůl“.
+- 🥛 **Varianty produktů**: jiný druh mléka, bezkofeinová káva.
+- 💳 **Online platby** (viz [Návrh zpoplatnění](#-návrh-zpoplatnění)).
 
 ---
 
