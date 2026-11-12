@@ -49,3 +49,7 @@ app.*.map.json
 
 # Pokyny pro Claude (jen lokálně)
 CLAUDE.md
+
+# Testy pravidel (rules_test): nainstalované balíčky a záznamy emulátoru
+rules_test/node_modules/
+*-debug.log

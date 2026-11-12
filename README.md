@@ -12,7 +12,7 @@ Obsluha vidí objednávky, požadavky i rezervace živě. Vedoucí podniku (admi
 | **Kde běží** | v prohlížeči, na počítači i v mobilu |
 | **Technologie** | Flutter / Dart, Firebase (Authentication, Firestore, Hosting) |
 | **Zabezpečení** | bezpečnostní pravidla databáze na serveru |
-| **Testy** | 89 automatických testů |
+| **Testy** | 89 testů aplikace + 70 testů bezpečnostních pravidel |
 
 ---
 
@@ -580,7 +580,8 @@ lib/
 ├── widgets/             znovupoužitelné části obrazovek (karta produktu, grafy, okna…)
 ├── theme/               vzhled aplikace sestavený z vybrané palety
 └── utils/               pomocné funkce (formátování cen a dat, čtení CSV…)
-test/                    automatické testy
+test/                    automatické testy aplikace (Dart)
+rules_test/              automatické testy bezpečnostních pravidel (JavaScript, emulátor)
 docs/                    snímky obrazovky, ukázkové CSV menu
 firestore.rules          bezpečnostní pravidla databáze
 ```
@@ -627,7 +628,29 @@ Testují například:
 - rezervace (časy podle nastavení, limit, zrušení, potvrzení se stolem, obsazené stoly, upozornění),
 - upozornění na neuložené změny v nastavení.
 
-**Co testy neověřují:** bezpečnostní pravidla. Falešná databáze pravidla nekontroluje, ta jsem ověřovala ručně ve skutečné aplikaci.
+### Testy bezpečnostních pravidel
+
+Falešná databáze v testech aplikace pravidla nekontroluje. Proto mají pravidla **vlastní testy** ve složce [`rules_test`](rules_test). Běží proti **emulátoru Firestore**, tedy kopii databáze na počítači, která používá skutečný soubor `firestore.rules`. Skutečná databáze se při nich nikdy nezmění.
+
+Testy jsou v JavaScriptu, protože nástroj Firebase pro testování pravidel (`@firebase/rules-unit-testing`) jiný jazyk nepodporuje. Každý test zkouší, že pravidla **povolí** správnou akci, nebo že **zakážou** podvod:
+
+| Soubor | Co testuje |
+|---|---|
+| `users.test.js` | nikdo si sám nedá roli obsluhy nebo admina, admin mění jen zákazník ↔ obsluha |
+| `orders.test.js` | kód stolu, číslo z počítadla, zavřený podnik, odměny, stav jen o krok dopředu |
+| `menu_settings.test.js` | menu a nastavení mění jen admin, limity produktů, kódy stolů |
+| `requests_reservations.test.js` | ochrana proti spamu u požadavků, rezervace (čas, počet osob, potvrzení) |
+| `attendance.test.js` | čas serveru, směna jen spolu s odchodem, oprava zapomenutého odchodu adminem |
+
+Spuštění (potřebuje [Node.js](https://nodejs.org/), [Javu 21](https://adoptium.net/) a Firebase CLI):
+
+```bash
+cd rules_test
+npm install
+npm test
+```
+
+Že testy opravdu umí chybu najít, jsem ověřila tak, že jsem v pravidlech schválně vypnula kontrolu kódu stolu. Test „objednávka se špatným kódem stolu NEprojde“ pak selhal.
 
 ---
 

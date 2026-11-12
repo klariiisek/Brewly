@@ -1,0 +1,12 @@
+{
+  "name": "brewly-rules-test",
+  "private": true,
+  "description": "Automatické testy bezpečnostních pravidel Firestore (firestore.rules) v emulátoru",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project demo-brewly \"node --test --test-concurrency=1\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.19.0"
+  }
+}
