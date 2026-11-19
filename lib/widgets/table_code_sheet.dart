@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/cart.dart';
 import '../services/table_service.dart';
 import '../theme/app_theme.dart';
+import '../l10n/language.dart';
 
 // Zeptá se zákazníka na kód stolu (okno zespodu). Když ho zadá správně,
 // uloží stůl do košíku a vrátí true.
@@ -59,7 +60,7 @@ class _TableCodeSheetState extends State<_TableCodeSheet> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'U kterého stolu sedíte?',
+                  context.t.whichTable,
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -68,8 +69,7 @@ class _TableCodeSheetState extends State<_TableCodeSheet> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Naskenujte QR kód na stole fotoaparátem, '
-                  'nebo opište kód, který je pod ním.',
+                  context.t.tableCodeHint,
                   style: TextStyle(color: context.colors.muted),
                 ),
                 const SizedBox(height: 16),
@@ -77,13 +77,13 @@ class _TableCodeSheetState extends State<_TableCodeSheet> {
                   controller: codeController,
                   autofocus: true,
                   textCapitalization: TextCapitalization.characters,
-                  decoration: const InputDecoration(
-                    labelText: 'Kód stolu (např. 4-K7P2X9)',
-                    prefixIcon: Icon(Icons.qr_code_2),
+                  decoration: InputDecoration(
+                    labelText: context.t.tableCodeLabel,
+                    prefixIcon: const Icon(Icons.qr_code_2),
                   ),
                   validator: (value) =>
                       parseShortTableCode(value ?? '') == null
-                          ? 'Kód má tvar číslo stolu, pomlčka a 6 znaků'
+                          ? context.t.tableCodeFormat
                           : null,
                   onFieldSubmitted: (_) => confirm(),
                 ),
@@ -92,7 +92,7 @@ class _TableCodeSheetState extends State<_TableCodeSheet> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: confirm,
-                    child: const Text('Potvrdit stůl'),
+                    child: Text(context.t.confirmTable),
                   ),
                 ),
               ],

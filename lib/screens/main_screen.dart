@@ -14,6 +14,7 @@ import 'menu_screen.dart';
 import 'order_detail_screen.dart';
 import 'order_history_screen.dart';
 import 'profile_screen.dart';
+import '../l10n/language.dart';
 
 // Hlavní obrazovka zákazníka se spodní lištou: Menu | Košík | Objednávky | Profil.
 //
@@ -132,7 +133,7 @@ class _MainScreenState extends State<MainScreen> {
       MaterialBanner(
         leading: const Text('🎉', style: TextStyle(fontSize: 28)),
         content: Text(
-          'Vaše objednávka č. ${order.number} je připravená!',
+          context.t.orderReady(order.number),
           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -141,11 +142,11 @@ class _MainScreenState extends State<MainScreen> {
               messenger.hideCurrentMaterialBanner();
               openOrder(order.id);
             },
-            child: const Text('Zobrazit'),
+            child: Text(context.t.show),
           ),
           TextButton(
             onPressed: messenger.hideCurrentMaterialBanner,
-            child: const Text('OK'),
+            child: Text(context.t.ok),
           ),
         ],
       ),
@@ -157,7 +158,7 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> toggleFavorite(Product product) async {
     final user = widget.services.auth.currentUser;
     if (user == null) {
-      showAppMessage(context, 'Pro oblíbené produkty se prosím přihlaste');
+      showAppMessage(context, context.t.signInForFavorites);
       return;
     }
     final isFavorite = !favorites.contains(product.id);
@@ -165,7 +166,7 @@ class _MainScreenState extends State<MainScreen> {
       await widget.services.users.setFavorite(user.uid, product.id, isFavorite);
     } catch (error) {
       if (!mounted) return;
-      showAppMessage(context, 'Oblíbené se nepodařilo uložit');
+      showAppMessage(context, context.t.favoritesSaveFailed);
     }
   }
 
@@ -243,10 +244,10 @@ class _MainScreenState extends State<MainScreen> {
         selectedIndex: selectedIndex,
         onDestinationSelected: goToTab,
         destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.local_cafe_outlined),
-            selectedIcon: Icon(Icons.local_cafe),
-            label: 'Menu',
+          NavigationDestination(
+            icon: const Icon(Icons.local_cafe_outlined),
+            selectedIcon: const Icon(Icons.local_cafe),
+            label: context.t.navMenu,
           ),
           NavigationDestination(
             icon: Badge(
@@ -259,17 +260,17 @@ class _MainScreenState extends State<MainScreen> {
               isLabelVisible: cart.itemCount > 0,
               child: const Icon(Icons.shopping_bag),
             ),
-            label: 'Košík',
+            label: context.t.navCart,
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long),
-            label: 'Objednávky',
+          NavigationDestination(
+            icon: const Icon(Icons.receipt_long_outlined),
+            selectedIcon: const Icon(Icons.receipt_long),
+            label: context.t.navOrders,
           ),
-          const NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profil',
+          NavigationDestination(
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: const Icon(Icons.person),
+            label: context.t.navProfile,
           ),
         ],
       ),

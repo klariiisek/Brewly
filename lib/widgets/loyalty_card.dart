@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/loyalty.dart';
 import '../models/venue_settings.dart';
 import '../theme/app_theme.dart';
-import '../utils/format.dart';
+import '../l10n/language.dart';
 
 // Razítková karta jako papírová kartička: řada políček, orazítkovaná mají
 // ikonu podniku, poslední políčko je dárek (odměna).
@@ -51,7 +51,7 @@ class LoyaltyCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Razítková karta',
+                  context.t.loyaltyCard,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -72,8 +72,7 @@ class LoyaltyCard extends StatelessWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
-              'Za každý kus z kategorie $categoryName jedno razítko. '
-              'Každý ${status.goal}. kus máte zdarma.',
+              context.t.loyaltyRule(categoryName, '${status.goal}'),
               style: TextStyle(color: colors.muted, fontSize: 13),
             ),
           ),
@@ -106,9 +105,11 @@ class LoyaltyCard extends StatelessWidget {
           const SizedBox(height: 14),
           Text(
             status.hasReward
-                ? '🎉 ${status.goal}. kus máte zdarma! Uplatníte ho v košíku.'
-                : 'Ještě ${formatStampCount(status.missing)} '
-                    'a ${status.goal}. kus máte zdarma.',
+                ? context.t.loyaltyReady('${status.goal}')
+                : context.t.loyaltyMissing(
+                    context.t.stampCount(status.missing),
+                    '${status.goal}',
+                  ),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontWeight: FontWeight.w600,

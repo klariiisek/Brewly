@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../models/venue_settings.dart';
 import '../theme/app_theme.dart';
 import 'app_message.dart';
+import '../l10n/language.dart';
 
 // Otevře zespodu okno s informacemi o podniku: adresa, otevírací doba, Wi-Fi.
 void showVenueInfo(BuildContext context) {
@@ -47,7 +48,7 @@ class VenueInfoSheet extends StatelessWidget {
             const SizedBox(height: 4),
             // Otevřeno / zavřeno podle přepínače obsluhy.
             Text(
-              venue.isOpen ? '● Teď máme otevřeno' : '● Teď máme zavřeno',
+              venue.isOpen ? context.t.nowOpen : context.t.nowClosed,
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 color: venue.isOpen
@@ -58,16 +59,21 @@ class VenueInfoSheet extends StatelessWidget {
             const SizedBox(height: 16),
             if (!venue.hasInfo)
               Text(
-                'Podnik zatím nevyplnil žádné informace.',
+                context.t.noVenueInfo,
                 style: TextStyle(color: context.colors.muted),
               ),
             if (venue.address.isNotEmpty)
-              buildRow(context, Icons.place_outlined, 'Adresa', venue.address),
+              buildRow(
+                context,
+                Icons.place_outlined,
+                context.t.address,
+                venue.address,
+              ),
             if (venue.openingHours.isNotEmpty)
               buildRow(
                 context,
                 Icons.schedule,
-                'Otevírací doba',
+                context.t.openingHours,
                 venue.openingHours,
               ),
             if (venue.wifiName.isNotEmpty) buildWifi(context, venue),
@@ -141,7 +147,7 @@ class VenueInfoSheet extends StatelessWidget {
                 ),
                 if (venue.wifiPassword.isNotEmpty)
                   SelectableText(
-                    'Heslo: ${venue.wifiPassword}',
+                    context.t.wifiPassword(venue.wifiPassword),
                     style: TextStyle(color: context.colors.dark),
                   ),
               ],
@@ -150,13 +156,13 @@ class VenueInfoSheet extends StatelessWidget {
           if (venue.wifiPassword.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.copy),
-              tooltip: 'Zkopírovat heslo',
+              tooltip: context.t.copyPassword,
               onPressed: () async {
                 await Clipboard.setData(
                   ClipboardData(text: venue.wifiPassword),
                 );
                 if (!context.mounted) return;
-                showAppMessage(context, 'Heslo zkopírováno');
+                showAppMessage(context, context.t.passwordCopied);
               },
             ),
         ],

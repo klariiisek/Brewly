@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/order_progress.dart';
+import '../l10n/language.dart';
 
 // Detail objednávky. Sleduje objednávku v databázi živě,
 // takže zákazník hned vidí, když obsluha změní stav.
@@ -42,7 +43,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         return Scaffold(
           appBar: AppBar(
             title: Text(
-              order == null ? 'Objednávka' : 'Objednávka #${order.number}',
+              order == null
+                  ? context.t.order
+                  : context.t.orderNumber(order.number),
             ),
           ),
           body: buildBody(snapshot, order),
@@ -53,20 +56,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   Widget buildBody(AsyncSnapshot<Order?> snapshot, Order? order) {
     if (snapshot.hasError) {
-      return const EmptyState(
+      return EmptyState(
         icon: Icons.cloud_off,
-        title: 'Objednávku se nepodařilo načíst',
-        message: 'Zkontrolujte připojení k internetu.',
+        title: context.t.orderLoadFailed,
+        message: context.t.checkConnection,
       );
     }
     if (snapshot.connectionState == ConnectionState.waiting) {
       return const Center(child: CircularProgressIndicator());
     }
     if (order == null) {
-      return const EmptyState(
+      return EmptyState(
         icon: Icons.search_off,
-        title: 'Objednávka nenalezena',
-        message: 'Tato objednávka už v databázi není.',
+        title: context.t.orderNotFound,
+        message: context.t.orderNotFoundHint,
       );
     }
 
@@ -88,7 +91,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         size: 18, color: context.colors.muted),
                     const SizedBox(width: 6),
                     Text(
-                      'Stůl ${order.tableNumber} • ${formatOrderDate(order.time)}',
+                      context.t.tableAndDate(
+                        order.tableNumber,
+                        orderDate(context.t, order.time),
+                      ),
                       style: TextStyle(color: context.colors.muted),
                     ),
                   ],
@@ -131,10 +137,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         const Icon(Icons.card_giftcard,
                             size: 20, color: AppColors.success),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Odměna z razítkové karty',
-                            style: TextStyle(color: AppColors.success),
+                            context.t.loyaltyReward,
+                            style: const TextStyle(color: AppColors.success),
                           ),
                         ),
                         Text(
@@ -147,9 +153,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 const Divider(height: 24),
                 Row(
                   children: [
-                    const Text(
-                      'Celkem',
-                      style: TextStyle(
+                    Text(
+                      context.t.total,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),

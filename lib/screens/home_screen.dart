@@ -14,6 +14,8 @@ import 'login_screen.dart';
 import 'main_screen.dart';
 import 'reservations_screen.dart';
 import 'staff_home_screen.dart';
+import '../l10n/language.dart';
+import '../widgets/language_button.dart';
 
 class HomeScreen extends StatefulWidget {
   final Cart cart;
@@ -51,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // Rezervace jsou vázané na účet – nepřihlášeného nejdřív pošleme přihlásit.
   void openReservations(User? user) {
     if (user == null) {
-      showAppMessage(context, 'Pro rezervaci se prosím přihlaste');
+      showAppMessage(context, context.t.signInToReserve);
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -72,7 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> signOut() async {
     await widget.services.auth.signOut();
     if (!mounted) return;
-    showAppMessage(context, 'Byli jste odhlášeni');
+    showAppMessage(context, context.t.signedOut);
   }
 
   @override
@@ -116,20 +118,27 @@ class _HomeScreenState extends State<HomeScreen> {
   // Na velké obrazovce (počítač) zůstane obsah úzký uprostřed,
   // na malé se dá posouvat.
   Widget buildCustomerHome(User? user) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: Column(
-            children: [
-              buildWelcome(user),
-              const SizedBox(height: 32),
-              buildButtons(user),
-            ],
+    // Přepnutí jazyka (English / Čeština) je v rohu nad obsahem,
+    // aby nic neposouvalo.
+    return Stack(
+      children: [
+        Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                children: [
+                  buildWelcome(user),
+                  const SizedBox(height: 32),
+                  buildButtons(user),
+                ],
+              ),
+            ),
           ),
         ),
-      ),
+        const Positioned(top: 4, right: 8, child: LanguageButton()),
+      ],
     );
   }
 
@@ -201,7 +210,7 @@ class _HomeScreenState extends State<HomeScreen> {
           if (user != null) ...[
             const SizedBox(height: 6),
             Text(
-              'Vítejte, ${userDisplayName(user)}',
+              context.t.welcomeUser(userDisplayName(user)),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 15,
@@ -269,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Icon(Icons.circle, size: 8, color: color),
               const SizedBox(width: 6),
               Text(
-                venue.isOpen ? 'Otevřeno' : 'Zavřeno',
+                venue.isOpen ? context.t.open : context.t.closed,
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -304,7 +313,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               );
             },
-            child: const Text('Prohlédnout menu'),
+            child: Text(context.t.browseMenu),
           ),
         ),
         const SizedBox(height: 12),
@@ -312,7 +321,7 @@ class _HomeScreenState extends State<HomeScreen> {
           width: double.infinity,
           child: OutlinedButton.icon(
             icon: const Icon(Icons.event_seat_outlined),
-            label: const Text('Rezervovat stůl'),
+            label: Text(context.t.reserveTable),
             onPressed: () => openReservations(user),
           ),
         ),
@@ -331,11 +340,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     );
                   },
-                  child: const Text('Přihlásit se'),
+                  child: Text(context.t.signIn),
                 )
               : OutlinedButton(
                   onPressed: signOut,
-                  child: const Text('Odhlásit se'),
+                  child: Text(context.t.signOut),
                 ),
         ),
         // Adresa, otevírací doba, Wi-Fi – jen když je admin vyplnil.
@@ -344,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.only(top: 8),
             child: TextButton.icon(
               icon: const Icon(Icons.info_outline, size: 18),
-              label: const Text('Informace o podniku'),
+              label: Text(context.t.venueInfo),
               onPressed: () => showVenueInfo(context),
             ),
           ),

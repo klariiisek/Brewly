@@ -16,6 +16,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/drink_icon.dart';
 import '../widgets/table_code_sheet.dart';
 import 'login_screen.dart';
+import '../l10n/language.dart';
 
 class CartScreen extends StatefulWidget {
   final Cart cart;
@@ -87,13 +88,13 @@ class _CartScreenState extends State<CartScreen> {
   Future<void> placeOrder() async {
     // Pojistka: když má podnik zavřeno, objednat nejde.
     if (!VenueScope.of(context).isOpen) {
-      showAppMessage(context, 'Teď máme zavřeno, objednat zatím nejde');
+      showAppMessage(context, context.t.closedCannotOrder);
       return;
     }
 
     // Pojistka: s vyprodaným produktem v košíku nejde objednat.
     if (widget.cart.hasUnavailableItems) {
-      showAppMessage(context, 'Nejdřív odeberte z košíku vyprodané produkty');
+      showAppMessage(context, context.t.removeSoldOutFirst);
       return;
     }
 
@@ -108,7 +109,7 @@ class _CartScreenState extends State<CartScreen> {
     // otevře se přihlášení a po něm se objednávka dokončí.
     var user = widget.services.auth.currentUser;
     if (user == null) {
-      showAppMessage(context, 'Pro objednání se prosím přihlaste');
+      showAppMessage(context, context.t.signInToOrder);
       final loggedIn = await Navigator.push<bool>(
         context,
         MaterialPageRoute(
@@ -146,13 +147,13 @@ class _CartScreenState extends State<CartScreen> {
         widget.cart.clear();
       });
       widget.onCartChanged();
-      showAppMessage(context, 'Objednávka byla odeslána');
+      showAppMessage(context, context.t.orderSent);
       widget.onOrderCreated(orderId);
     } on FirebaseException catch (error) {
       if (!mounted) return;
       if (error.code == 'permission-denied' && !VenueScope.of(context).isOpen) {
         // Podnik mezitím zavřel – databáze objednávku odmítla.
-        showAppMessage(context, 'Teď máme zavřeno, objednat zatím nejde');
+        showAppMessage(context, context.t.closedCannotOrder);
       } else if (error.code == 'permission-denied' &&
           widget.cart.rewardItem != null) {
         // Databáze odmítla odměnu – např. admin mezitím změnil počet razítek
@@ -160,8 +161,7 @@ class _CartScreenState extends State<CartScreen> {
         setState(widget.cart.clearReward);
         showAppMessage(
           context,
-          'Odměnu se nepodařilo uplatnit, razítková karta se mezitím změnila. '
-          'Zkuste to prosím znovu.',
+          context.t.rewardFailed,
         );
       } else if (error.code == 'permission-denied') {
         // Databáze objednávku odmítla. Nejčastěji kvůli kódu stolu (špatně
@@ -171,16 +171,15 @@ class _CartScreenState extends State<CartScreen> {
         setState(() => widget.cart.clearTable());
         showAppMessage(
           context,
-          'Objednávku se nepodařilo odeslat. Naskenujte prosím QR kód na stole '
-          'znovu a zkontrolujte, že máte v telefonu správné datum a čas.',
+          context.t.orderDenied,
         );
       } else {
-        showAppMessage(context, 'Objednávku se nepodařilo odeslat');
+        showAppMessage(context, context.t.orderFailed);
       }
     } catch (error) {
       // Např. bez internetu: košík zůstane, zákazník to může zkusit znovu.
       if (!mounted) return;
-      showAppMessage(context, 'Objednávku se nepodařilo odeslat');
+      showAppMessage(context, context.t.orderFailed);
     } finally {
       if (mounted) {
         setState(() {
@@ -193,7 +192,7 @@ class _CartScreenState extends State<CartScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Košík')),
+      appBar: AppBar(title: Text(context.t.navCart)),
       // Při každé změně menu (cena, vyprodáno, smazání) se košík překreslí.
       body: StreamBuilder<List<Product>>(
         stream: productsStream,
@@ -213,9 +212,9 @@ class _CartScreenState extends State<CartScreen> {
     return items.isEmpty
           ? EmptyState(
               icon: Icons.shopping_bag_outlined,
-              title: 'Košík je prázdný',
-              message: 'Vyberte si něco dobrého z menu.',
-              buttonText: 'Přejít do menu',
+              title: context.t.cartEmpty,
+              message: context.t.cartEmptyHint,
+              buttonText: context.t.goToMenu,
               onPressed: widget.onGoToMenu,
             )
           : Column(
@@ -238,9 +237,9 @@ class _CartScreenState extends State<CartScreen> {
   // Vyprodaná nebo smazaná položka je zešedlá, s upozorněním a košem.
   Widget buildCartItem(CartItem item) {
     final problem = !item.isInMenu
-        ? 'Už není v nabídce – odeberte ji'
+        ? context.t.noLongerOffered
         : !item.product.isAvailable
-            ? 'Vyprodáno – odeberte z košíku'
+            ? context.t.soldOutRemove
             : null;
 
     return Card(
@@ -261,7 +260,7 @@ class _CartScreenState extends State<CartScreen> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.delete_outline),
-                    tooltip: 'Odebrat',
+                    tooltip: context.t.remove,
                     onPressed: () => decrease(item),
                   ),
                   Text(
@@ -280,7 +279,9 @@ class _CartScreenState extends State<CartScreen> {
                 icon: Icon(
                   item.quantity > 1 ? Icons.remove : Icons.delete_outline,
                 ),
-                tooltip: item.quantity > 1 ? 'Snížit množství' : 'Odebrat',
+                tooltip: item.quantity > 1
+                    ? context.t.decreaseQuantity
+                    : context.t.remove,
                 onPressed: () => decrease(item),
               ),
               Text(
@@ -290,7 +291,7 @@ class _CartScreenState extends State<CartScreen> {
               ),
               IconButton(
                 icon: const Icon(Icons.add),
-                tooltip: 'Zvýšit množství',
+                tooltip: context.t.increaseQuantity,
                 onPressed: () => increase(item),
               ),
             ],
@@ -356,7 +357,7 @@ class _CartScreenState extends State<CartScreen> {
           Row(
             children: [
               Text(
-                'Stůl',
+                context.t.table,
                 style: TextStyle(fontSize: 16, color: context.colors.muted),
               ),
               const Spacer(),
@@ -365,8 +366,8 @@ class _CartScreenState extends State<CartScreen> {
                 icon: const Icon(Icons.qr_code_2, size: 20),
                 label: Text(
                   widget.cart.hasTable
-                      ? 'Stůl ${widget.cart.tableNumber}'
-                      : 'Zadat kód stolu',
+                      ? context.t.tableTitle(widget.cart.tableNumber!)
+                      : context.t.enterTableCode,
                 ),
                 onPressed: () async {
                   await askForTableCode(context, widget.cart);
@@ -379,9 +380,9 @@ class _CartScreenState extends State<CartScreen> {
           buildReward(),
           Row(
             children: [
-              const Text(
-                'Celkem',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              Text(
+                context.t.total,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
               Text(
@@ -398,21 +399,21 @@ class _CartScreenState extends State<CartScreen> {
           if (widget.isPreview) ...[
             const SizedBox(height: 12),
             Text(
-              'Náhled pro obsluhu a admina – objednávat mohou jen zákazníci.',
+              context.t.previewOnly,
               textAlign: TextAlign.center,
               style: TextStyle(color: context.colors.muted),
             ),
           ] else if (!isOpen) ...[
             const SizedBox(height: 12),
             Text(
-              'Teď máme zavřeno, objednat zatím nejde.',
+              context.t.closedCannotOrderDot,
               textAlign: TextAlign.center,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ] else if (widget.cart.hasUnavailableItems) ...[
             const SizedBox(height: 12),
             Text(
-              'V košíku je vyprodaný produkt. Odeberte ho, prosím.',
+              context.t.soldOutInCart,
               textAlign: TextAlign.center,
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
@@ -430,7 +431,7 @@ class _CartScreenState extends State<CartScreen> {
                       widget.cart.hasUnavailableItems
                   ? null
                   : placeOrder,
-              child: Text(isSending ? 'Odesílám…' : 'Objednat'),
+              child: Text(isSending ? context.t.sending : context.t.placeOrder),
             ),
           ),
         ],
@@ -474,19 +475,25 @@ class _CartScreenState extends State<CartScreen> {
     if (rewardItem != null) {
       return row(
         Icons.card_giftcard,
-        '${rewardItem.product.name} zdarma  −${formatPrice(cart.rewardDiscount)}',
+        context.t.rewardFree(
+          rewardItem.product.name,
+          formatPrice(cart.rewardDiscount),
+        ),
         color: AppColors.success,
         trailing: TextButton(
           onPressed: () => setState(cart.clearReward),
-          child: const Text('Zrušit'),
+          child: Text(context.t.cancel),
         ),
       );
     }
     if (!status.hasReward) {
       return row(
         Icons.loyalty_outlined,
-        'Razítková karta: ${status.filled}/${status.needed} – '
-        'do odměny zbývá ${formatStampCount(status.missing)}',
+        context.t.loyaltyProgress(
+          '${status.filled}',
+          '${status.needed}',
+          context.t.stampCount(status.missing),
+        ),
       );
     }
     // Plná karta, ale v košíku není nic z kategorie karty.
@@ -494,7 +501,7 @@ class _CartScreenState extends State<CartScreen> {
     if (best == null) {
       return row(
         Icons.card_giftcard,
-        'Máte plnou razítkovou kartu! Přidejte si něco z menu a bude to zdarma.',
+        context.t.loyaltyFullHint,
         color: AppColors.success,
       );
     }
@@ -504,7 +511,7 @@ class _CartScreenState extends State<CartScreen> {
         width: double.infinity,
         child: OutlinedButton.icon(
           icon: const Icon(Icons.card_giftcard),
-          label: Text('Uplatnit odměnu: ${best.product.name} zdarma'),
+          label: Text(context.t.useReward(best.product.name)),
           onPressed: () {
             setState(() => cart.useReward(venue.loyaltyCategoryId));
             widget.onCartChanged();

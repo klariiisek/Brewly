@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/auth_service.dart';
+import '../l10n/language.dart';
 
 // Okno pro změnu hesla: současné heslo, nové heslo a jeho zopakování.
 // Vrátí true, když se heslo změnilo.
@@ -59,7 +60,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
       if (!mounted) return;
       setState(() {
         isSaving = false;
-        errorMessage = authErrorMessage(error);
+        errorMessage = authErrorMessage(error, context.t);
       });
     }
   }
@@ -71,7 +72,7 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Změnit heslo'),
+      title: Text(context.t.changePassword),
       content: Form(
         key: formKey,
         child: SingleChildScrollView(
@@ -81,21 +82,21 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
               TextFormField(
                 controller: currentController,
                 obscureText: !showPasswords,
-                decoration: decoration('Současné heslo'),
+                decoration: decoration(context.t.currentPassword),
                 validator: (value) => (value ?? '').isEmpty
-                    ? 'Zadejte současné heslo'
+                    ? context.t.enterCurrentPassword
                     : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: newController,
                 obscureText: !showPasswords,
-                decoration: decoration('Nové heslo'),
+                decoration: decoration(context.t.newPassword),
                 validator: (value) {
                   final password = value ?? '';
-                  if (password.length < 6) return 'Alespoň 6 znaků';
+                  if (password.length < 6) return context.t.atLeast6;
                   if (password == currentController.text) {
-                    return 'Nové heslo je stejné jako současné';
+                    return context.t.samePassword;
                   }
                   return null;
                 },
@@ -104,15 +105,15 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
               TextFormField(
                 controller: confirmController,
                 obscureText: !showPasswords,
-                decoration: decoration('Nové heslo znovu'),
+                decoration: decoration(context.t.newPasswordAgain),
                 validator: (value) => value != newController.text
-                    ? 'Hesla se neshodují'
+                    ? context.t.passwordsDontMatch
                     : null,
               ),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
                 value: showPasswords,
-                title: const Text('Zobrazit hesla'),
+                title: Text(context.t.showPasswords),
                 onChanged: (value) =>
                     setState(() => showPasswords = value ?? false),
               ),
@@ -128,11 +129,11 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
       actions: [
         TextButton(
           onPressed: isSaving ? null : () => Navigator.pop(context, false),
-          child: const Text('Zrušit'),
+          child: Text(context.t.cancel),
         ),
         ElevatedButton(
           onPressed: isSaving ? null : save,
-          child: Text(isSaving ? 'Ukládám…' : 'Změnit heslo'),
+          child: Text(isSaving ? context.t.saving : context.t.changePassword),
         ),
       ],
     );

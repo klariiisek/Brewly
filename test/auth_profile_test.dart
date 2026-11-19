@@ -10,6 +10,8 @@ import 'package:brewly/services/auth_service.dart';
 import 'package:brewly/widgets/change_password_dialog.dart';
 import 'package:brewly/widgets/user_avatar.dart';
 
+import 'package:brewly/l10n/language.dart';
+
 import 'helpers.dart';
 
 void main() {
@@ -126,8 +128,7 @@ void main() {
     expect(find.text('Změnit heslo'), findsNothing);
 
     // Změna jména.
-    await tester.tap(find.text('Změnit jméno'));
-    await tester.pumpAndSettle();
+    await scrollAndTap(tester, find.text('Změnit jméno'));
     await tester.enterText(find.byType(TextField).last, 'Klárka');
     await tester.tap(find.text('Uložit'));
     await tester.pumpAndSettle();
@@ -136,8 +137,7 @@ void main() {
     expect(profile['name'], 'Klárka');
 
     // Avatar: kočička v modré.
-    await tester.tap(find.text('Změnit avatar'));
-    await tester.pumpAndSettle();
+    await scrollAndTap(tester, find.text('Změnit avatar'));
     await tester.tap(find.byIcon(Icons.pets));
     await tester.pumpAndSettle();
     await tester.tap(find.byWidgetPredicate((widget) =>
@@ -157,6 +157,9 @@ void main() {
     bool? result;
     await tester.pumpWidget(MaterialApp(
       theme: AppTheme.build(paletteFor('kava').colors),
+      locale: const Locale('cs'),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       home: Builder(
         builder: (context) => ElevatedButton(
           onPressed: () async =>

@@ -2,18 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../models/order.dart';
 import '../theme/app_theme.dart';
+import '../l10n/language.dart';
 
 // Velká věta pro zákazníka podle stavu objednávky.
-String orderProgressMessage(OrderStatus status) {
+String orderProgressMessage(AppLocalizations t, OrderStatus status) {
   switch (status) {
     case OrderStatus.prijata:
-      return 'Objednávku jsme přijali';
+      return t.progressReceived;
     case OrderStatus.pripravujeSe:
-      return 'Připravujeme vaši objednávku…';
+      return t.progressPreparing;
     case OrderStatus.pripravena:
-      return 'Hotovo! Za chvíli ji máte na stole 🎉';
+      return t.progressReady;
     case OrderStatus.dokoncena:
-      return 'Dobrou chuť! 🙌';
+      return t.progressDone;
   }
 }
 
@@ -42,7 +43,7 @@ class OrderProgress extends StatelessWidget {
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           child: Text(
-            orderProgressMessage(status),
+            orderProgressMessage(context.t, status),
             key: ValueKey(status),
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -80,7 +81,7 @@ class OrderProgress extends StatelessWidget {
             for (final step in OrderStatus.values)
               Expanded(
                 child: Text(
-                  orderStatusText(step),
+                  orderStatusText(context.t, step),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12,

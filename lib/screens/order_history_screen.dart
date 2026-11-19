@@ -12,6 +12,7 @@ import '../widgets/status_badge.dart';
 import '../widgets/table_service_card.dart';
 import 'login_screen.dart';
 import 'order_detail_screen.dart';
+import '../l10n/language.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   final AppServices services;
@@ -70,7 +71,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   Future<void> signOut() async {
     await widget.services.auth.signOut();
     if (!mounted) return;
-    showAppMessage(context, 'Byli jste odhlášeni');
+    showAppMessage(context, context.t.signedOut);
   }
 
   @override
@@ -84,12 +85,12 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Moje objednávky'),
+            title: Text(context.t.myOrders),
             actions: [
               if (user != null)
                 IconButton(
                   icon: const Icon(Icons.logout),
-                  tooltip: 'Odhlásit se',
+                  tooltip: context.t.signOut,
                   onPressed: signOut,
                 ),
             ],
@@ -97,9 +98,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
           body: user == null
               ? EmptyState(
                   icon: Icons.person_outline,
-                  title: 'Přihlaste se',
-                  message: 'Po přihlášení tu uvidíte své objednávky.',
-                  buttonText: 'Přihlásit se',
+                  title: context.t.signInTitle,
+                  message: context.t.signInForOrders,
+                  buttonText: context.t.signIn,
                   onPressed: openLogin,
                 )
               : Column(
@@ -126,10 +127,10 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       stream: ordersFor(user.uid),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return const EmptyState(
+          return EmptyState(
             icon: Icons.cloud_off,
-            title: 'Objednávky se nepodařilo načíst',
-            message: 'Zkontrolujte připojení k internetu.',
+            title: context.t.ordersLoadFailed,
+            message: context.t.checkConnection,
           );
         }
         if (!snapshot.hasData) {
@@ -142,9 +143,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         if (orders.isEmpty) {
           return EmptyState(
             icon: Icons.receipt_long_outlined,
-            title: 'Zatím nemáte žádné objednávky',
-            message: 'Vaše objednávky se zobrazí tady.',
-            buttonText: 'Přejít do menu',
+            title: context.t.noOrdersYet,
+            message: context.t.ordersAppearHere,
+            buttonText: context.t.goToMenu,
             onPressed: widget.onGoToMenu,
           );
         }
@@ -182,7 +183,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Objednávka #${order.number}',
+                      context.t.orderNumber(order.number),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -192,8 +193,11 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                     const SizedBox(height: 4),
                     Text(
                       // Kdy (dnes / datum), stůl a počet položek.
-                      '${formatOrderDate(order.time)} • Stůl ${order.tableNumber} • '
-                      '${formatItemCount(order.items.length)}',
+                      context.t.orderSummary(
+                        orderDate(context.t, order.time),
+                        order.tableNumber,
+                        context.t.itemCount(order.items.length),
+                      ),
                       style: TextStyle(color: context.colors.muted),
                     ),
                   ],

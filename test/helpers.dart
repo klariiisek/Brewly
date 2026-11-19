@@ -4,6 +4,7 @@ import 'package:firebase_auth_mocks/firebase_auth_mocks.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:brewly/main.dart';
+import 'package:brewly/l10n/language.dart';
 import 'package:brewly/data/menu_data.dart';
 import 'package:brewly/models/cart.dart';
 import 'package:brewly/models/cart_item.dart';
@@ -33,6 +34,9 @@ Future<Widget> buildTestApp({
   FakeFirebaseFirestore? db,
   Cart? cart,
 }) async {
+  // Testy hledají české texty – aplikaci přepneme do češtiny
+  // (testovací „telefon“ je jinak anglický).
+  appLanguage.value = const Locale('cs');
   final database = db ?? FakeFirebaseFirestore();
   final productService = ProductService(database);
   if (withMenu) {
@@ -104,8 +108,27 @@ Future<String> createTestOrder(OrderService orderService, {int table = 1}) {
 // Úvodní obrazovka je delší než testovací "telefon", odkazy pro obsluhu
 // a admina jsou dole.
 Future<void> scrollAndTap(WidgetTester tester, Finder finder) async {
+  // Dlouhé seznamy kreslí jen to, co je vidět – vzdálený prvek ještě
+  // neexistuje, tak k němu nejdřív sjedeme.
+  if (finder.evaluate().isEmpty) {
+    await tester.scrollUntilVisible(
+      finder,
+      200,
+      scrollable: find
+          .byWidgetPredicate((widget) =>
+              widget is Scrollable && widget.axisDirection == AxisDirection.down)
+          .first,
+    );
+  }
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
   await tester.tap(finder);
+  await tester.pumpAndSettle();
+}
+
+// Klepne na šipku zpět. (tester.pageBack() hledá anglický popisek „Back“,
+// aplikace je ale v testech česky – „Zpět“.)
+Future<void> goBack(WidgetTester tester) async {
+  await tester.tap(find.byType(BackButton).last);
   await tester.pumpAndSettle();
 }

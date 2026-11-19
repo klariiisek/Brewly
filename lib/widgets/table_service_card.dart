@@ -9,6 +9,7 @@ import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'app_message.dart';
 import 'table_code_sheet.dart';
+import '../l10n/language.dart';
 
 // Karta "Potřebujete něco?" s tlačítky Přivolat obsluhu a Chci zaplatit.
 // Zobrazuje se přihlášenému zákazníkovi v záložce Objednávky.
@@ -64,8 +65,8 @@ class _TableServiceCardState extends State<TableServiceCard> {
       showAppMessage(
         context,
         type == RequestType.platba
-            ? 'Obsluha za vámi přijde s účtem'
-            : 'Obsluha za vámi brzy přijde',
+            ? context.t.billComing
+            : context.t.staffComing,
       );
     } on FirebaseException catch (error) {
       if (!mounted) return;
@@ -74,13 +75,12 @@ class _TableServiceCardState extends State<TableServiceCard> {
       showAppMessage(
         context,
         error.code == 'permission-denied'
-            ? 'Obsluha o vás už ví, nebo kód stolu neplatí. '
-                  'Případně naskenujte QR kód na stole znovu.'
-            : 'Požadavek se nepodařilo odeslat',
+            ? context.t.requestDenied
+            : context.t.requestFailed,
       );
     } catch (error) {
       if (!mounted) return;
-      showAppMessage(context, 'Požadavek se nepodařilo odeslat');
+      showAppMessage(context, context.t.requestFailed);
     }
   }
 
@@ -109,7 +109,7 @@ class _TableServiceCardState extends State<TableServiceCard> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Potřebujete něco?',
+                        context.t.needAnything,
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
@@ -123,8 +123,8 @@ class _TableServiceCardState extends State<TableServiceCard> {
                       icon: const Icon(Icons.qr_code_2, size: 18),
                       label: Text(
                         widget.cart.hasTable
-                            ? 'Stůl $table'
-                            : 'Zadat kód stolu',
+                            ? context.t.tableTitle(table!)
+                            : context.t.enterTableCode,
                       ),
                     ),
                   ],
@@ -136,7 +136,7 @@ class _TableServiceCardState extends State<TableServiceCard> {
                       child: buildButton(
                         type: RequestType.obsluha,
                         icon: Icons.notifications_active_outlined,
-                        label: 'Přivolat obsluhu',
+                        label: context.t.callStaff,
                         waiting: isWaiting(RequestType.obsluha),
                         enabled: isOpen,
                       ),
@@ -146,7 +146,7 @@ class _TableServiceCardState extends State<TableServiceCard> {
                       child: buildButton(
                         type: RequestType.platba,
                         icon: Icons.payments_outlined,
-                        label: 'Chci zaplatit',
+                        label: context.t.wantToPay,
                         waiting: isWaiting(RequestType.platba),
                       ),
                     ),
@@ -155,8 +155,7 @@ class _TableServiceCardState extends State<TableServiceCard> {
                 if (!isOpen) ...[
                   const SizedBox(height: 8),
                   Text(
-                    'Teď máme zavřeno, obsluhu nejde přivolat. '
-                    'Zaplatit můžete.',
+                    context.t.closedNoCall,
                     style: TextStyle(color: context.colors.muted),
                   ),
                 ],
@@ -180,7 +179,7 @@ class _TableServiceCardState extends State<TableServiceCard> {
       onPressed: waiting || !enabled ? null : () => sendRequest(type),
       icon: Icon(waiting ? Icons.hourglass_top : icon, size: 18),
       label: Text(
-        waiting ? 'Obsluha o vás ví…' : label,
+        waiting ? context.t.staffKnows : label,
         textAlign: TextAlign.center,
       ),
       style: FilledButton.styleFrom(

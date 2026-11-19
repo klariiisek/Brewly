@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../widgets/app_message.dart';
 import '../widgets/google_sign_in_button.dart';
 import 'login_screen.dart';
+import '../l10n/language.dart';
 
 // Registrace nového účtu. Po úspěchu se obrazovka zavře a vrátí true
 // (uživatel je po registraci rovnou přihlášený).
@@ -45,11 +46,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         passwordController.text,
       );
       if (!mounted) return;
-      showAppMessage(context, 'Účet byl vytvořen. Vítejte!');
+      showAppMessage(context, context.t.accountCreated);
       Navigator.pop(context, true);
     } catch (error) {
       if (!mounted) return;
-      showAppMessage(context, authErrorMessage(error));
+      showAppMessage(context, authErrorMessage(error, context.t));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -63,9 +64,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            const AuthHeader(
-              title: 'Registrace',
-              subtitle: 'Vytvořte si účet a sledujte své objednávky.',
+            AuthHeader(
+              title: context.t.registerTitle,
+              subtitle: context.t.registerSubtitle,
             ),
             const SizedBox(height: 32),
             Form(
@@ -75,47 +76,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   TextFormField(
                     controller: nameController,
                     textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(
-                      labelText: 'Jméno',
-                      prefixIcon: Icon(Icons.person_outline),
+                    decoration: InputDecoration(
+                      labelText: context.t.name,
+                      prefixIcon: const Icon(Icons.person_outline),
                     ),
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
-                            ? 'Vyplňte jméno'
+                            ? context.t.fillName
                             : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'E-mail',
-                      prefixIcon: Icon(Icons.email_outlined),
+                    decoration: InputDecoration(
+                      labelText: context.t.email,
+                      prefixIcon: const Icon(Icons.email_outlined),
                     ),
-                    validator: validateEmail,
+                    validator: (value) => validateEmail(value, context.t),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: passwordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Heslo (alespoň 6 znaků)',
-                      prefixIcon: Icon(Icons.lock_outline),
+                    decoration: InputDecoration(
+                      labelText: context.t.passwordMin,
+                      prefixIcon: const Icon(Icons.lock_outline),
                     ),
                     validator: (value) => (value == null || value.length < 6)
-                        ? 'Heslo musí mít alespoň 6 znaků'
+                        ? context.t.passwordTooShort
                         : null,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: confirmController,
                     obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Heslo znovu',
-                      prefixIcon: Icon(Icons.lock_outline),
+                    decoration: InputDecoration(
+                      labelText: context.t.passwordAgain,
+                      prefixIcon: const Icon(Icons.lock_outline),
                     ),
                     validator: (value) => value != passwordController.text
-                        ? 'Hesla se neshodují'
+                        ? context.t.passwordsDontMatch
                         : null,
                   ),
                 ],
@@ -126,7 +127,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: isLoading ? null : register,
-                child: Text(isLoading ? 'Vytvářím účet…' : 'Zaregistrovat se'),
+                child: Text(
+                  isLoading ? context.t.creatingAccount : context.t.signUp,
+                ),
               ),
             ),
             const SizedBox(height: 24),

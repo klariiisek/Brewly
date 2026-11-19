@@ -11,6 +11,7 @@ import '../utils/format.dart';
 import '../widgets/app_message.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/reservation_card.dart';
+import '../l10n/language.dart';
 
 // Rezervace zákazníka: seznam jeho rezervací (stav se mění živě, když je
 // obsluha potvrdí) a tlačítko Nová rezervace.
@@ -45,8 +46,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
     if (upcomingCount >= AppConfig.maxActiveReservations) {
       showAppMessage(
         context,
-        'Máte už ${AppConfig.maxActiveReservations} rezervace – '
-        'nejdřív některou zrušte',
+        context.t.maxReservations(AppConfig.maxActiveReservations),
       );
       return;
     }
@@ -63,20 +63,21 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Zrušit rezervaci?'),
+        title: Text(context.t.cancelReservationQuestion),
         content: Text(
-          '${formatRelativeDay(reservation.time)} '
-          'v ${formatTime(reservation.time)}, '
-          '${formatPeopleCount(reservation.people)}',
+          '${context.t.dayAtTime(
+            relativeDay(context.t, reservation.time),
+            formatTime(reservation.time),
+          )}, ${context.t.peopleCount(reservation.people)}',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Ponechat'),
+            child: Text(context.t.keep),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Zrušit rezervaci'),
+            child: Text(context.t.cancelReservation),
           ),
         ],
       ),
@@ -85,25 +86,25 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
     try {
       await widget.services.reservations.cancel(reservation.id);
       if (!mounted) return;
-      showAppMessage(context, 'Rezervace zrušena');
+      showAppMessage(context, context.t.reservationCancelled);
     } catch (error) {
       if (!mounted) return;
-      showAppMessage(context, 'Rezervaci se nepodařilo zrušit');
+      showAppMessage(context, context.t.reservationCancelFailed);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Rezervace')),
+      appBar: AppBar(title: Text(context.t.reservations)),
       body: StreamBuilder<List<Reservation>>(
         stream: reservationsStream,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return const EmptyState(
+            return EmptyState(
               icon: Icons.cloud_off,
-              title: 'Rezervace se nepodařilo načíst',
-              message: 'Zkontrolujte připojení k internetu.',
+              title: context.t.reservationsLoadFailed,
+              message: context.t.checkConnection,
             );
           }
           if (!snapshot.hasData) {
@@ -128,18 +129,16 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       icon: const Icon(Icons.add),
-                      label: const Text('Nová rezervace'),
+                      label: Text(context.t.newReservation),
                       onPressed: () => openNewReservation(upcoming.length),
                     ),
                   ),
                   const SizedBox(height: 20),
                   if (upcoming.isEmpty)
-                    const EmptyState(
+                    EmptyState(
                       icon: Icons.event_seat_outlined,
-                      title: 'Zatím žádná rezervace',
-                      message:
-                          'Zarezervujte si stůl a obsluha vám ho '
-                          'potvrdí.',
+                      title: context.t.noReservations,
+                      message: context.t.noReservationsHint,
                     ),
                   for (final reservation in upcoming)
                     ReservationCard(
@@ -148,13 +147,13 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                         if (reservation.canCancel)
                           TextButton(
                             onPressed: () => cancel(reservation),
-                            child: const Text('Zrušit'),
+                            child: Text(context.t.cancel),
                           ),
                       ],
                     ),
                   if (older.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    sectionTitle('Starší'),
+                    sectionTitle(context.t.older),
                     for (final reservation in older)
                       Opacity(
                         opacity: 0.7,
@@ -248,12 +247,12 @@ class _NewReservationScreenState extends State<NewReservationScreen> {
         note: noteController.text.trim(),
       );
       if (!mounted) return;
-      showAppMessage(context, 'Rezervace odeslána – počkejte na potvrzení');
+      showAppMessage(context, context.t.reservationSent);
       Navigator.pop(context);
     } catch (error) {
       if (!mounted) return;
       setState(() => isSaving = false);
-      showAppMessage(context, 'Rezervaci se nepodařilo odeslat');
+      showAppMessage(context, context.t.reservationFailed);
     }
   }
 
@@ -263,11 +262,11 @@ class _NewReservationScreenState extends State<NewReservationScreen> {
     final days = availableDays();
     if (days.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Nová rezervace')),
-        body: const EmptyState(
+        appBar: AppBar(title: Text(context.t.newReservation)),
+        body: EmptyState(
           icon: Icons.event_busy_outlined,
-          title: 'Rezervace teď nejdou',
-          message: 'Podnik v nejbližších dnech rezervace nepřijímá.',
+          title: context.t.reservationsUnavailable,
+          message: context.t.reservationsUnavailableHint,
         ),
       );
     }
@@ -277,14 +276,14 @@ class _NewReservationScreenState extends State<NewReservationScreen> {
     final time = slots.contains(selectedTime) ? selectedTime : null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Nová rezervace')),
+      appBar: AppBar(title: Text(context.t.newReservation)),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              label('Den'),
+              label(context.t.day),
               SizedBox(
                 height: 44,
                 child: ListView.separated(
@@ -295,7 +294,7 @@ class _NewReservationScreenState extends State<NewReservationScreen> {
                   itemBuilder: (context, index) {
                     final option = days[index];
                     return ChoiceChip(
-                      label: Text(formatRelativeDay(option)),
+                      label: Text(relativeDay(context.t, option)),
                       selected: option == day,
                       onSelected: (_) => setState(() {
                         selectedDay = option;
@@ -306,7 +305,7 @@ class _NewReservationScreenState extends State<NewReservationScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              label('Čas'),
+              label(context.t.time),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -320,12 +319,12 @@ class _NewReservationScreenState extends State<NewReservationScreen> {
                 ],
               ),
               const SizedBox(height: 20),
-              label('Počet osob'),
+              label(context.t.numberOfPeople),
               Row(
                 children: [
                   IconButton.filledTonal(
                     icon: const Icon(Icons.remove),
-                    tooltip: 'Méně osob',
+                    tooltip: context.t.fewerPeople,
                     onPressed: people > 1
                         ? () => setState(() => people--)
                         : null,
@@ -333,7 +332,7 @@ class _NewReservationScreenState extends State<NewReservationScreen> {
                   SizedBox(
                     width: 90,
                     child: Text(
-                      formatPeopleCount(people),
+                      context.t.peopleCount(people),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 17,
@@ -344,7 +343,7 @@ class _NewReservationScreenState extends State<NewReservationScreen> {
                   ),
                   IconButton.filledTonal(
                     icon: const Icon(Icons.add),
-                    tooltip: 'Více osob',
+                    tooltip: context.t.morePeople,
                     onPressed: people < AppConfig.maxReservationPeople
                         ? () => setState(() => people++)
                         : null,
@@ -352,13 +351,13 @@ class _NewReservationScreenState extends State<NewReservationScreen> {
                 ],
               ),
               const SizedBox(height: 20),
-              label('Poznámka (nepovinné)'),
+              label(context.t.noteOptional),
               TextField(
                 controller: noteController,
                 maxLength: AppConfig.maxReservationNoteLength,
                 maxLines: 2,
-                decoration: const InputDecoration(
-                  hintText: 'Např. dětská židlička, oslava narozenin…',
+                decoration: InputDecoration(
+                  hintText: context.t.noteHint,
                 ),
               ),
               const SizedBox(height: 12),
@@ -368,8 +367,11 @@ class _NewReservationScreenState extends State<NewReservationScreen> {
                   onPressed: time == null || isSaving ? null : submit,
                   child: Text(
                     time == null
-                        ? 'Vyberte čas'
-                        : 'Rezervovat ${formatRelativeDay(time)} v ${formatTime(time)}',
+                        ? context.t.chooseTime
+                        : context.t.reserveAt(
+                            relativeDay(context.t, time),
+                            formatTime(time),
+                          ),
                   ),
                 ),
               ),

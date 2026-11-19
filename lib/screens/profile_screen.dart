@@ -6,6 +6,7 @@ import '../models/loyalty.dart';
 import '../models/menu_category.dart';
 import '../models/order.dart';
 import '../models/user_profile.dart';
+import '../models/user_role.dart';
 import '../models/venue_settings.dart';
 import '../services/app_services.dart';
 import '../services/auth_service.dart';
@@ -16,6 +17,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/loyalty_card.dart';
 import '../widgets/user_avatar.dart';
 import 'login_screen.dart';
+import '../l10n/language.dart';
 
 // Záložka Profil: avatar, jméno, e-mail, razítková karta, změna hesla
 // a odhlášení.
@@ -72,7 +74,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> signOut() async {
     await auth.signOut();
     if (!mounted) return;
-    showAppMessage(context, 'Byli jste odhlášeni');
+    showAppMessage(context, context.t.signedOut);
   }
 
   // Změna jména: v profilu (databáze) i v účtu (nové objednávky).
@@ -81,22 +83,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final name = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Změnit jméno'),
+        title: Text(context.t.changeName),
         content: TextField(
           controller: controller,
           autofocus: true,
           maxLength: AppConfig.maxUserNameLength,
           textCapitalization: TextCapitalization.words,
-          decoration: const InputDecoration(labelText: 'Jméno'),
+          decoration: InputDecoration(labelText: context.t.name),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Zrušit'),
+            child: Text(context.t.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, controller.text.trim()),
-            child: const Text('Uložit'),
+            child: Text(context.t.save),
           ),
         ],
       ),
@@ -107,10 +109,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await widget.services.users.updateName(profile.uid, name);
       await auth.updateName(name);
       if (!mounted) return;
-      showAppMessage(context, 'Jméno změněno');
+      showAppMessage(context, context.t.nameChanged);
     } catch (error) {
       if (!mounted) return;
-      showAppMessage(context, 'Jméno se nepodařilo změnit');
+      showAppMessage(context, context.t.nameChangeFailed);
     }
   }
 
@@ -119,14 +121,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await widget.services.users.updateThemeMode(profile.uid, mode);
     } catch (error) {
       if (!mounted) return;
-      showAppMessage(context, 'Vzhled se nepodařilo uložit');
+      showAppMessage(context, context.t.themeSaveFailed);
     }
   }
 
   Future<void> changePassword() async {
     final changed = await showChangePasswordDialog(context, auth);
     if (changed == true && mounted) {
-      showAppMessage(context, 'Heslo změněno');
+      showAppMessage(context, context.t.passwordChanged);
     }
   }
 
@@ -197,9 +199,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         option(
                           selected: key == icon,
                           tooltip: key == 'google'
-                              ? 'Fotka z Google'
+                              ? context.t.googlePhoto
                               : key == 'pismeno'
-                                  ? 'Písmeno'
+                                  ? context.t.letter
                                   : null,
                           onTap: () => setSheetState(() => icon = key),
                           child: UserAvatar(
@@ -234,7 +236,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Uložit avatar'),
+                      child: Text(context.t.saveAvatar),
                     ),
                   ),
                 ],
@@ -249,17 +251,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       await widget.services.users.updateAvatar(profile.uid, icon, color);
       if (!mounted) return;
-      showAppMessage(context, 'Avatar uložen');
+      showAppMessage(context, context.t.avatarSaved);
     } catch (error) {
       if (!mounted) return;
-      showAppMessage(context, 'Avatar se nepodařilo uložit');
+      showAppMessage(context, context.t.avatarSaveFailed);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Profil')),
+      appBar: AppBar(title: Text(context.t.navProfile)),
       body: StreamBuilder<User?>(
         stream: userStream,
         initialData: auth.currentUser,
@@ -268,9 +270,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (user == null) {
             return EmptyState(
               icon: Icons.person_outline,
-              title: 'Přihlaste se',
-              message: 'Po přihlášení si tu můžete upravit svůj profil.',
-              buttonText: 'Přihlásit se',
+              title: context.t.signInTitle,
+              message: context.t.signInForProfile,
+              buttonText: context.t.signIn,
               onPressed: openLogin,
             );
           }
@@ -328,8 +330,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   size: 18,
                 ),
                 label: Text(
-                  '${profile.role.label} • '
-                  '${hasGoogleLogin(user) ? 'přihlášení přes Google' : 'přihlášení e-mailem'}',
+                  '${roleText(context.t, profile.role)} • '
+                  '${hasGoogleLogin(user) ? context.t.signedInWithGoogle : context.t.signedInWithEmail}',
                 ),
               ),
             ],
@@ -344,15 +346,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               ListTile(
                 leading: Icon(Icons.face, color: context.colors.primary),
-                title: const Text('Změnit avatar'),
+                title: Text(context.t.changeAvatar),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => changeAvatar(profile, user),
               ),
               const Divider(height: 1),
               ListTile(
                 leading: Icon(Icons.badge_outlined, color: context.colors.primary),
-                title: const Text('Změnit jméno'),
-                subtitle: const Text('Toto jméno uvidí obsluha u objednávky'),
+                title: Text(context.t.changeName),
+                subtitle: Text(context.t.nameShownToStaff),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => changeName(profile),
               ),
@@ -361,7 +363,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const Divider(height: 1),
                 ListTile(
                   leading: Icon(Icons.lock_outline, color: context.colors.primary),
-                  title: const Text('Změnit heslo'),
+                  title: Text(context.t.changePassword),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: changePassword,
                 ),
@@ -372,7 +374,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 24),
         OutlinedButton.icon(
           icon: const Icon(Icons.logout),
-          label: const Text('Odhlásit se'),
+          label: Text(context.t.signOut),
           onPressed: signOut,
         ),
       ],
@@ -416,7 +418,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Vzhled aplikace',
+              context.t.appearance,
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: context.colors.dark,
@@ -426,21 +428,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SizedBox(
               width: double.infinity,
               child: SegmentedButton<ThemeMode>(
-                segments: const [
+                segments: [
                   ButtonSegment(
                     value: ThemeMode.light,
-                    icon: Icon(Icons.light_mode_outlined),
-                    label: Text('Světlý'),
+                    icon: const Icon(Icons.light_mode_outlined),
+                    label: Text(context.t.themeLight),
                   ),
                   ButtonSegment(
                     value: ThemeMode.system,
-                    icon: Icon(Icons.brightness_auto_outlined),
-                    label: Text('Systém'),
+                    icon: const Icon(Icons.brightness_auto_outlined),
+                    label: Text(context.t.themeSystem),
                   ),
                   ButtonSegment(
                     value: ThemeMode.dark,
-                    icon: Icon(Icons.dark_mode_outlined),
-                    label: Text('Tmavý'),
+                    icon: const Icon(Icons.dark_mode_outlined),
+                    label: Text(context.t.themeDark),
                   ),
                 ],
                 selected: {profile.themeMode},
@@ -449,9 +451,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     changeThemeMode(profile, selected.first),
               ),
             ),
+            const SizedBox(height: 16),
+            Text(
+              context.t.language,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: context.colors.dark,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Jazyk aplikace (platí jen v tomto zařízení, dokud se aplikace
+            // nezavře – pak zase podle telefonu).
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<String>(
+                segments: const [
+                  ButtonSegment(value: 'cs', label: Text('Čeština')),
+                  ButtonSegment(value: 'en', label: Text('English')),
+                ],
+                selected: {context.t.localeName},
+                showSelectedIcon: false,
+                onSelectionChanged: (selected) =>
+                    appLanguage.value = Locale(selected.first),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+// Název role v jazyce aplikace (v profilu zákazníka).
+String roleText(AppLocalizations t, UserRole role) {
+  if (role.isAdmin) return t.roleAdmin;
+  if (role.canServe) return t.roleStaff;
+  return t.roleCustomer;
 }

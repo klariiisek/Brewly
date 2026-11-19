@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'app_message.dart';
+import '../l10n/language.dart';
 
 // Tlačítko "Pokračovat přes Google" s oddělovačem "nebo" nad sebou.
 // Používá se na přihlašovací i registrační obrazovce.
@@ -31,12 +32,12 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
       final signedIn = await widget.authService.signInWithGoogle();
       if (!mounted) return;
       if (signedIn) {
-        showAppMessage(context, 'Přihlášení přes Google proběhlo úspěšně');
+        showAppMessage(context, context.t.googleSignedIn);
         widget.onSignedIn();
       }
     } catch (error) {
       if (!mounted) return;
-      showAppMessage(context, authErrorMessage(error));
+      showAppMessage(context, authErrorMessage(error, context.t));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -52,7 +53,10 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
             Expanded(child: Divider()),
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text('nebo', style: TextStyle(color: context.colors.muted)),
+              child: Text(
+                context.t.or,
+                style: TextStyle(color: context.colors.muted),
+              ),
             ),
             Expanded(child: Divider()),
           ],
@@ -71,7 +75,9 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
                 color: Color(0xFF4285F4),
               ),
             ),
-            label: Text(isLoading ? 'Přihlašuji…' : 'Pokračovat přes Google'),
+            label: Text(
+              isLoading ? context.t.signingIn : context.t.continueWithGoogle,
+            ),
           ),
         ),
       ],

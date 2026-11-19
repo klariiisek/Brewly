@@ -1,19 +1,21 @@
 import 'package:cloud_firestore/cloud_firestore.dart' show Timestamp;
+import '../l10n/language.dart';
 
 // Stav rezervace. Nová rezervace čeká, až ji obsluha potvrdí nebo odmítne.
 // Zákazník ji může zrušit (dokud čeká nebo je potvrzená).
 enum ReservationStatus { ceka, potvrzena, odmitnuta, zrusena }
 
-String reservationStatusText(ReservationStatus status) {
+// Název stavu v jazyce aplikace (t = překlady, viz lib/l10n).
+String reservationStatusText(AppLocalizations t, ReservationStatus status) {
   switch (status) {
     case ReservationStatus.ceka:
-      return 'Čeká na potvrzení';
+      return t.resPending;
     case ReservationStatus.potvrzena:
-      return 'Potvrzena';
+      return t.resConfirmed;
     case ReservationStatus.odmitnuta:
-      return 'Odmítnuta';
+      return t.resDeclined;
     case ReservationStatus.zrusena:
-      return 'Zrušena';
+      return t.resCancelled;
   }
 }
 

@@ -1,0 +1,414 @@
+{
+  "@@locale": "cs",
+  "languageName": "Čeština",
+  "otherLanguageName": "English",
+  "changeLanguage": "Změnit jazyk",
+  "language": "Jazyk",
+  "ok": "OK",
+  "cancel": "Zrušit",
+  "save": "Uložit",
+  "saving": "Ukládám…",
+  "show": "Zobrazit",
+  "remove": "Odebrat",
+  "total": "Celkem",
+  "checkConnection": "Zkontrolujte připojení k internetu.",
+  "today": "dnes",
+  "tomorrow": "zítra",
+  "dayAtTime": "{day} v {time}",
+  "@dayAtTime": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "tableTitle": "Stůl {table}",
+  "@tableTitle": {
+    "placeholders": {
+      "table": {
+        "type": "int"
+      }
+    }
+  },
+  "tableLower": "stůl {table}",
+  "@tableLower": {
+    "placeholders": {
+      "table": {
+        "type": "int"
+      }
+    }
+  },
+  "table": "Stůl",
+  "enterTableCode": "Zadat kód stolu",
+  "goToMenu": "Přejít do menu",
+  "itemCount": "{count, plural, =1{1 položka} few{{count} položky} other{{count} položek}}",
+  "@itemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "peopleCount": "{count, plural, =1{1 osoba} few{{count} osoby} other{{count} osob}}",
+  "@peopleCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "stampCount": "{count, plural, =1{1 razítko} few{{count} razítka} other{{count} razítek}}",
+  "@stampCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "signInToReserve": "Pro rezervaci se prosím přihlaste",
+  "signedOut": "Byli jste odhlášeni",
+  "welcomeUser": "Vítejte, {name}",
+  "@welcomeUser": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "open": "Otevřeno",
+  "closed": "Zavřeno",
+  "browseMenu": "Prohlédnout menu",
+  "reserveTable": "Rezervovat stůl",
+  "signIn": "Přihlásit se",
+  "signOut": "Odhlásit se",
+  "venueInfo": "Informace o podniku",
+  "orderReady": "Vaše objednávka č. {number} je připravená!",
+  "@orderReady": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "signInForFavorites": "Pro oblíbené produkty se prosím přihlaste",
+  "favoritesSaveFailed": "Oblíbené se nepodařilo uložit",
+  "navMenu": "Menu",
+  "navCart": "Košík",
+  "navOrders": "Objednávky",
+  "navProfile": "Profil",
+  "categoryAll": "Vše",
+  "categoryFavorites": "Oblíbené",
+  "goodMorning": "Dobré ráno",
+  "goodDay": "Dobrý den",
+  "goodEvening": "Dobrý večer",
+  "menuLoadFailed": "Menu se nepodařilo načíst",
+  "menuEmpty": "Menu je zatím prázdné",
+  "menuEmptyHint": "Obsluha ho brzy doplní.",
+  "toCart": "Do košíku",
+  "closedBanner": "Teď máme zavřeno. Menu si můžete prohlédnout, objednat ale zatím nejde.",
+  "whatWillYouHave": "Co si dnes dáte?",
+  "tableWhatWillYouHave": "Stůl {table} · Co si dnes dáte?",
+  "@tableWhatWillYouHave": {
+    "placeholders": {
+      "table": {
+        "type": "int"
+      }
+    }
+  },
+  "addToFavorites": "Přidat do oblíbených",
+  "removeFromFavorites": "Odebrat z oblíbených",
+  "addToCart": "Přidat do košíku",
+  "soldOut": "Vyprodáno",
+  "decreaseQuantity": "Snížit množství",
+  "increaseQuantity": "Zvýšit množství",
+  "addToCartPrice": "Přidat do košíku · {price}",
+  "@addToCartPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "currentlySoldOut": "Momentálně vyprodáno",
+  "statusReceived": "Přijata",
+  "statusPreparing": "Připravuje se",
+  "statusReady": "Připravena",
+  "statusDone": "Dokončena",
+  "progressReceived": "Objednávku jsme přijali",
+  "progressPreparing": "Připravujeme vaši objednávku…",
+  "progressReady": "Hotovo! Za chvíli ji máte na stole 🎉",
+  "progressDone": "Dobrou chuť! 🙌",
+  "whichTable": "U kterého stolu sedíte?",
+  "tableCodeHint": "Naskenujte QR kód na stole fotoaparátem, nebo opište kód, který je pod ním.",
+  "tableCodeLabel": "Kód stolu (např. 4-K7P2X9)",
+  "tableCodeFormat": "Kód má tvar číslo stolu, pomlčka a 6 znaků",
+  "confirmTable": "Potvrdit stůl",
+  "nowOpen": "● Teď máme otevřeno",
+  "nowClosed": "● Teď máme zavřeno",
+  "noVenueInfo": "Podnik zatím nevyplnil žádné informace.",
+  "address": "Adresa",
+  "openingHours": "Otevírací doba",
+  "wifiPassword": "Heslo: {password}",
+  "@wifiPassword": {
+    "placeholders": {
+      "password": {
+        "type": "String"
+      }
+    }
+  },
+  "copyPassword": "Zkopírovat heslo",
+  "passwordCopied": "Heslo zkopírováno",
+  "googleSignedIn": "Přihlášení přes Google proběhlo úspěšně",
+  "or": "nebo",
+  "signingIn": "Přihlašuji…",
+  "continueWithGoogle": "Pokračovat přes Google",
+  "resPending": "Čeká na potvrzení",
+  "resConfirmed": "Potvrzena",
+  "resDeclined": "Odmítnuta",
+  "resCancelled": "Zrušena",
+  "loyaltyCard": "Razítková karta",
+  "loyaltyRule": "Za každý kus z kategorie {category} jedno razítko. Každý {goal}. kus máte zdarma.",
+  "@loyaltyRule": {
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "loyaltyReady": "🎉 {goal}. kus máte zdarma! Uplatníte ho v košíku.",
+  "@loyaltyReady": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "loyaltyMissing": "Ještě {stamps} a {goal}. kus máte zdarma.",
+  "@loyaltyMissing": {
+    "placeholders": {
+      "stamps": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "closedCannotOrder": "Teď máme zavřeno, objednat zatím nejde",
+  "removeSoldOutFirst": "Nejdřív odeberte z košíku vyprodané produkty",
+  "signInToOrder": "Pro objednání se prosím přihlaste",
+  "orderSent": "Objednávka byla odeslána",
+  "rewardFailed": "Odměnu se nepodařilo uplatnit, razítková karta se mezitím změnila. Zkuste to prosím znovu.",
+  "orderDenied": "Objednávku se nepodařilo odeslat. Naskenujte prosím QR kód na stole znovu a zkontrolujte, že máte v telefonu správné datum a čas.",
+  "orderFailed": "Objednávku se nepodařilo odeslat",
+  "cartEmpty": "Košík je prázdný",
+  "cartEmptyHint": "Vyberte si něco dobrého z menu.",
+  "noLongerOffered": "Už není v nabídce – odeberte ji",
+  "soldOutRemove": "Vyprodáno – odeberte z košíku",
+  "previewOnly": "Náhled pro obsluhu a admina – objednávat mohou jen zákazníci.",
+  "closedCannotOrderDot": "Teď máme zavřeno, objednat zatím nejde.",
+  "soldOutInCart": "V košíku je vyprodaný produkt. Odeberte ho, prosím.",
+  "sending": "Odesílám…",
+  "placeOrder": "Objednat",
+  "rewardFree": "{name} zdarma  −{discount}",
+  "@rewardFree": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "discount": {
+        "type": "String"
+      }
+    }
+  },
+  "loyaltyProgress": "Razítková karta: {filled}/{needed} – do odměny zbývá {missing}",
+  "@loyaltyProgress": {
+    "placeholders": {
+      "filled": {
+        "type": "String"
+      },
+      "needed": {
+        "type": "String"
+      },
+      "missing": {
+        "type": "String"
+      }
+    }
+  },
+  "loyaltyFullHint": "Máte plnou razítkovou kartu! Přidejte si něco z menu a bude to zdarma.",
+  "useReward": "Uplatnit odměnu: {name} zdarma",
+  "@useReward": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "myOrders": "Moje objednávky",
+  "signInTitle": "Přihlaste se",
+  "signInForOrders": "Po přihlášení tu uvidíte své objednávky.",
+  "ordersLoadFailed": "Objednávky se nepodařilo načíst",
+  "noOrdersYet": "Zatím nemáte žádné objednávky",
+  "ordersAppearHere": "Vaše objednávky se zobrazí tady.",
+  "orderNumber": "Objednávka #{number}",
+  "@orderNumber": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "orderSummary": "{date} • Stůl {table} • {items}",
+  "@orderSummary": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "table": {
+        "type": "int"
+      },
+      "items": {
+        "type": "String"
+      }
+    }
+  },
+  "order": "Objednávka",
+  "orderLoadFailed": "Objednávku se nepodařilo načíst",
+  "orderNotFound": "Objednávka nenalezena",
+  "orderNotFoundHint": "Tato objednávka už v databázi není.",
+  "tableAndDate": "Stůl {table} • {date}",
+  "@tableAndDate": {
+    "placeholders": {
+      "table": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "loyaltyReward": "Odměna z razítkové karty",
+  "billComing": "Obsluha za vámi přijde s účtem",
+  "staffComing": "Obsluha za vámi brzy přijde",
+  "requestDenied": "Obsluha o vás už ví, nebo kód stolu neplatí. Případně naskenujte QR kód na stole znovu.",
+  "requestFailed": "Požadavek se nepodařilo odeslat",
+  "needAnything": "Potřebujete něco?",
+  "callStaff": "Přivolat obsluhu",
+  "wantToPay": "Chci zaplatit",
+  "closedNoCall": "Teď máme zavřeno, obsluhu nejde přivolat. Zaplatit můžete.",
+  "staffKnows": "Obsluha o vás ví…",
+  "welcomeBack": "Vítejte zpět!",
+  "fillEmailFirst": "Nejdřív vyplňte e-mail",
+  "resetSent": "Pokud k e-mailu existuje účet, poslali jsme odkaz pro nové heslo",
+  "loginTitle": "Přihlášení",
+  "loginSubtitle": "Přihlaste se a objednávejte přímo ke stolu.",
+  "email": "E-mail",
+  "password": "Heslo",
+  "fillPassword": "Vyplňte heslo",
+  "forgotPassword": "Zapomenuté heslo?",
+  "noAccount": "Nemáte účet?",
+  "goToRegister": "Zaregistrujte se",
+  "fillEmail": "Vyplňte e-mail",
+  "emailInvalid": "E-mail nemá správný tvar",
+  "accountCreated": "Účet byl vytvořen. Vítejte!",
+  "registerTitle": "Registrace",
+  "registerSubtitle": "Vytvořte si účet a sledujte své objednávky.",
+  "name": "Jméno",
+  "fillName": "Vyplňte jméno",
+  "passwordMin": "Heslo (alespoň 6 znaků)",
+  "passwordTooShort": "Heslo musí mít alespoň 6 znaků",
+  "passwordAgain": "Heslo znovu",
+  "passwordsDontMatch": "Hesla se neshodují",
+  "creatingAccount": "Vytvářím účet…",
+  "signUp": "Zaregistrovat se",
+  "changePassword": "Změnit heslo",
+  "currentPassword": "Současné heslo",
+  "enterCurrentPassword": "Zadejte současné heslo",
+  "newPassword": "Nové heslo",
+  "atLeast6": "Alespoň 6 znaků",
+  "samePassword": "Nové heslo je stejné jako současné",
+  "newPasswordAgain": "Nové heslo znovu",
+  "showPasswords": "Zobrazit hesla",
+  "authInvalidEmail": "E-mail nemá správný tvar.",
+  "authWrongCredentials": "Špatný e-mail nebo heslo.",
+  "authRecentLogin": "Z bezpečnostních důvodů se prosím odhlaste a znovu přihlaste.",
+  "authEmailInUse": "Účet s tímto e-mailem už existuje.",
+  "authWeakPassword": "Heslo je příliš slabé (alespoň 6 znaků).",
+  "authNoInternet": "Chybí připojení k internetu.",
+  "authTooManyRequests": "Příliš mnoho pokusů. Zkuste to prosím později.",
+  "authPopupBlocked": "Prohlížeč zablokoval okno pro přihlášení. Povolte vyskakovací okna a zkuste to znovu.",
+  "authOtherProvider": "Účet s tímto e-mailem už používá jiný způsob přihlášení.",
+  "authNotEnabled": "Tento způsob přihlášení není ve Firebase zapnutý.",
+  "authUnauthorizedDomain": "Tato adresa není ve Firebase povolená pro přihlášení.",
+  "authUnknown": "Něco se pokazilo. Zkuste to prosím znovu.",
+  "changeName": "Změnit jméno",
+  "nameChanged": "Jméno změněno",
+  "nameChangeFailed": "Jméno se nepodařilo změnit",
+  "themeSaveFailed": "Vzhled se nepodařilo uložit",
+  "passwordChanged": "Heslo změněno",
+  "googlePhoto": "Fotka z Google",
+  "letter": "Písmeno",
+  "saveAvatar": "Uložit avatar",
+  "avatarSaved": "Avatar uložen",
+  "avatarSaveFailed": "Avatar se nepodařilo uložit",
+  "signInForProfile": "Po přihlášení si tu můžete upravit svůj profil.",
+  "roleCustomer": "Zákazník",
+  "roleStaff": "Obsluha",
+  "roleAdmin": "Admin",
+  "signedInWithGoogle": "přihlášení přes Google",
+  "signedInWithEmail": "přihlášení e-mailem",
+  "changeAvatar": "Změnit avatar",
+  "nameShownToStaff": "Toto jméno uvidí obsluha u objednávky",
+  "appearance": "Vzhled aplikace",
+  "themeLight": "Světlý",
+  "themeSystem": "Systém",
+  "themeDark": "Tmavý",
+  "maxReservations": "Máte už {count} rezervace – nejdřív některou zrušte",
+  "@maxReservations": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "cancelReservationQuestion": "Zrušit rezervaci?",
+  "keep": "Ponechat",
+  "cancelReservation": "Zrušit rezervaci",
+  "reservationCancelled": "Rezervace zrušena",
+  "reservationCancelFailed": "Rezervaci se nepodařilo zrušit",
+  "reservations": "Rezervace",
+  "reservationsLoadFailed": "Rezervace se nepodařilo načíst",
+  "newReservation": "Nová rezervace",
+  "noReservations": "Zatím žádná rezervace",
+  "noReservationsHint": "Zarezervujte si stůl a obsluha vám ho potvrdí.",
+  "older": "Starší",
+  "reservationSent": "Rezervace odeslána – počkejte na potvrzení",
+  "reservationFailed": "Rezervaci se nepodařilo odeslat",
+  "reservationsUnavailable": "Rezervace teď nejdou",
+  "reservationsUnavailableHint": "Podnik v nejbližších dnech rezervace nepřijímá.",
+  "day": "Den",
+  "time": "Čas",
+  "numberOfPeople": "Počet osob",
+  "fewerPeople": "Méně osob",
+  "morePeople": "Více osob",
+  "noteOptional": "Poznámka (nepovinné)",
+  "noteHint": "Např. dětská židlička, oslava narozenin…",
+  "chooseTime": "Vyberte čas",
+  "reserveAt": "Rezervovat {day} v {time}",
+  "@reserveAt": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  }
+}

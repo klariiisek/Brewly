@@ -386,8 +386,7 @@ void main() {
 
     // Bez změn se odejde hned, bez otázky.
     await scrollAndTap(tester, find.text('Podnik'));
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    await goBack(tester);
     expect(find.text('Máte neuložené změny'), findsNothing);
     expect(find.text('Nastavení podniku'), findsNothing);
 
@@ -400,8 +399,7 @@ void main() {
     await tester.ensureVisible(sundaySwitch);
     await tester.tap(sundaySwitch);
     await tester.pumpAndSettle();
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    await goBack(tester);
     expect(find.text('Máte neuložené změny'), findsOneWidget);
 
     // Zůstat → nic se neuloží a obrazovka zůstane otevřená.
@@ -411,8 +409,7 @@ void main() {
     expect((await db.collection('settings').doc('venue').get()).exists, false);
 
     // Uložit → uloží se a obrazovka se zavře.
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    await goBack(tester);
     await tester.tap(find.widgetWithText(ElevatedButton, 'Uložit'));
     await tester.pumpAndSettle();
     expect(find.text('Nastavení podniku'), findsNothing);

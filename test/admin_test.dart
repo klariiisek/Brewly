@@ -154,8 +154,7 @@ void main() {
 
     // Zpět na úvod admina: nový název podniku v záhlaví a celá aplikace
     // v barvě bordó.
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    await goBack(tester);
     expect(find.textContaining('Bar U Lípy'), findsOneWidget);
     final context = tester.element(find.textContaining('Bar U Lípy'));
     expect(context.colors.primary, paletteFor('bordo').colors.primary);

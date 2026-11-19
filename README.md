@@ -12,7 +12,8 @@ Obsluha vidí objednávky, požadavky i rezervace živě. Vedoucí podniku (admi
 | **Kde běží** | v prohlížeči, na počítači i v mobilu |
 | **Technologie** | Flutter / Dart, Firebase (Authentication, Firestore, Hosting) |
 | **Zabezpečení** | bezpečnostní pravidla databáze na serveru |
-| **Testy** | 89 testů aplikace + 70 testů bezpečnostních pravidel |
+| **Jazyky** | zákaznická část česky a anglicky |
+| **Testy** | 92 testů aplikace + 70 testů bezpečnostních pravidel |
 
 ---
 
@@ -24,13 +25,14 @@ Obsluha vidí objednávky, požadavky i rezervace živě. Vedoucí podniku (admi
 4. [🛠️ Technologie](#️-technologie)
 5. [🧭 Jak to funguje](#-jak-to-funguje)
 6. [⚙️ Konfigurace vs. databáze](#️-konfigurace-vs-databáze)
-7. [🗄️ Databáze](#️-databáze)
-8. [🔒 Zabezpečení](#-zabezpečení)
-9. [📁 Struktura projektu](#-struktura-projektu)
-10. [🚀 Spuštění projektu](#-spuštění-projektu)
-11. [🧪 Testy](#-testy)
-12. [💰 Návrh zpoplatnění](#-návrh-zpoplatnění)
-13. [🗺️ Plánované funkce](#️-plánované-funkce)
+7. [🌍 Překlad do angličtiny](#-překlad-do-angličtiny)
+8. [🗄️ Databáze](#️-databáze)
+9. [🔒 Zabezpečení](#-zabezpečení)
+10. [📁 Struktura projektu](#-struktura-projektu)
+11. [🚀 Spuštění projektu](#-spuštění-projektu)
+12. [🧪 Testy](#-testy)
+13. [💰 Návrh zpoplatnění](#-návrh-zpoplatnění)
+14. [🗺️ Plánované funkce](#️-plánované-funkce)
 
 ---
 
@@ -79,6 +81,9 @@ Aplikace rozlišuje čtyři typy uživatelů. Co kdo smí, nehlídá jen aplikac
 - **Rezervace stolu** z úvodní obrazovky: den, čas, počet osob a poznámka. Nabízí se jen dny a časy, které podnik nastavil. Rezervaci potvrzuje obsluha, zákazník ji může zrušit a najednou smí mít nejvýš 3 nadcházející.
 - **Razítková karta** (např. každá 10. káva zdarma): za každý kus z vybrané kategorie jedno razítko. S plnou kartou se v košíku objeví **Uplatnit odměnu**.
 - **Oblíbené produkty**: srdíčko u produktu a štítek „Oblíbené“ v menu.
+
+**Jazyk**
+- zákaznická část je **česky i anglicky**. Jazyk se vybere podle telefonu (čeština a slovenština = česky, ostatní = anglicky), nebo tlačítkem **English / Čeština** na úvodu, v menu a v profilu. Názvy produktů a kategorií zůstávají tak, jak je napsal podnik.
 
 **Účet**
 - registrace a přihlášení **e-mailem a heslem** nebo **přes Google**, obnovení zapomenutého hesla,
@@ -224,6 +229,7 @@ Klepnutím na název skupiny se snímky rozbalí.
 | Technologie | K čemu ji používám |
 |---|---|
 | **Flutter / Dart** | celá aplikace (webová aplikace, funguje v prohlížeči na počítači i v mobilu) |
+| `flutter_localizations`, `intl` | překlad zákaznické části (čeština, angličtina) včetně českých tvarů podle čísla (1 položka, 2 položky, 5 položek) |
 | **Firebase Authentication** | registrace a přihlášení (e-mail + heslo, Google) |
 | **Cloud Firestore** | databáze s živými aktualizacemi |
 | **Firestore Security Rules** | kdo smí co číst a měnit (zabezpečení na straně serveru) |
@@ -287,6 +293,18 @@ Nastavení aplikace je rozdělené na dvě části podle toho, **kdo ho mění a
 Konfigurace je v souborech [`lib/config/app_config.dart`](lib/config/app_config.dart) a [`lib/config/palettes.dart`](lib/config/palettes.dart).
 
 **Proč nastavení podniku není taky v souboru?** Vedoucí podniku není programátor. Když ráno zavírá kvůli nemoci, mění akci dne nebo heslo na Wi-Fi, musí to zvládnout sám z mobilu a změna se musí hned projevit všem zákazníkům. To konfigurační soubor neumí, databáze ano.
+
+---
+
+## 🌍 Překlad do angličtiny
+
+Zákaznická část (úvod, menu, košík, objednávky, rezervace, profil, přihlášení) je **česky i anglicky**, aby si mohl objednat i turista. Obrazovky obsluhy a admina zůstávají česky, protože je používají čeští zaměstnanci.
+
+- Texty nejsou napsané přímo v kódu, ale v souborech [`lib/l10n/app_cs.arb`](lib/l10n/app_cs.arb) a [`lib/l10n/app_en.arb`](lib/l10n/app_en.arb). Flutter z nich vygeneruje třídu a v kódu se píše např. `context.t.placeOrder` místo `'Objednat'`.
+- Přidat další jazyk = přidat další soubor `app_xx.arb` s překlady, kód se nemění.
+- Překlady umí i **tvary podle čísla**: česky „1 položka, 2 položky, 5 položek“, anglicky „1 item, 2 items“.
+- **Jazyk se vybere sám podle telefonu**: čeština a slovenština → česky, ostatní jazyky → anglicky. Zákazník ho může přepnout tlačítkem **English / Čeština**.
+- **Obsah od podniku se nepřekládá** (názvy a popisy produktů, kategorie, oznámení). Admin by musel psát každý produkt ve více jazycích, nebo by byla potřeba placená překladová služba se serverem.
 
 ---
 
@@ -578,6 +596,7 @@ lib/
 ├── services/            práce s databází a přihlášením (ProductService, OrderService…)
 ├── screens/             obrazovky (menu, košík, obsluha, rezervace, správa menu…)
 ├── widgets/             znovupoužitelné části obrazovek (karta produktu, grafy, okna…)
+├── l10n/                PŘEKLADY: app_cs.arb (čeština), app_en.arb (angličtina)
 ├── theme/               vzhled aplikace sestavený z vybrané palety
 └── utils/               pomocné funkce (formátování cen a dat, čtení CSV…)
 test/                    automatické testy aplikace (Dart)
@@ -615,7 +634,7 @@ firebase deploy --only hosting
 flutter test
 ```
 
-Projekt má **89 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`, `reservation_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze.
+Projekt má **92 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`, `reservation_test`, `language_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze.
 
 Testují například:
 - objednávku od menu přes košík až po stav u obsluhy,
@@ -626,7 +645,8 @@ Testují například:
 - razítkovou kartu (počítání razítek, odměna v košíku, odhalení neoprávněné odměny),
 - statistiky (období, férové srovnání, součty, žebříčky, graf),
 - rezervace (časy podle nastavení, limit, zrušení, potvrzení se stolem, obsazené stoly, upozornění),
-- upozornění na neuložené změny v nastavení.
+- upozornění na neuložené změny v nastavení,
+- jazyky (výběr podle telefonu, přepnutí do angličtiny, české tvary podle čísla).
 
 ### Testy bezpečnostních pravidel
 

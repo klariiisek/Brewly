@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart' show Timestamp;
 
 import 'cart_item.dart';
+import '../l10n/language.dart';
 
 enum OrderStatus {
   prijata,
@@ -9,16 +10,17 @@ enum OrderStatus {
   dokoncena,
 }
 
-String orderStatusText(OrderStatus status) {
+// Název stavu v jazyce aplikace (t = překlady, viz lib/l10n).
+String orderStatusText(AppLocalizations t, OrderStatus status) {
   switch (status) {
     case OrderStatus.prijata:
-      return 'Přijata';
+      return t.statusReceived;
     case OrderStatus.pripravujeSe:
-      return 'Připravuje se';
+      return t.statusPreparing;
     case OrderStatus.pripravena:
-      return 'Připravena';
+      return t.statusReady;
     case OrderStatus.dokoncena:
-      return 'Dokončena';
+      return t.statusDone;
   }
 }
 

@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import '../l10n/language.dart';
 
 // Služba pro přihlašování přes Firebase Authentication.
 class AuthService {
@@ -90,36 +91,35 @@ bool hasGoogleLogin(User user) {
   return user.providerData.any((info) => info.providerId == 'google.com');
 }
 
-// Převede chybu z Firebase na srozumitelnou českou hlášku.
-String authErrorMessage(Object error) {
+// Převede chybu z Firebase na srozumitelnou hlášku v jazyce aplikace.
+String authErrorMessage(Object error, AppLocalizations t) {
   if (error is FirebaseAuthException) {
     switch (error.code) {
       case 'invalid-email':
-        return 'E-mail nemá správný tvar.';
+        return t.authInvalidEmail;
       case 'user-not-found':
       case 'wrong-password':
       case 'invalid-credential':
-        return 'Špatný e-mail nebo heslo.';
+        return t.authWrongCredentials;
       case 'requires-recent-login':
-        return 'Z bezpečnostních důvodů se prosím odhlaste a znovu přihlaste.';
+        return t.authRecentLogin;
       case 'email-already-in-use':
-        return 'Účet s tímto e-mailem už existuje.';
+        return t.authEmailInUse;
       case 'weak-password':
-        return 'Heslo je příliš slabé (alespoň 6 znaků).';
+        return t.authWeakPassword;
       case 'network-request-failed':
-        return 'Chybí připojení k internetu.';
+        return t.authNoInternet;
       case 'too-many-requests':
-        return 'Příliš mnoho pokusů. Zkuste to prosím později.';
+        return t.authTooManyRequests;
       case 'popup-blocked':
-        return 'Prohlížeč zablokoval okno pro přihlášení. '
-            'Povolte vyskakovací okna a zkuste to znovu.';
+        return t.authPopupBlocked;
       case 'account-exists-with-different-credential':
-        return 'Účet s tímto e-mailem už používá jiný způsob přihlášení.';
+        return t.authOtherProvider;
       case 'operation-not-allowed':
-        return 'Tento způsob přihlášení není ve Firebase zapnutý.';
+        return t.authNotEnabled;
       case 'unauthorized-domain':
-        return 'Tato adresa není ve Firebase povolená pro přihlášení.';
+        return t.authUnauthorizedDomain;
     }
   }
-  return 'Něco se pokazilo. Zkuste to prosím znovu.';
+  return t.authUnknown;
 }

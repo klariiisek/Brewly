@@ -5,8 +5,16 @@
         "lib/firebase_options.dart": {
           "projectId": "brewly-9e944",
           "configurations": {
+            "android": "1:293355752303:android:b35d8f05fd5bdac95a769a",
             "web": "1:293355752303:web:ff4fb3aa7deb0ab35a769a"
           }
+        }
+      },
+      "android": {
+        "default": {
+          "projectId": "brewly-9e944",
+          "appId": "1:293355752303:android:b35d8f05fd5bdac95a769a",
+          "fileOutput": "android/app/google-services.json"
         }
       }
     }
@@ -16,7 +24,11 @@
   },
   "hosting": {
     "public": "build/web",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "rewrites": [
       {
         "source": "**",
@@ -26,11 +38,21 @@
     "headers": [
       {
         "source": "/",
-        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
       },
       {
         "source": "**/*.@(html|js|json)",
-        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
       }
     ]
   }

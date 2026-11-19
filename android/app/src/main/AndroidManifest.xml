@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Brewly potřebuje internet (databáze Firebase, přihlášení). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="brewly"
+        android:label="Brewly"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

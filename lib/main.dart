@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
+import 'l10n/language.dart';
 import 'models/cart.dart';
 import 'models/user_profile.dart';
 import 'screens/home_screen.dart';
@@ -166,19 +167,31 @@ class _MyAppState extends State<MyApp> {
         final settings = snapshot.data ?? VenueSettings.defaults;
         return VenueScope(
           settings: settings,
-          child: MaterialApp(
-            title: settings.name,
-            debugShowCheckedModeBanner: false,
-            // Téma sestavené z palety, kterou admin vybral – světlé i tmavé.
-            // Které se použije, rozhoduje volba uživatele (themeMode).
-            theme: AppTheme.build(paletteFor(settings.colorKey).colors),
-            darkTheme: AppTheme.build(
-              darkColors(paletteFor(settings.colorKey).colors),
+          // Jazyk: když si ho zákazník vybral tlačítkem, platí jeho volba,
+          // jinak podle telefonu (resolveLanguage v l10n/language.dart).
+          child: ValueListenableBuilder<Locale?>(
+            valueListenable: appLanguage,
+            builder: (context, language, _) => MaterialApp(
+              title: settings.name,
+              debugShowCheckedModeBanner: false,
+              locale: language,
+              supportedLocales: AppLocalizations.supportedLocales,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              localeListResolutionCallback: (devices, supported) =>
+                  resolveLanguage(
+                    devices?.isEmpty ?? true ? null : devices!.first,
+                  ),
+              // Téma sestavené z palety, kterou admin vybral – světlé i tmavé.
+              // Které se použije, rozhoduje volba uživatele (themeMode).
+              theme: AppTheme.build(paletteFor(settings.colorKey).colors),
+              darkTheme: AppTheme.build(
+                darkColors(paletteFor(settings.colorKey).colors),
+              ),
+              themeMode: themeMode,
+              home: startInMenu
+                  ? MainScreen(cart: widget.cart, services: widget.services)
+                  : HomeScreen(cart: widget.cart, services: widget.services),
             ),
-            themeMode: themeMode,
-            home: startInMenu
-                ? MainScreen(cart: widget.cart, services: widget.services)
-                : HomeScreen(cart: widget.cart, services: widget.services),
           ),
         );
       },

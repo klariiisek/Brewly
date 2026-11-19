@@ -100,7 +100,7 @@ void main() {
 
     // V menu pro zákazníky je označený a tlačítko + nejde zmáčknout.
     // (Admin se do menu podívá odkazem „Zobrazit jako zákazník“.)
-    await tester.pageBack();
+    await goBack(tester);
     // Počkáme, až zmizí hláška „vyprodáno“ – jinak by odkaz zakrývala.
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();

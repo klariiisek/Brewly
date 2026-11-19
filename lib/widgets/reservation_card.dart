@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/reservation.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
+import '../l10n/language.dart';
 
 // Barva podle stavu rezervace.
 Color reservationStatusColor(BuildContext context, ReservationStatus status) {
@@ -58,7 +59,7 @@ class ReservationCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${formatRelativeDay(time)} v ${formatTime(time)}',
+                        context.t.dayAtTime(relativeDay(context.t, time), formatTime(time)),
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
@@ -68,9 +69,9 @@ class ReservationCard extends StatelessWidget {
                       Text(
                         [
                           if (showName) reservation.customerName,
-                          formatPeopleCount(reservation.people),
+                          context.t.peopleCount(reservation.people),
                           if (reservation.tableNumber > 0)
-                            'stůl ${reservation.tableNumber}',
+                            context.t.tableLower(reservation.tableNumber),
                         ].join(' · '),
                         style: TextStyle(color: colors.muted),
                       ),
@@ -85,7 +86,7 @@ class ReservationCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          reservationStatusText(reservation.status),
+                          reservationStatusText(context.t, reservation.status),
                           style: TextStyle(
                             color: statusColor,
                             fontSize: 12,

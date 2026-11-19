@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/order.dart';
 import '../theme/app_theme.dart';
+import '../l10n/language.dart';
 
 // Barva podle stavu objednávky.
 Color orderStatusColor(BuildContext context, OrderStatus status) {
@@ -34,7 +35,7 @@ class StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        orderStatusText(status),
+        orderStatusText(context.t, status),
         style: TextStyle(
           color: color,
           fontSize: 12,

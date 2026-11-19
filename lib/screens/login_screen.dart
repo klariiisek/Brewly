@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
 import '../widgets/google_sign_in_button.dart';
 import 'register_screen.dart';
+import '../l10n/language.dart';
 
 // Přihlášení e-mailem a heslem.
 // Po úspěšném přihlášení se obrazovka zavře a vrátí true.
@@ -45,11 +46,11 @@ class _LoginScreenState extends State<LoginScreen> {
         passwordController.text,
       );
       if (!mounted) return;
-      showAppMessage(context, 'Vítejte zpět!');
+      showAppMessage(context, context.t.welcomeBack);
       Navigator.pop(context, true);
     } catch (error) {
       if (!mounted) return;
-      showAppMessage(context, authErrorMessage(error));
+      showAppMessage(context, authErrorMessage(error, context.t));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -58,7 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> resetPassword() async {
     final email = emailController.text.trim();
     if (email.isEmpty) {
-      showAppMessage(context, 'Nejdřív vyplňte e-mail');
+      showAppMessage(context, context.t.fillEmailFirst);
       return;
     }
     try {
@@ -68,11 +69,11 @@ class _LoginScreenState extends State<LoginScreen> {
       // existuje, proto hláška říká "pokud".
       showAppMessage(
         context,
-        'Pokud k e-mailu existuje účet, poslali jsme odkaz pro nové heslo',
+        context.t.resetSent,
       );
     } catch (error) {
       if (!mounted) return;
-      showAppMessage(context, authErrorMessage(error));
+      showAppMessage(context, authErrorMessage(error, context.t));
     }
   }
 
@@ -97,9 +98,9 @@ class _LoginScreenState extends State<LoginScreen> {
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            const AuthHeader(
-              title: 'Přihlášení',
-              subtitle: 'Přihlaste se a objednávejte přímo ke stolu.',
+            AuthHeader(
+              title: context.t.loginTitle,
+              subtitle: context.t.loginSubtitle,
             ),
             const SizedBox(height: 32),
             Form(
@@ -109,18 +110,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'E-mail',
-                      prefixIcon: Icon(Icons.email_outlined),
+                    decoration: InputDecoration(
+                      labelText: context.t.email,
+                      prefixIcon: const Icon(Icons.email_outlined),
                     ),
-                    validator: validateEmail,
+                    validator: (value) => validateEmail(value, context.t),
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: passwordController,
                     obscureText: hidePassword,
                     decoration: InputDecoration(
-                      labelText: 'Heslo',
+                      labelText: context.t.password,
                       prefixIcon: const Icon(Icons.lock_outline),
                       // Oko: zobrazí / skryje heslo.
                       suffixIcon: IconButton(
@@ -135,7 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     validator: (value) => (value == null || value.isEmpty)
-                        ? 'Vyplňte heslo'
+                        ? context.t.fillPassword
                         : null,
                   ),
                 ],
@@ -145,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: resetPassword,
-                child: const Text('Zapomenuté heslo?'),
+                child: Text(context.t.forgotPassword),
               ),
             ),
             const SizedBox(height: 8),
@@ -153,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: isLoading ? null : signIn,
-                child: Text(isLoading ? 'Přihlašuji…' : 'Přihlásit se'),
+                child: Text(isLoading ? context.t.signingIn : context.t.signIn),
               ),
             ),
             const SizedBox(height: 24),
@@ -166,12 +167,12 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Nemáte účet?',
+                  context.t.noAccount,
                   style: TextStyle(color: context.colors.muted),
                 ),
                 TextButton(
                   onPressed: openRegister,
-                  child: const Text('Zaregistrujte se'),
+                  child: Text(context.t.goToRegister),
                 ),
               ],
             ),
@@ -183,11 +184,11 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 // Kontrola e-mailu ve formuláři. Vrátí text chyby, nebo null, když je vše v pořádku.
-String? validateEmail(String? value) {
+String? validateEmail(String? value, AppLocalizations t) {
   final email = value?.trim() ?? '';
-  if (email.isEmpty) return 'Vyplňte e-mail';
+  if (email.isEmpty) return t.fillEmail;
   if (!email.contains('@') || !email.contains('.')) {
-    return 'E-mail nemá správný tvar';
+    return t.emailInvalid;
   }
   return null;
 }

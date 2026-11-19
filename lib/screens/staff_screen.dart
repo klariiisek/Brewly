@@ -12,6 +12,7 @@ import '../widgets/app_message.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/upcoming_reservations_banner.dart';
+import '../l10n/language.dart';
 
 // Text tlačítka podle toho, co obsluha s objednávkou udělá jako další.
 String nextStatusAction(OrderStatus status) {
@@ -129,7 +130,7 @@ class _StaffScreenState extends State<StaffScreen> {
       showAppMessage(
         context,
         'Objednávka #${order.number}: '
-        '${orderStatusText(nextOrderStatus(order.status))}',
+        '${orderStatusText(context.t, nextOrderStatus(order.status))}',
       );
     } catch (error) {
       if (!mounted) return;

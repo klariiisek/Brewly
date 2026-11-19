@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "293355752303",
+    "project_id": "brewly-9e944",
+    "storage_bucket": "brewly-9e944.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:293355752303:android:b35d8f05fd5bdac95a769a",
+        "android_client_info": {
+          "package_name": "cz.brewly.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "293355752303-jkcja05ti33f95o97u6e344ktjom2072.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC9hgosewHBqeNvSFheXGBMvtBYYI-NpH0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "293355752303-jkcja05ti33f95o97u6e344ktjom2072.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

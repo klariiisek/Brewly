@@ -11,6 +11,8 @@ import '../widgets/empty_state.dart';
 import '../widgets/product_card.dart';
 import '../widgets/product_sheet.dart';
 import '../widgets/venue_info_sheet.dart';
+import '../l10n/language.dart';
+import '../widgets/language_button.dart';
 
 class MenuScreen extends StatefulWidget {
   final Cart cart;
@@ -94,9 +96,9 @@ class _MenuScreenState extends State<MenuScreen> {
   // Pozdrav podle denní doby.
   String get greeting {
     final hour = DateTime.now().hour;
-    if (hour < 10) return 'Dobré ráno';
-    if (hour < 18) return 'Dobrý den';
-    return 'Dobrý večer';
+    if (hour < 10) return context.t.goodMorning;
+    if (hour < 18) return context.t.goodDay;
+    return context.t.goodEvening;
   }
 
   void addToCart(Product product, {int quantity = 1}) {
@@ -128,10 +130,10 @@ class _MenuScreenState extends State<MenuScreen> {
               builder: (context, snapshot) {
                 // 1) Chyba, např. bez internetu.
                 if (snapshot.hasError) {
-                  return const EmptyState(
+                  return EmptyState(
                     icon: Icons.cloud_off,
-                    title: 'Menu se nepodařilo načíst',
-                    message: 'Zkontrolujte připojení k internetu.',
+                    title: context.t.menuLoadFailed,
+                    message: context.t.checkConnection,
                   );
                 }
                 // 2) Data ještě nedorazila: točící se kolečko.
@@ -141,10 +143,10 @@ class _MenuScreenState extends State<MenuScreen> {
                 // 3) Databáze je prázdná.
                 final allProducts = snapshot.data!;
                 if (allProducts.isEmpty) {
-                  return const EmptyState(
+                  return EmptyState(
                     icon: Icons.menu_book,
-                    title: 'Menu je zatím prázdné',
-                    message: 'Obsluha ho brzy doplní.',
+                    title: context.t.menuEmpty,
+                    message: context.t.menuEmptyHint,
                   );
                 }
                 // 4) Máme produkty: štítky kategorií a seznam.
@@ -191,7 +193,7 @@ class _MenuScreenState extends State<MenuScreen> {
                             child: AnimatedSwitcher(
                               duration: const Duration(milliseconds: 200),
                               child: Text(
-                                '${formatItemCount(cart.itemCount)} · '
+                                '${context.t.itemCount(cart.itemCount)} · '
                                 '${formatPrice(cart.totalPrice)}',
                                 key: ValueKey(cart.itemCount),
                                 style: const TextStyle(
@@ -202,9 +204,9 @@ class _MenuScreenState extends State<MenuScreen> {
                               ),
                             ),
                           ),
-                          const Text(
-                            'Do košíku',
-                            style: TextStyle(
+                          Text(
+                            context.t.toCart,
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -248,8 +250,7 @@ class _MenuScreenState extends State<MenuScreen> {
         if (!venue.isOpen)
           buildBanner(
             icon: Icons.door_front_door_outlined,
-            text: 'Teď máme zavřeno. Menu si můžete prohlédnout, '
-                'objednat ale zatím nejde.',
+            text: context.t.closedBanner,
             color: Theme.of(context).colorScheme.error,
           ),
         // Oznámení od podniku (např. akce dne).
@@ -318,7 +319,7 @@ class _MenuScreenState extends State<MenuScreen> {
   Widget buildInfoButton() {
     return IconButton(
       icon: const Icon(Icons.info_outline, color: Colors.white),
-      tooltip: 'Informace o podniku',
+      tooltip: context.t.venueInfo,
       onPressed: () => showVenueInfo(context),
     );
   }
@@ -366,6 +367,7 @@ class _MenuScreenState extends State<MenuScreen> {
             children: [
               buildBackButton(),
               const Spacer(),
+              const LanguageButton(color: Colors.white),
               buildInfoButton(),
             ],
           ),
@@ -387,8 +389,8 @@ class _MenuScreenState extends State<MenuScreen> {
                   // Zákazník od stolu (z QR kódu) hned vidí, že ho aplikace
                   // pozná: "Stůl 4 · Co si dnes dáte?"
                   widget.cart.hasTable
-                      ? 'Stůl ${widget.cart.tableNumber} · Co si dnes dáte?'
-                      : 'Co si dnes dáte?',
+                      ? context.t.tableWhatWillYouHave(widget.cart.tableNumber!)
+                      : context.t.whatWillYouHave,
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.white.withValues(alpha: 0.85),
@@ -421,6 +423,7 @@ class _MenuScreenState extends State<MenuScreen> {
             ),
           ),
           const Spacer(),
+          const LanguageButton(color: Colors.white),
           buildInfoButton(),
         ],
       ),
@@ -446,7 +449,15 @@ class _MenuScreenState extends State<MenuScreen> {
                       color: isSelected ? Colors.white : const Color(0xFFE0526B),
                     )
                   : null,
-              label: Text(category),
+              // „Vše“ a „Oblíbené“ přeložíme, kategorie z menu zůstanou,
+              // jak je napsal admin.
+              label: Text(
+                category == allCategories
+                    ? context.t.categoryAll
+                    : category == favoriteCategory
+                        ? context.t.categoryFavorites
+                        : category,
+              ),
               selected: isSelected,
               showCheckmark: false,
               selectedColor: context.colors.primary,

@@ -59,8 +59,7 @@ void main() {
     expect(find.textContaining('Stůl 3 •'), findsOneWidget);
 
     // Zpět se zákazník dostane na seznam svých objednávek.
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    await goBack(tester);
     expect(find.text('Moje objednávky'), findsOneWidget);
   });
 

@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import '../utils/text.dart';
 import 'drink_icon.dart';
+import '../l10n/language.dart';
 
 // Vrátí ikonu podle kategorie produktu. Hledá části slov bez diakritiky,
 // takže "Káva", "Kávy s sebou" i "Pivo točené" dostanou správnou ikonu.
@@ -89,15 +90,15 @@ class ProductCard extends StatelessWidget {
                         : context.colors.muted,
                   ),
                   tooltip: isFavorite
-                      ? 'Odebrat z oblíbených'
-                      : 'Přidat do oblíbených',
+                      ? context.t.removeFromFavorites
+                      : context.t.addToFavorites,
                   onPressed: onFavorite,
                 ),
               const SizedBox(width: 4),
               trailing ??
                   IconButton.filled(
                     icon: const Icon(Icons.add),
-                    tooltip: 'Přidat do košíku',
+                    tooltip: context.t.addToCart,
                     onPressed: isAvailable ? onAdd : null,
                   ),
             ],
@@ -140,7 +141,7 @@ class ProductCard extends StatelessWidget {
               Text(
                 product.isAvailable
                     ? formatPrice(product.price)
-                    : '${formatPrice(product.price)} • Vyprodáno',
+                    : '${formatPrice(product.price)} • ${context.t.soldOut}',
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,

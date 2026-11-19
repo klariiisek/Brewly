@@ -4,6 +4,7 @@ import '../models/product.dart';
 import '../theme/app_theme.dart';
 import '../utils/format.dart';
 import 'drink_icon.dart';
+import '../l10n/language.dart';
 
 // Otevře detail produktu jako okno vysunuté zespodu.
 // Vrátí vybrané množství, nebo null, když zákazník okno zavře bez přidání.
@@ -91,7 +92,7 @@ class _ProductSheetState extends State<ProductSheet> {
                 const Spacer(),
                 IconButton.outlined(
                   icon: const Icon(Icons.remove),
-                  tooltip: 'Snížit množství',
+                  tooltip: context.t.decreaseQuantity,
                   // Méně než 1 kus nejde, tlačítko pak zešedne.
                   onPressed: quantity > 1
                       ? () => setState(() => quantity--)
@@ -110,7 +111,7 @@ class _ProductSheetState extends State<ProductSheet> {
                 ),
                 IconButton.outlined(
                   icon: const Icon(Icons.add),
-                  tooltip: 'Zvýšit množství',
+                  tooltip: context.t.increaseQuantity,
                   onPressed: () => setState(() => quantity++),
                 ),
               ],
@@ -127,9 +128,10 @@ class _ProductSheetState extends State<ProductSheet> {
                     : null,
                 child: Text(
                   product.isAvailable
-                      ? 'Přidat do košíku · '
-                          '${formatPrice(product.price * quantity)}'
-                      : 'Momentálně vyprodáno',
+                      ? context.t.addToCartPrice(
+                          formatPrice(product.price * quantity),
+                        )
+                      : context.t.currentlySoldOut,
                 ),
               ),
             ),
