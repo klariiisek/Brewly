@@ -13,7 +13,7 @@ Obsluha vidí objednávky, požadavky i rezervace živě. Vedoucí podniku (admi
 | **Technologie** | Flutter / Dart, Firebase (Authentication, Firestore, Hosting) |
 | **Zabezpečení** | bezpečnostní pravidla databáze na serveru |
 | **Jazyky** | zákaznická část česky a anglicky |
-| **Testy** | 92 testů aplikace + 70 testů bezpečnostních pravidel |
+| **Testy** | 96 testů aplikace + 70 testů bezpečnostních pravidel |
 
 ---
 
@@ -64,7 +64,7 @@ Aplikace rozlišuje čtyři typy uživatelů. Co kdo smí, nehlídá jen aplikac
 
 ### 👤 Návštěvník (nepřihlášený)
 - prohlíží si **menu** podle kategorií a detail produktu,
-- vidí **informace o podniku** (adresa, otevírací doba, Wi-Fi),
+- vidí **informace o podniku** (adresa, otevírací doba po dnech, Wi-Fi),
 - může si naplnit košík, před objednáním se ale musí přihlásit.
 
 ### ☕ Zákazník
@@ -108,7 +108,7 @@ Umí všechno co obsluha, a navíc:
   - název, slogan, typ podniku a **barva aplikace** z 8 palet (přebarví se živě i zákazníkům),
   - **oznámení v menu** (např. „Dnes −20 % na dezerty“) a informace pro zákazníky,
   - **razítková karta**: zapnutí, kategorie a kolikátý kus je zdarma (3.–20.),
-  - **časy rezervací** pro každý den v týdnu,
+  - **otevírací doba** pro každý den v týdnu (zákazník ji vidí v informacích o podniku a na úvodu „Dnes 8:00–20:00“, podle ní se nabízejí i časy rezervací),
   - při odchodu s neuloženými změnami se aplikace zeptá, jestli je uložit,
 - **statistiky** za dnešek, týden nebo měsíc: tržba, počet objednávek a průměrná útrata se **srovnáním s předchozím obdobím**, interaktivní graf tržeb, nejprodávanější produkty, tržba podle kategorií a vydané odměny,
 - **docházka zaměstnanců**: kdo je právě v práci, hodiny každého za měsíc a **ukončení zapomenuté směny** (po 12 hodinách aplikace upozorní),
@@ -188,7 +188,7 @@ Klepnutím na název skupiny se snímky rozbalí.
 </details>
 
 <details>
-<summary><b>🧑‍💼 Admin: nastavení podniku, menu, CSV, časy rezervací</b></summary>
+<summary><b>🧑‍💼 Admin: nastavení podniku, menu, CSV, otevírací doba</b></summary>
 
 &nbsp;
 
@@ -200,9 +200,9 @@ Klepnutím na název skupiny se snímky rozbalí.
 
 ![Nastavení podniku](docs/screenshots/nastaveni-podniku.png)
 
-**Časy rezervací.** Každý podnik má jinou otevírací dobu, proto admin pro každý den v týdnu určí první a poslední čas rezervace, nebo den vypne. Zákazníkovi se pak nabízí jen tyto dny a časy (na snímku vpravo chybí neděle).
+**Otevírací doba.** Každý podnik má jinou otevírací dobu, proto ji admin nastaví pro každý den v týdnu, nebo den vypne (zavřeno). Zákazník ji vidí v informacích o podniku (stejné dny spojené: „Po–Pá 8:00–20:00“, anglicky „Mon–Fri“) a rezervovat si může jen v otevírací době, nejpozději hodinu před zavřením (adresa je na snímku rozmazaná).
 
-![Časy rezervací v nastavení a nabídka pro zákazníka](docs/screenshots/casy-rezervaci.png)
+![Otevírací doba v nastavení a v informacích o podniku](docs/screenshots/oteviraci-doba.png)
 
 **Košík a správa menu.** Vlevo košík zákazníka: produkt, který admin mezitím označil jako vyprodaný, se zešedí a objednat nejde, dokud ho zákazník neodebere. Vpravo správa menu s vyhledáváním a přepínačem vyprodáno.
 
@@ -288,7 +288,7 @@ Nastavení aplikace je rozdělené na dvě části podle toho, **kdo ho mění a
 | Kdo mění | programátor | vedoucí podniku (admin) v aplikaci |
 | Kdy | při nasazení aplikace pro podnik | kdykoli za provozu |
 | Jak se změna projeví | upravit soubor, znovu sestavit a nahrát aplikaci | **hned, všem zákazníkům** |
-| Co obsahuje | adresa aplikace, **počet stolů**, délka kódu stolu, **barevné palety**, výchozí vzhled, limity (max. cena, délky textů, počet položek, počet osob a rezervací…) | název, slogan, typ podniku, barva, otevřeno/zavřeno, oznámení, adresa, otevírací doba, Wi-Fi, razítková karta, časy rezervací |
+| Co obsahuje | adresa aplikace, **počet stolů**, délka kódu stolu, **barevné palety**, výchozí vzhled, limity (max. cena, délky textů, počet položek, počet osob a rezervací…) | název, slogan, typ podniku, barva, otevřeno/zavřeno, oznámení, adresa, otevírací doba po dnech, Wi-Fi, razítková karta |
 
 Konfigurace je v souborech [`lib/config/app_config.dart`](lib/config/app_config.dart) a [`lib/config/palettes.dart`](lib/config/palettes.dart).
 
@@ -305,6 +305,8 @@ Zákaznická část (úvod, menu, košík, objednávky, rezervace, profil, přih
 - Překlady umí i **tvary podle čísla**: česky „1 položka, 2 položky, 5 položek“, anglicky „1 item, 2 items“.
 - **Jazyk se vybere sám podle telefonu**: čeština a slovenština → česky, ostatní jazyky → anglicky. Zákazník ho může přepnout tlačítkem **English / Čeština**.
 - **Obsah od podniku se nepřekládá** (názvy a popisy produktů, kategorie, oznámení). Admin by musel psát každý produkt ve více jazycích, nebo by byla potřeba placená překladová služba se serverem.
+
+![Menu česky a anglicky – přeloží se rozhraní, produkty zůstávají, jak je napsal podnik](docs/screenshots/preklad.png)
 
 ---
 
@@ -484,9 +486,9 @@ flowchart TB
 #### `settings/venue`: nastavení podniku
 Jediný dokument s tím, co **mění admin přímo v aplikaci**:
 - vzhled: `name`, `slogan`, `color`, `type`,
-- provoz: `isOpen`, `announcement`, `address`, `openingHours`, `wifiName`, `wifiPassword`,
+- provoz: `isOpen`, `announcement`, `address`, `wifiName`, `wifiPassword`,
 - razítková karta: `loyaltyEnabled`, `loyaltyCategoryId`, `loyaltyGoal` (kolikátý kus je zdarma),
-- `reservationHours`: časy rezervací pro každý den v týdnu jako 7 textů `"08:00-20:00"` (prázdný text = ten den rezervace nejdou).
+- `openingDays`: otevírací doba pro každý den v týdnu jako 7 textů `"08:00-20:00"` (prázdný text = zavřeno). Časy rezervací se z ní dopočítají (od otevření do hodiny před zavřením), nikam se zvlášť neukládají.
 
 </details>
 
@@ -581,7 +583,7 @@ Bezpečnostní pravidla neumí projít víc dokumentů najednou ani sečíst sez
 | **Cena objednávky** | pravidla jen to, že je kladná a rozumně vysoká. Obsluha u každé objednávky vidí **výrazné upozornění**, když součet nesedí nebo cena položky nesouhlasí s menu. | Obsluha objednávku předává osobně a platba probíhá u ní. |
 | **Plná razítková karta** | obsluha u objednávky s odměnou vidí „karta ověřena ✓“, nebo červené upozornění | Pravidla by musela projít všechny objednávky zákazníka. |
 | **Obsazený stůl u rezervace** | aplikace nedovolí vybrat stůl, který má v tu dobu jiná rezervace | Rezervace potvrzuje vždy obsluha. |
-| **Časy rezervací a limit 3 rezervací** | aplikace nabízí jen povolené dny a časy a hlídá limit | Každá rezervace stejně čeká na potvrzení obsluhou. |
+| **Rezervace jen v otevírací době a limit 3 rezervací** | aplikace nabízí jen dny a časy, kdy je otevřeno, a hlídá limit | Každá rezervace stejně čeká na potvrzení obsluhou. |
 | **Smazání jen prázdné kategorie** | aplikace | Smí to jen admin. |
 
 ---
@@ -634,7 +636,7 @@ firebase deploy --only hosting
 flutter test
 ```
 
-Projekt má **92 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`, `reservation_test`, `language_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze.
+Projekt má **96 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`, `reservation_test`, `language_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze.
 
 Testují například:
 - objednávku od menu přes košík až po stav u obsluhy,

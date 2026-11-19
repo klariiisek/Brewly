@@ -253,12 +253,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Štítek Otevřeno / Zavřeno a vedle první řádek otevírací doby.
+  // Štítek Otevřeno / Zavřeno a vedle dnešní otevírací doba.
   Widget buildStatusRow(VenueSettings venue) {
     final color = venue.isOpen
         ? AppColors.success
         : Theme.of(context).colorScheme.error;
-    final hours = venue.openingHours.split('\n').first.trim();
 
     return Wrap(
       alignment: WrapAlignment.center,
@@ -288,11 +287,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-        if (hours.isNotEmpty)
-          Text(
-            hours,
-            style: TextStyle(fontSize: 13, color: context.colors.muted),
-          ),
+        Text(
+          todayHoursText(context.t, venue.openingHoursOn(DateTime.now())),
+          style: TextStyle(fontSize: 13, color: context.colors.muted),
+        ),
       ],
     );
   }

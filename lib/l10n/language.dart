@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import '../models/opening_hours.dart';
 import 'app_localizations.dart';
 
 export 'app_localizations.dart';
@@ -78,3 +79,22 @@ String orderDate(AppLocalizations t, DateTime time) {
   final minutes = time.minute.toString().padLeft(2, '0');
   return '$day ${time.hour}:$minutes';
 }
+
+const _csDayNames = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'];
+const _enDayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+// Otevírací doba po řádcích, stejné sousední dny spojené:
+// "Po–Pá 8:00–20:00", "So 10:00–22:00", "Ne zavřeno".
+List<String> openingDaysText(AppLocalizations t, List<DayHours?> days) {
+  final names = t.localeName == 'cs' ? _csDayNames : _enDayNames;
+  return [
+    for (final group in groupOpeningDays(days))
+      '${names[group.firstDay]}'
+          '${group.lastDay > group.firstDay ? '–${names[group.lastDay]}' : ''} '
+          '${group.hours == null ? t.closedDay : hoursText(group.hours!)}',
+  ];
+}
+
+// Dnešní otevírací doba: "Dnes 8:00–20:00", nebo "Dnes zavřeno".
+String todayHoursText(AppLocalizations t, DayHours? hours) =>
+    hours == null ? t.closedToday : t.todayHours(hoursText(hours));

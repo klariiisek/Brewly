@@ -57,7 +57,6 @@ class AppConfig {
   static const int maxSloganLength = 80; // [pravidla]
   static const int maxAnnouncementLength = 120; // [pravidla]
   static const int maxAddressLength = 100; // [pravidla]
-  static const int maxOpeningHoursLength = 300; // [pravidla]
   static const int maxWifiLength = 50; // [pravidla]
   static const int maxCategoryNameLength = 40; // [pravidla]
   static const int maxUserNameLength = 40;
@@ -75,11 +74,14 @@ class AppConfig {
   // Na kolik dní dopředu jde rezervovat. [pravidla: o den víc, 31]
   static const int reservationDaysAhead = 30;
 
-  // Výchozí časy rezervací (první a poslední čas) pro každý den, dokud
-  // admin v Nastavení podniku nenastaví vlastní.
-  // V minutách od půlnoci: 8:00 až 20:00.
-  static const int defaultReservationFrom = 8 * 60;
-  static const int defaultReservationTo = 20 * 60;
+  // Výchozí otevírací doba pro každý den, dokud admin v Nastavení
+  // podniku nenastaví vlastní. V minutách od půlnoci: 8:00 až 20:00.
+  static const int defaultOpenFrom = 8 * 60;
+  static const int defaultOpenTo = 20 * 60;
+
+  // Poslední rezervace nejpozději tolik minut před zavřením
+  // (zavírá se ve 20:00 → poslední rezervace v 19:00).
+  static const int lastReservationBeforeClosingMinutes = 60;
 
   // Jak dlouho hosté s rezervací sedí u stolu. Podle toho aplikace pozná,
   // že je stůl v tu dobu obsazený jinou rezervací (18:00 a 19:00 se

@@ -30,7 +30,6 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
   final sloganController = TextEditingController();
   final announcementController = TextEditingController();
   final addressController = TextEditingController();
-  final hoursController = TextEditingController();
   final wifiNameController = TextEditingController();
   final wifiPasswordController = TextEditingController();
   late String colorKey;
@@ -42,8 +41,8 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
   late int loyaltyGoal;
   late final Stream<List<MenuCategory>> categoriesStream;
 
-  // Časy rezervací po dnech (0 = pondělí; null = ten den rezervace nejdou).
-  late List<DayHours?> reservationHours;
+  // Otevírací doba po dnech (0 = pondělí; null = ten den zavřeno).
+  late List<DayHours?> openingDays;
 
   @override
   void initState() {
@@ -66,7 +65,6 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
     sloganController.text = settings.slogan;
     announcementController.text = settings.announcement;
     addressController.text = settings.address;
-    hoursController.text = settings.openingHours;
     wifiNameController.text = settings.wifiName;
     wifiPasswordController.text = settings.wifiPassword;
     colorKey = settings.colorKey;
@@ -74,7 +72,7 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
     loyaltyEnabled = settings.loyaltyEnabled;
     loyaltyCategoryId = settings.loyaltyCategoryId;
     loyaltyGoal = settings.loyaltyGoal;
-    reservationHours = List.of(settings.reservationHours);
+    openingDays = List.of(settings.openingDays);
   }
 
   @override
@@ -83,7 +81,6 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
     sloganController.dispose();
     announcementController.dispose();
     addressController.dispose();
-    hoursController.dispose();
     wifiNameController.dispose();
     wifiPasswordController.dispose();
     super.dispose();
@@ -100,13 +97,12 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
       type: type,
       announcement: announcementController.text.trim(),
       address: addressController.text.trim(),
-      openingHours: hoursController.text.trim(),
       wifiName: wifiNameController.text.trim(),
       wifiPassword: wifiPasswordController.text.trim(),
       loyaltyEnabled: loyaltyEnabled,
       loyaltyCategoryId: loyaltyCategoryId,
       loyaltyGoal: loyaltyGoal,
-      reservationHours: reservationHours,
+      openingDays: openingDays,
     );
   }
 
@@ -249,18 +245,6 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
               ),
               const SizedBox(height: 8),
               TextFormField(
-                controller: hoursController,
-                decoration: const InputDecoration(
-                  labelText: 'Otevírací doba',
-                  hintText: 'Po–Pá 8:00–20:00\nSo–Ne 9:00–18:00',
-                  prefixIcon: Icon(Icons.schedule),
-                ),
-                minLines: 2,
-                maxLines: 5,
-                maxLength: AppConfig.maxOpeningHoursLength,
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
                 controller: wifiNameController,
                 decoration: const InputDecoration(
                   labelText: 'Název Wi-Fi',
@@ -278,8 +262,8 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
                 maxLength: AppConfig.maxWifiLength,
               ),
               const SizedBox(height: 24),
-              buildSectionTitle('Časy rezervací'),
-              buildReservationHours(),
+              buildSectionTitle('Otevírací doba'),
+              buildOpeningDays(),
               const SizedBox(height: 24),
               buildSectionTitle('Razítková karta'),
               buildLoyaltySettings(),
@@ -583,11 +567,18 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
     );
   }
 
-  // Časy rezervací pro každý den v týdnu: přepínač (jde ten den
-  // rezervovat?) a první a poslední čas. Zákazníkům se pak nabídnou jen
-  // časy v tomto rozmezí – každý podnik má jinou otevírací dobu.
-  Widget buildReservationHours() {
+  // Otevírací doba pro každý den v týdnu: přepínač (otevřeno?) a čas
+  // od–do. Zákazník ji vidí v informacích o podniku a podle ní se mu
+  // nabízejí časy rezervací – každý podnik má jinou otevírací dobu.
+  Widget buildOpeningDays() {
     const dayNames = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne'];
+    // „… jako v pondělí“, „… jako v úterý“ (český 6. pád).
+    const dayNamesLong = [
+      'v pondělí', 'v úterý', 've středu', 've čtvrtek',
+      'v pátek', 'v sobotu', 'v neděli',
+    ];
+    final firstOpenIndex = openingDays.indexWhere((day) => day != null);
+    final int? firstOpenDay = firstOpenIndex == -1 ? null : firstOpenIndex;
     final colors = context.colors;
     return Card(
       margin: EdgeInsets.zero,
@@ -597,8 +588,9 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'První a poslední čas, na který si zákazník může stůl '
-              'zarezervovat. Vypnutý den = ten den rezervace nejdou.',
+              'Kdy má podnik otevřeno. Vypnutý den = zavřeno. Rezervovat stůl '
+              'jde nejpozději ${AppConfig.lastReservationBeforeClosingMinutes} '
+              'minut před zavřením.',
               style: TextStyle(color: colors.muted),
             ),
             const SizedBox(height: 8),
@@ -616,10 +608,10 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
                     ),
                   ),
                   Switch(
-                    value: reservationHours[day] != null,
+                    value: openingDays[day] != null,
                     onChanged: (isOn) => setState(() {
-                      reservationHours[day] = isOn
-                          ? VenueSettings.defaultReservationHours[day]
+                      openingDays[day] = isOn
+                          ? VenueSettings.defaultOpeningDays[day]
                           : null;
                     }),
                   ),
@@ -627,31 +619,41 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
                   Expanded(child: buildDayHours(day)),
                 ],
               ),
-            const SizedBox(height: 4),
-            TextButton.icon(
-              icon: const Icon(Icons.copy_all_outlined, size: 18),
-              label: const Text('Všem dnům nastavit časy jako v pondělí'),
-              onPressed: () => setState(() {
-                reservationHours = List.filled(7, reservationHours[0]);
-              }),
-            ),
+            // Rychlé nastavení: časy prvního otevřeného dne zkopíruje
+            // do ostatních otevřených dnů. Zavřené dny nechá zavřené.
+            if (firstOpenDay != null) ...[
+              const SizedBox(height: 4),
+              TextButton.icon(
+                icon: const Icon(Icons.copy_all_outlined, size: 18),
+                label: Text(
+                  'Otevřeným dnům nastavit časy jako '
+                  '${dayNamesLong[firstOpenDay]}',
+                ),
+                onPressed: () => setState(() {
+                  final hours = openingDays[firstOpenDay];
+                  openingDays = [
+                    for (final day in openingDays) day == null ? null : hours,
+                  ];
+                }),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  // Výběr „od – do“ pro jeden den (nebo text, že ten den rezervace nejdou).
+  // Výběr „od – do“ pro jeden den (nebo text, že je ten den zavřeno).
   Widget buildDayHours(int day) {
-    final hours = reservationHours[day];
+    final hours = openingDays[day];
     if (hours == null) {
       return Text(
-        'bez rezervací',
+        'zavřeno',
         style: TextStyle(color: context.colors.muted),
       );
     }
-    // Celý den po půl hodinách: 00:00, 00:30 … 23:30.
-    final times = [for (var minute = 0; minute < 24 * 60; minute += 30) minute];
+    // Celý den po půl hodinách: 00:00, 00:30 … 24:00 (půlnoc).
+    final times = [for (var minute = 0; minute <= 24 * 60; minute += 30) minute];
     DropdownButton<int> picker(int value, ValueChanged<int> onChanged) {
       return DropdownButton<int>(
         value: value,
@@ -675,13 +677,13 @@ class _VenueSettingsScreenState extends State<VenueSettingsScreen> {
       children: [
         picker(
           hours.from,
-          (from) => reservationHours[day] =
+          (from) => openingDays[day] =
               DayHours(from, from > hours.to ? from : hours.to),
         ),
         const Text('–'),
         picker(
           hours.to,
-          (to) => reservationHours[day] =
+          (to) => openingDays[day] =
               DayHours(to < hours.from ? to : hours.from, to),
         ),
       ],

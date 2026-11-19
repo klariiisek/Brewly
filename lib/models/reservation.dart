@@ -1,5 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart' show Timestamp;
 import '../l10n/language.dart';
+import 'opening_hours.dart';
+
+// DayHours (čas od–do) je v opening_hours.dart – ostatní soubory ho tak
+// dostanou i přes import rezervací.
+export 'opening_hours.dart';
 
 // Stav rezervace. Nová rezervace čeká, až ji obsluha potvrdí nebo odmítne.
 // Zákazník ji může zrušit (dokud čeká nebo je potvrzená).
@@ -87,47 +92,9 @@ Map<int, Reservation> occupiedTables(
   };
 }
 
-// Kdy jde v jeden den rezervovat: první a poslední čas rezervace
-// v minutách od půlnoci (např. 8:00 = 480). V databázi jako text
-// "08:00-20:00", den bez rezervací jako prázdný text.
-class DayHours {
-  final int from;
-  final int to;
-
-  const DayHours(this.from, this.to);
-
-  // Z textu "08:00-20:00". Prázdný nebo chybný text = v ten den nejde
-  // rezervovat (null).
-  static DayHours? parse(String text) {
-    final match = RegExp(r'^(\d\d):(\d\d)-(\d\d):(\d\d)$').firstMatch(text);
-    if (match == null) return null;
-    int part(int index) => int.parse(match.group(index)!);
-    final from = part(1) * 60 + part(2);
-    final to = part(3) * 60 + part(4);
-    if (from > to || to >= 24 * 60) return null;
-    return DayHours(from, to);
-  }
-
-  @override
-  String toString() => '${minutesText(from)}-${minutesText(to)}';
-
-  @override
-  bool operator ==(Object other) =>
-      other is DayHours && other.from == from && other.to == to;
-
-  @override
-  int get hashCode => Object.hash(from, to);
-}
-
-// Minuty od půlnoci jako čas "08:30".
-String minutesText(int minutes) {
-  final hours = (minutes ~/ 60).toString().padLeft(2, '0');
-  final rest = (minutes % 60).toString().padLeft(2, '0');
-  return '$hours:$rest';
-}
-
 // Časy, na které jde rezervovat v daný den: po půl hodinách od prvního
-// do posledního času podle [hours] (null = ten den nejde rezervovat).
+// do posledního času rezervace podle [hours] (null = ten den nejde
+// rezervovat).
 // Dnes jen časy aspoň [minAdvance] od teď.
 List<DateTime> reservationSlots(
   DateTime day, {

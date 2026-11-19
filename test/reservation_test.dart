@@ -3,7 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart' show Timestamp;
 import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:brewly/l10n/language.dart';
 import 'package:brewly/models/reservation.dart';
+import 'package:brewly/models/venue_settings.dart';
 import 'package:brewly/utils/format.dart';
 import 'package:brewly/widgets/upcoming_reservations_banner.dart';
 
@@ -48,11 +50,50 @@ void main() {
     );
   });
 
-  test('Časy rezervací v databázi: "08:00-20:30", prázdný text = zavřeno', () {
+  test('Otevírací doba v databázi: "08:00-20:30", prázdný text = zavřeno', () {
     expect(DayHours.parse('08:00-20:30'), const DayHours(480, 1230));
     expect(DayHours.parse('08:00-20:30').toString(), '08:00-20:30');
+    expect(DayHours.parse('18:00-24:00'), const DayHours(1080, 1440));
     expect(DayHours.parse(''), isNull);
     expect(DayHours.parse('20:00-08:00'), isNull); // konec před začátkem
+  });
+
+  test('Rezervace jdou od otevření do hodiny před zavřením', () {
+    final venue = VenueSettings.defaults.copyWith(
+      openingDays: [
+        const DayHours(8 * 60, 20 * 60), // po
+        const DayHours(10 * 60, 10 * 60 + 30), // út: jen půl hodiny
+        null, null, null, null, null,
+      ],
+    );
+    final monday = DateTime(2026, 11, 16);
+    expect(venue.reservationHoursOn(monday), const DayHours(480, 1140));
+    // Úterý: otevřeno jen 30 minut → rezervace nejdou.
+    expect(venue.reservationHoursOn(DateTime(2026, 11, 17)), isNull);
+    // Středa zavřeno.
+    expect(venue.reservationHoursOn(DateTime(2026, 11, 18)), isNull);
+  });
+
+  test('Otevírací doba pro zákazníka: stejné dny spojené, česky i anglicky',
+      () async {
+    const open = DayHours(8 * 60, 20 * 60);
+    const weekend = DayHours(10 * 60, 22 * 60);
+    final days = [open, open, open, open, open, weekend, null];
+    final cs = await AppLocalizations.delegate.load(const Locale('cs'));
+    final en = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(openingDaysText(cs, days),
+        ['Po–Pá 8:00–20:00', 'So 10:00–22:00', 'Ne zavřeno']);
+    expect(openingDaysText(en, days),
+        ['Mon–Fri 8:00–20:00', 'Sat 10:00–22:00', 'Sun closed']);
+    expect(todayHoursText(en, null), 'Closed today');
+  });
+
+  test('Starší nastavení s časy rezervací se převezme jako otevírací doba', () {
+    final venue = VenueSettings.fromMap({
+      'reservationHours': ['09:00-17:00', '', '', '', '', '', ''],
+    });
+    expect(venue.openingDays.first, const DayHours(540, 1020));
+    expect(venue.openingDays[1], isNull);
   });
 
   test('Upozornění obsluhy: jen potvrzené rezervace v nejbližší hodině', () {
@@ -83,12 +124,13 @@ void main() {
   ) async {
     useTallScreen(tester);
     final db = FakeFirebaseFirestore();
-    // Rezervace jdou jen zítra (v ten den v týdnu) od 17:00 do 18:00.
+    // Otevřeno jen zítra (v ten den v týdnu) od 17:00 do 19:00
+    // → rezervace 17:00–18:00 (poslední hodinu před zavřením ne).
     final tomorrow = DateTime.now().add(const Duration(days: 1));
     final hours = List.filled(7, '');
-    hours[tomorrow.weekday - 1] = '17:00-18:00';
+    hours[tomorrow.weekday - 1] = '17:00-19:00';
     await db.collection('settings').doc('venue').set({
-      'reservationHours': hours,
+      'openingDays': hours,
     });
 
     await pumpApp(tester, await buildTestApp(db: db));
@@ -105,7 +147,7 @@ void main() {
     expect(find.text('18:30'), findsNothing);
   });
 
-  testWidgets('Admin vypne rezervace v neděli a uloží časy', (
+  testWidgets('Admin zavře neděli a uloží otevírací dobu', (
     WidgetTester tester,
   ) async {
     useTallScreen(tester);
@@ -114,7 +156,7 @@ void main() {
 
     await pumpApp(tester, await buildTestApp(db: db));
     await scrollAndTap(tester, find.text('Podnik'));
-    // Řádek „Ne“ v časech rezervací – jeho přepínač.
+    // Řádek „Ne“ v otevírací době – jeho přepínač.
     final sundaySwitch = find.descendant(
       of: find.ancestor(of: find.text('Ne'), matching: find.byType(Row)).first,
       matching: find.byType(Switch),
@@ -122,11 +164,11 @@ void main() {
     await tester.ensureVisible(sundaySwitch);
     await tester.tap(sundaySwitch);
     await tester.pumpAndSettle();
-    expect(find.text('bez rezervací'), findsOneWidget);
+    expect(find.text('zavřeno'), findsOneWidget);
     await scrollAndTap(tester, find.text('Uložit nastavení'));
 
     final settings = await db.collection('settings').doc('venue').get();
-    expect(settings.data()!['reservationHours'], [
+    expect(settings.data()!['openingDays'], [
       '08:00-20:00',
       '08:00-20:00',
       '08:00-20:00',
@@ -414,6 +456,35 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Nastavení podniku'), findsNothing);
     final settings = await db.collection('settings').doc('venue').get();
-    expect((settings.data()!['reservationHours'] as List).last, '');
+    expect((settings.data()!['openingDays'] as List).last, '');
+  });
+
+  testWidgets('Kopírování časů: zavřené dny zůstanou zavřené', (
+    WidgetTester tester,
+  ) async {
+    useTallScreen(tester);
+    final db = FakeFirebaseFirestore();
+    await db.collection('users').doc(testUser.uid).set({'role': 'admin'});
+    // V pondělí a v neděli zavřeno, úterý 9–17, ostatní dny jinak.
+    await db.collection('settings').doc('venue').set({
+      'openingDays': [
+        '', '09:00-17:00', '08:00-20:00', '08:00-20:00',
+        '08:00-22:00', '10:00-22:00', '',
+      ],
+    });
+
+    await pumpApp(tester, await buildTestApp(db: db));
+    await scrollAndTap(tester, find.text('Podnik'));
+    await scrollAndTap(
+      tester,
+      find.text('Otevřeným dnům nastavit časy jako v úterý'),
+    );
+    await scrollAndTap(tester, find.text('Uložit nastavení'));
+
+    final settings = await db.collection('settings').doc('venue').get();
+    expect(settings.data()!['openingDays'], [
+      '', '09:00-17:00', '09:00-17:00', '09:00-17:00',
+      '09:00-17:00', '09:00-17:00', '',
+    ]);
   });
 }

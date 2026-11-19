@@ -287,6 +287,17 @@ class AppLocalizationsCs extends AppLocalizations {
   String get openingHours => 'Otevírací doba';
 
   @override
+  String get closedDay => 'zavřeno';
+
+  @override
+  String todayHours(String hours) {
+    return 'Dnes $hours';
+  }
+
+  @override
+  String get closedToday => 'Dnes zavřeno';
+
+  @override
   String wifiPassword(String password) {
     return 'Heslo: $password';
   }

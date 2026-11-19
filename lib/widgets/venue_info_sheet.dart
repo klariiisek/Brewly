@@ -69,12 +69,13 @@ class VenueInfoSheet extends StatelessWidget {
                 context.t.address,
                 venue.address,
               ),
-            if (venue.openingHours.isNotEmpty)
+            if (venue.openingDays.any((day) => day != null))
               buildRow(
                 context,
                 Icons.schedule,
                 context.t.openingHours,
-                venue.openingHours,
+                // Po řádcích, stejné dny spojené: „Po–Pá 8:00–20:00“.
+                openingDaysText(context.t, venue.openingDays).join('\n'),
               ),
             if (venue.wifiName.isNotEmpty) buildWifi(context, venue),
           ],

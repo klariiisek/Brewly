@@ -73,11 +73,11 @@ describe('Nastavení podniku', () => {
     await assertFails(updateDoc(doc(dbAs(env, 'klara'), 'settings', 'venue'), { isOpen: false }));
   });
 
-  it('admin změní název, časy rezervací a razítkovou kartu', async () => {
+  it('admin změní název, otevírací dobu a razítkovou kartu', async () => {
     await assertSucceeds(updateDoc(doc(dbAs(env, 'admin'), 'settings', 'venue'), {
       name: 'Kavárna U Lípy',
       loyaltyGoal: 8,
-      reservationHours: ['08:00-20:00', '08:00-20:00', '08:00-20:00', '08:00-20:00',
+      openingDays: ['08:00-20:00', '08:00-20:00', '08:00-20:00', '08:00-20:00',
         '08:00-22:00', '10:00-22:00', ''],
     }));
   });
@@ -86,7 +86,7 @@ describe('Nastavení podniku', () => {
     const db = dbAs(env, 'admin');
     await assertFails(updateDoc(doc(db, 'settings', 'venue'), { color: 'neonova' }));
     await assertFails(updateDoc(doc(db, 'settings', 'venue'), { loyaltyGoal: 50 }));
-    await assertFails(updateDoc(doc(db, 'settings', 'venue'), { reservationHours: ['08:00-20:00'] }));
+    await assertFails(updateDoc(doc(db, 'settings', 'venue'), { openingDays: ['08:00-20:00'] }));
     await assertFails(updateDoc(doc(db, 'settings', 'venue'), { name: '' }));
   });
 });

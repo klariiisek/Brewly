@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/app_config.dart';
-import 'reservation.dart';
+import 'opening_hours.dart';
 
 // Typ podniku – podle něj se mění ikona a emoji v aplikaci.
 enum VenueType {
@@ -32,7 +32,6 @@ class VenueSettings {
 
   // Informace pro zákazníky (prázdné = nezobrazí se).
   final String address;
-  final String openingHours;
   final String wifiName;
   final String wifiPassword;
 
@@ -42,9 +41,9 @@ class VenueSettings {
   final String loyaltyCategoryId;
   final int loyaltyGoal;
 
-  // Časy rezervací pro každý den v týdnu (0 = pondělí … 6 = neděle).
-  // null = v ten den rezervace nejdou (např. zavřeno).
-  final List<DayHours?> reservationHours;
+  // Otevírací doba pro každý den v týdnu (0 = pondělí … 6 = neděle).
+  // null = ten den je zavřeno. Podle ní se nabízejí i časy rezervací.
+  final List<DayHours?> openingDays;
 
   // Výchozí nastavení (než ho admin poprvé uloží) – z konfigurace aplikace.
   static final defaults = VenueSettings(
@@ -62,35 +61,44 @@ class VenueSettings {
     this.isOpen = true,
     this.announcement = '',
     this.address = '',
-    this.openingHours = '',
     this.wifiName = '',
     this.wifiPassword = '',
     this.loyaltyEnabled = false,
     this.loyaltyCategoryId = '',
     this.loyaltyGoal = AppConfig.defaultLoyaltyGoal,
-    this.reservationHours = defaultReservationHours,
+    this.openingDays = defaultOpeningDays,
   });
 
-  // Výchozí časy rezervací – každý den stejné (z konfigurace aplikace).
-  static const defaultReservationHours = <DayHours?>[
+  // Výchozí otevírací doba – každý den stejná (z konfigurace aplikace).
+  static const defaultOpeningDays = <DayHours?>[
     _defaultDayHours, _defaultDayHours, _defaultDayHours, _defaultDayHours,
     _defaultDayHours, _defaultDayHours, _defaultDayHours,
   ];
   static const _defaultDayHours = DayHours(
-    AppConfig.defaultReservationFrom,
-    AppConfig.defaultReservationTo,
+    AppConfig.defaultOpenFrom,
+    AppConfig.defaultOpenTo,
   );
 
-  // Časy rezervací v konkrétní den (null = ten den rezervace nejdou).
-  DayHours? reservationHoursOn(DateTime day) =>
-      reservationHours[day.weekday - 1];
+  // Otevírací doba v konkrétní den (null = zavřeno).
+  DayHours? openingHoursOn(DateTime day) => openingDays[day.weekday - 1];
+
+  // Kdy jde v daný den rezervovat: od otevření do hodiny před zavřením
+  // (null = ten den rezervace nejdou).
+  DayHours? reservationHoursOn(DateTime day) {
+    final open = openingHoursOn(day);
+    if (open == null) return null;
+    final last = open.to - AppConfig.lastReservationBeforeClosingMinutes;
+    return last < open.from ? null : DayHours(open.from, last);
+  }
 
   // Je razítková karta zapnutá a má vybranou kategorii?
   bool get hasLoyalty => loyaltyEnabled && loyaltyCategoryId.isNotEmpty;
 
   // Vyplnil admin nějaké informace pro zákazníky?
   bool get hasInfo =>
-      address.isNotEmpty || openingHours.isNotEmpty || wifiName.isNotEmpty;
+      address.isNotEmpty ||
+      wifiName.isNotEmpty ||
+      openingDays.any((day) => day != null);
 
   // Z dat v databázi. Co chybí, doplní se z výchozího nastavení.
   factory VenueSettings.fromMap(Map<String, dynamic>? data) {
@@ -110,19 +118,22 @@ class VenueSettings {
       isOpen: data['isOpen'] as bool? ?? true,
       announcement: text('announcement', ''),
       address: text('address', ''),
-      openingHours: text('openingHours', ''),
       wifiName: text('wifiName', ''),
       wifiPassword: text('wifiPassword', ''),
       loyaltyEnabled: data['loyaltyEnabled'] as bool? ?? false,
       loyaltyCategoryId: text('loyaltyCategoryId', ''),
       loyaltyGoal: data['loyaltyGoal'] as int? ?? AppConfig.defaultLoyaltyGoal,
-      reservationHours: _reservationHoursFrom(data['reservationHours']),
+      // Starší data měla místo otevírací doby jen časy rezervací –
+      // převezmeme je, aby se nastavení neztratilo.
+      openingDays: _openingDaysFrom(
+        data['openingDays'] ?? data['reservationHours'],
+      ),
     );
   }
 
-  // V databázi je seznam 7 textů "08:00-20:00" (prázdný = ten den ne).
-  static List<DayHours?> _reservationHoursFrom(Object? value) {
-    if (value is! List || value.length != 7) return defaultReservationHours;
+  // V databázi je seznam 7 textů "08:00-20:00" (prázdný = zavřeno).
+  static List<DayHours?> _openingDaysFrom(Object? value) {
+    if (value is! List || value.length != 7) return defaultOpeningDays;
     return [for (final day in value) DayHours.parse(day as String? ?? '')];
   }
 
@@ -135,13 +146,12 @@ class VenueSettings {
     bool? isOpen,
     String? announcement,
     String? address,
-    String? openingHours,
     String? wifiName,
     String? wifiPassword,
     bool? loyaltyEnabled,
     String? loyaltyCategoryId,
     int? loyaltyGoal,
-    List<DayHours?>? reservationHours,
+    List<DayHours?>? openingDays,
   }) {
     return VenueSettings(
       name: name ?? this.name,
@@ -151,13 +161,12 @@ class VenueSettings {
       isOpen: isOpen ?? this.isOpen,
       announcement: announcement ?? this.announcement,
       address: address ?? this.address,
-      openingHours: openingHours ?? this.openingHours,
       wifiName: wifiName ?? this.wifiName,
       wifiPassword: wifiPassword ?? this.wifiPassword,
       loyaltyEnabled: loyaltyEnabled ?? this.loyaltyEnabled,
       loyaltyCategoryId: loyaltyCategoryId ?? this.loyaltyCategoryId,
       loyaltyGoal: loyaltyGoal ?? this.loyaltyGoal,
-      reservationHours: reservationHours ?? this.reservationHours,
+      openingDays: openingDays ?? this.openingDays,
     );
   }
   Map<String, dynamic> toMap() {
@@ -169,14 +178,13 @@ class VenueSettings {
       'isOpen': isOpen,
       'announcement': announcement,
       'address': address,
-      'openingHours': openingHours,
       'wifiName': wifiName,
       'wifiPassword': wifiPassword,
       'loyaltyEnabled': loyaltyEnabled,
       'loyaltyCategoryId': loyaltyCategoryId,
       'loyaltyGoal': loyaltyGoal,
-      'reservationHours': [
-        for (final day in reservationHours) day?.toString() ?? '',
+      'openingDays': [
+        for (final day in openingDays) day?.toString() ?? '',
       ],
     };
   }

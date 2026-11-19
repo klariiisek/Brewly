@@ -285,6 +285,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get openingHours => 'Opening hours';
 
   @override
+  String get closedDay => 'closed';
+
+  @override
+  String todayHours(String hours) {
+    return 'Today $hours';
+  }
+
+  @override
+  String get closedToday => 'Closed today';
+
+  @override
   String wifiPassword(String password) {
     return 'Password: $password';
   }

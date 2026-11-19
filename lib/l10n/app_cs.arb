@@ -151,6 +151,16 @@
   "noVenueInfo": "Podnik zatím nevyplnil žádné informace.",
   "address": "Adresa",
   "openingHours": "Otevírací doba",
+  "closedDay": "zavřeno",
+  "todayHours": "Dnes {hours}",
+  "@todayHours": {
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      }
+    }
+  },
+  "closedToday": "Dnes zavřeno",
   "wifiPassword": "Heslo: {password}",
   "@wifiPassword": {
     "placeholders": {

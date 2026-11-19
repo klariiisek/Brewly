@@ -566,6 +566,24 @@ abstract class AppLocalizations {
   /// **'Otevírací doba'**
   String get openingHours;
 
+  /// No description provided for @closedDay.
+  ///
+  /// In cs, this message translates to:
+  /// **'zavřeno'**
+  String get closedDay;
+
+  /// No description provided for @todayHours.
+  ///
+  /// In cs, this message translates to:
+  /// **'Dnes {hours}'**
+  String todayHours(String hours);
+
+  /// No description provided for @closedToday.
+  ///
+  /// In cs, this message translates to:
+  /// **'Dnes zavřeno'**
+  String get closedToday;
+
   /// No description provided for @wifiPassword.
   ///
   /// In cs, this message translates to:

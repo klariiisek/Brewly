@@ -125,7 +125,8 @@ service cloud.firestore {
         let settings = request.resource.data;
         return settings.keys().hasOnly(['name', 'slogan', 'color', 'type', 'categoryOrder',
             'isOpen', 'announcement', 'address', 'openingHours', 'wifiName', 'wifiPassword',
-            'loyaltyEnabled', 'loyaltyCategoryId', 'loyaltyGoal', 'reservationHours'])
+            'loyaltyEnabled', 'loyaltyCategoryId', 'loyaltyGoal', 'reservationHours',
+            'openingDays'])
           && settings.name is string && settings.name.size() > 0 && settings.name.size() <= 40
           && settings.slogan is string && settings.slogan.size() <= 80
           && settings.color in ['kava', 'bordo', 'terakota', 'olivova', 'lesni', 'namornicka', 'levandulova', 'grafitova']
@@ -136,6 +137,8 @@ service cloud.firestore {
           && settings.get('isOpen', true) is bool
           && isShortText('announcement', 120)
           && isShortText('address', 100)
+          // openingHours a reservationHours = starší pole (dnes openingDays),
+          // ve starých datech můžou být.
           && isShortText('openingHours', 300)
           && isShortText('wifiName', 50)
           && isShortText('wifiPassword', 50)
@@ -145,9 +148,12 @@ service cloud.firestore {
           && settings.get('loyaltyGoal', 10) is int
           && settings.get('loyaltyGoal', 10) >= 3
           && settings.get('loyaltyGoal', 10) <= 20
-          // Časy rezervací: 7 textů "08:00-20:00" (pondělí až neděle).
           && settings.get('reservationHours', ['', '', '', '', '', '', '']) is list
-          && settings.get('reservationHours', ['', '', '', '', '', '', '']).size() == 7;
+          && settings.get('reservationHours', ['', '', '', '', '', '', '']).size() == 7
+          // Otevírací doba: 7 textů "08:00-20:00" (pondělí až neděle,
+          // prázdný = zavřeno). Podle ní se nabízejí i časy rezervací.
+          && settings.get('openingDays', ['', '', '', '', '', '', '']) is list
+          && settings.get('openingDays', ['', '', '', '', '', '', '']).size() == 7;
       }
 
       // Admin smí měnit vše (ve správném tvaru).
