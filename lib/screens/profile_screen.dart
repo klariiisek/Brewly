@@ -460,8 +460,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            // Jazyk aplikace (platí jen v tomto zařízení, dokud se aplikace
-            // nezavře – pak zase podle telefonu).
+            // Jazyk aplikace (zapamatuje si ho toto zařízení).
             SizedBox(
               width: double.infinity,
               child: SegmentedButton<String>(
@@ -472,7 +471,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 selected: {context.t.localeName},
                 showSelectedIcon: false,
                 onSelectionChanged: (selected) =>
-                    appLanguage.value = Locale(selected.first),
+                    setLanguage(Locale(selected.first)),
               ),
             ),
           ],

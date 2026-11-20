@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:brewly/l10n/language.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'helpers.dart';
 
@@ -63,5 +64,23 @@ void main() {
       await tester.pumpAndSettle();
     }
     expect(find.textContaining('5 položek'), findsOneWidget);
+  });
+
+  test('Zvolený jazyk si zařízení zapamatuje i po zavření aplikace', () async {
+    SharedPreferences.setMockInitialValues({});
+    await setLanguage(const Locale('en'));
+
+    // „Zavření“ aplikace: jazyk v paměti se zapomene…
+    appLanguage.value = null;
+    // …a při dalším spuštění se načte z úložiště.
+    await loadSavedLanguage();
+    expect(appLanguage.value, const Locale('en'));
+  });
+
+  test('Bez uložené volby se jazyk řídí telefonem', () async {
+    SharedPreferences.setMockInitialValues({});
+    appLanguage.value = null;
+    await loadSavedLanguage();
+    expect(appLanguage.value, isNull);
   });
 }

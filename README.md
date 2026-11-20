@@ -13,7 +13,7 @@ Obsluha vidí objednávky, požadavky i rezervace živě. Vedoucí podniku (admi
 | **Technologie** | Flutter / Dart, Firebase (Authentication, Firestore, Hosting) |
 | **Zabezpečení** | bezpečnostní pravidla databáze na serveru |
 | **Jazyky** | zákaznická část česky a anglicky |
-| **Testy** | 102 testů aplikace + 73 testů bezpečnostních pravidel |
+| **Testy** | 104 testů aplikace + 73 testů bezpečnostních pravidel |
 
 ---
 
@@ -84,7 +84,7 @@ Aplikace rozlišuje čtyři typy uživatelů. Co kdo smí, nehlídá jen aplikac
 - **Oblíbené produkty**: srdíčko u produktu a štítek „Oblíbené“ v menu.
 
 **Jazyk**
-- zákaznická část je **česky i anglicky**. Jazyk se vybere podle telefonu (čeština a slovenština = česky, ostatní = anglicky), nebo tlačítkem **English / Čeština** na úvodu, v menu a v profilu. Názvy produktů a kategorií zůstávají tak, jak je napsal podnik.
+- zákaznická část je **česky i anglicky**. Jazyk se vybere podle telefonu (čeština a slovenština = česky, ostatní = anglicky), nebo tlačítkem **English / Čeština** na úvodu, v menu a v profilu. Zvolený jazyk si telefon (prohlížeč) zapamatuje i po zavření aplikace. Názvy produktů a kategorií zůstávají tak, jak je napsal podnik.
 
 **Účet**
 - registrace a přihlášení **e-mailem a heslem** nebo **přes Google**, obnovení zapomenutého hesla,
@@ -247,6 +247,7 @@ Klepnutím na název skupiny se snímky rozbalí.
 | **CustomPainter** (Flutter) | aplikace sama kreslí grafy ve statistikách, ikony nápojů, ilustraci na úvodu (s animovanou párou) a vzor v pozadí a přebarvuje je podle barvy podniku |
 | písmo **Lexend** | písmo navržené pro snadné čtení, přibalené přímo v aplikaci |
 | `qr_flutter` | generování QR kódů stolů |
+| `shared_preferences` | zapamatování zvoleného jazyka v telefonu nebo prohlížeči |
 | `file_picker` | výběr CSV souboru s menu |
 | `fake_cloud_firestore`, `firebase_auth_mocks` | falešná databáze a přihlášení pro testy |
 
@@ -313,7 +314,7 @@ Zákaznická část (úvod, menu, košík, objednávky, rezervace, profil, přih
 - Texty nejsou napsané přímo v kódu, ale v souborech [`lib/l10n/app_cs.arb`](lib/l10n/app_cs.arb) a [`lib/l10n/app_en.arb`](lib/l10n/app_en.arb). Flutter z nich vygeneruje třídu a v kódu se píše např. `context.t.placeOrder` místo `'Objednat'`.
 - Přidat další jazyk = přidat další soubor `app_xx.arb` s překlady, kód se nemění.
 - Překlady umí i **tvary podle čísla**: česky „1 položka, 2 položky, 5 položek“, anglicky „1 item, 2 items“.
-- **Jazyk se vybere sám podle telefonu**: čeština a slovenština → česky, ostatní jazyky → anglicky. Zákazník ho může přepnout tlačítkem **English / Čeština**.
+- **Jazyk se vybere sám podle telefonu**: čeština a slovenština → česky, ostatní jazyky → anglicky. Zákazník ho může přepnout tlačítkem **English / Čeština** a zařízení si volbu zapamatuje (balíček `shared_preferences`, uloženo v telefonu, ne v databázi – funguje tak i pro nepřihlášeného turistu).
 - **Obsah od podniku se nepřekládá** (názvy a popisy produktů, kategorie, oznámení). Admin by musel psát každý produkt ve více jazycích, nebo by byla potřeba placená překladová služba se serverem.
 
 ![Menu česky a anglicky – přeloží se rozhraní, produkty zůstávají, jak je napsal podnik](docs/screenshots/preklad.png)
@@ -657,7 +658,7 @@ firebase deploy --only hosting
 flutter test
 ```
 
-Projekt má **102 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`, `reservation_test`, `language_test`, `options_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze.
+Projekt má **104 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`, `reservation_test`, `language_test`, `options_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze.
 
 Testují například:
 - objednávku od menu přes košík až po stav u obsluhy,
@@ -669,7 +670,7 @@ Testují například:
 - statistiky (období, férové srovnání, součty, žebříčky, graf),
 - rezervace (časy podle nastavení, limit, zrušení, potvrzení se stolem, obsazené stoly, upozornění),
 - upozornění na neuložené změny v nastavení,
-- jazyky (výběr podle telefonu, přepnutí do angličtiny, české tvary podle čísla).
+- jazyky (výběr podle telefonu, přepnutí do angličtiny, zapamatování volby, české tvary podle čísla).
 
 ### Testy bezpečnostních pravidel
 

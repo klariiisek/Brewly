@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:brewly/main.dart';
 import 'package:brewly/l10n/language.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:brewly/data/menu_data.dart';
 import 'package:brewly/models/cart.dart';
 import 'package:brewly/models/cart_item.dart';
@@ -37,6 +38,8 @@ Future<Widget> buildTestApp({
   // Testy hledají české texty – aplikaci přepneme do češtiny
   // (testovací „telefon“ je jinak anglický).
   appLanguage.value = const Locale('cs');
+  // Falešné úložiště nastavení (místo paměti telefonu / prohlížeče).
+  SharedPreferences.setMockInitialValues({});
   final database = db ?? FakeFirebaseFirestore();
   final productService = ProductService(database);
   if (withMenu) {

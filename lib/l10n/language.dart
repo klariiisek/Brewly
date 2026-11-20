@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/opening_hours.dart';
 import 'app_localizations.dart';
@@ -12,6 +13,33 @@ export 'app_localizations.dart';
 // Jazyk, který si zákazník vybral tlačítkem (null = podle telefonu).
 // ValueNotifier = hodnota, při jejíž změně se aplikace sama překreslí.
 final appLanguage = ValueNotifier<Locale?>(null);
+
+// Pod tímto klíčem si zařízení pamatuje zvolený jazyk ("cs" / "en").
+const _languageKey = 'language';
+
+// Načte jazyk, který si zákazník na tomto zařízení vybral dřív.
+// Ukládá se v telefonu / prohlížeči (shared_preferences), ne k účtu –
+// funguje tak i pro nepřihlášeného turistu z QR kódu.
+Future<void> loadSavedLanguage() async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final code = prefs.getString(_languageKey);
+    if (code == 'cs' || code == 'en') appLanguage.value = Locale(code!);
+  } catch (error) {
+    // Když se uložená volba nedá přečíst, jazyk se vybere podle telefonu.
+  }
+}
+
+// Přepne jazyk aplikace a zapamatuje si ho i po zavření.
+Future<void> setLanguage(Locale language) async {
+  appLanguage.value = language;
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_languageKey, language.languageCode);
+  } catch (error) {
+    // Neuložilo se – jazyk platí aspoň do zavření aplikace.
+  }
+}
 
 // Jazyk podle telefonu: česky pro češtinu a slovenštinu (Slováci češtině
 // rozumí), anglicky pro všechny ostatní – turista z Německa nebo Itálie

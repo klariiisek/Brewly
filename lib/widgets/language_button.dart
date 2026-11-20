@@ -20,7 +20,7 @@ class LanguageButton extends StatelessWidget {
         icon: const Icon(Icons.translate, size: 18),
         label: Text(t.otherLanguageName),
         onPressed: () =>
-            appLanguage.value = Locale(t.localeName == 'cs' ? 'en' : 'cs'),
+            setLanguage(Locale(t.localeName == 'cs' ? 'en' : 'cs')),
       ),
     );
   }

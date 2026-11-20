@@ -80,6 +80,9 @@ Future<void> main() async {
     cart.setTable(tableNumber, tableCode.toUpperCase());
   }
 
+  // Jazyk, který si zákazník na tomto zařízení vybral minule.
+  await loadSavedLanguage();
+
   runApp(MyApp(cart: cart, services: services));
 }
 
