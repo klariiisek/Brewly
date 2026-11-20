@@ -123,8 +123,24 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Expanded(child: Text(item.product.name)),
-                        Text(formatPrice(item.product.price * item.quantity)),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(item.product.name),
+                              // Zvolené možnosti, např. „Mléko: Ovesné“.
+                              if (item.options.isNotEmpty)
+                                Text(
+                                  item.optionsText,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: context.colors.muted,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        Text(formatPrice(item.totalPrice)),
                       ],
                     ),
                   ),

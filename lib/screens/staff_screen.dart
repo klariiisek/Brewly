@@ -429,9 +429,27 @@ class _StaffScreenState extends State<StaffScreen> {
             for (final item in order.items)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3),
-                child: Text(
-                  '${item.quantity}× ${item.product.name}',
-                  style: const TextStyle(fontSize: 15),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${item.quantity}× ${item.product.name}',
+                      style: const TextStyle(fontSize: 15),
+                    ),
+                    // Možnosti zvýrazněné – podle nich obsluha nápoj
+                    // připravuje (např. „Mléko: Ovesné“).
+                    if (item.options.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 22),
+                        child: Text(
+                          item.optionsText,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: context.colors.accent,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             if (order.hasReward) buildRewardNote(order),

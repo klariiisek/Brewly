@@ -6,6 +6,7 @@ import '../models/product.dart';
 import '../utils/streams.dart';
 import '../utils/text.dart';
 import 'category_service.dart';
+import 'option_service.dart';
 
 // Služba, která se stará o produkty v databázi Firestore.
 // Obrazovky se nemusí starat o to, JAK se data čtou – jen si řeknou o produkty.
@@ -13,7 +14,12 @@ class ProductService {
   final FirebaseFirestore db;
   final CategoryService categories;
 
-  ProductService(this.db) : categories = CategoryService(db);
+  // Skupiny možností produktů (mléko, sirup…).
+  final OptionService options;
+
+  ProductService(this.db)
+      : categories = CategoryService(db),
+        options = OptionService(db);
 
   // Kolekce "products" v databázi.
   CollectionReference<Map<String, dynamic>> get _products =>

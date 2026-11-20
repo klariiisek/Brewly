@@ -13,7 +13,7 @@ Obsluha vidí objednávky, požadavky i rezervace živě. Vedoucí podniku (admi
 | **Technologie** | Flutter / Dart, Firebase (Authentication, Firestore, Hosting) |
 | **Zabezpečení** | bezpečnostní pravidla databáze na serveru |
 | **Jazyky** | zákaznická část česky a anglicky |
-| **Testy** | 96 testů aplikace + 70 testů bezpečnostních pravidel |
+| **Testy** | 102 testů aplikace + 73 testů bezpečnostních pravidel |
 
 ---
 
@@ -71,6 +71,7 @@ Aplikace rozlišuje čtyři typy uživatelů. Co kdo smí, nehlídá jen aplikac
 
 **Objednávání**
 - **QR kód na stole** otevře rovnou menu a aplikace ví, u kterého stolu zákazník sedí. Stůl jde zadat i opsaným kódem.
+- **Možnosti produktu:** v detailu si zákazník vybere třeba **ovesné mléko (+15 Kč)** nebo **sirup**, cena se hned přepočítá.
 - **Košík** hlídá vyprodané produkty a změny cen. V menu je **plovoucí lišta košíku** („2 položky · 135 Kč“).
 - Po odeslání objednávky se hned otevře **sledování s ukazatelem průběhu** (Přijata → Připravuje se → Připravena → Dokončena).
 - **Upozornění „Vaše objednávka je připravená! 🎉“** se ukáže, ať je zákazník v aplikaci kdekoli.
@@ -93,7 +94,7 @@ Aplikace rozlišuje čtyři typy uživatelů. Co kdo smí, nehlídá jen aplikac
 ### 👩‍🍳 Obsluha
 - **úvodní obrazovka s barevnými dlaždicemi** (Objednávky, Rezervace, Docházka, Stoly), přepínačem **Otevřeno / Zavřeno** a živými čísly,
 - **červená čísla na dlaždicích** ukazují, co čeká na vyřízení (nové objednávky a požadavky, nepotvrzené rezervace),
-- **objednávky** v záložkách Požadavky, Aktivní a Dokončené, posun do dalšího stavu jedním tlačítkem,
+- **objednávky** v záložkách Požadavky, Aktivní a Dokončené, posun do dalšího stavu jedním tlačítkem. Zvolené možnosti (např. „Mléko: Ovesné“) jsou u položky zvýrazněné,
 - **rezervace**: nahoře čekající žádosti, pod nimi potvrzené po dnech. Při potvrzení jde rovnou přidělit stůl. Stůl, který má v tu dobu jiná rezervace, nejde vybrat.
 - **upozornění „Brzy přijdou hosté s rezervací“** hodinu předem (stůl, čas, počet osob), aby obsluha stůl včas uvolnila,
 - **QR kódy stolů** k vytištění (obnovit je smí jen admin),
@@ -102,7 +103,8 @@ Aplikace rozlišuje čtyři typy uživatelů. Co kdo smí, nehlídá jen aplikac
 ### 🧑‍💼 Admin (vedoucí podniku)
 Umí všechno co obsluha, a navíc:
 - **ovládací panel** na úvodu: dnešní tržba, aktivní objednávky a osm dlaždic. Každý nástroj má pořád stejnou barvu, aby si ji člověk zapamatoval. **Zobrazit jako zákazník** ukáže menu očima hosta (jen náhled, objednat z něj nejde).
-- **správa menu**: přidání, úprava a smazání produktu, **vyprodáno**, vyhledávání, výběr ikony, **nahrání celého menu z CSV** (např. z Excelu) s kontrolou chyb,
+- **správa menu**: přidání, úprava a smazání produktu, **vyprodáno**, vyhledávání, výběr ikony,
+- **možnosti produktů**: vlastní skupiny jako „Mléko“ (kravské, ovesné +15 Kč…) nebo sezónní „Sirup“ (pumpkin spice jen na podzim) a jejich zapnutí u jednotlivých produktů, **nahrání celého menu z CSV** (např. z Excelu) s kontrolou chyb,
 - **kategorie**: přidání, přejmenování, smazání a řazení přetažením,
 - **nastavení podniku**:
   - název, slogan, typ podniku a **barva aplikace** z 8 palet (přebarví se živě i zákazníkům),
@@ -129,6 +131,10 @@ Klepnutím na název skupiny se snímky rozbalí.
 **Menu s vlastními ikonami nápojů.** Každý druh kávy má svůj šálek nebo sklenici, aplikace je kreslí sama. Dole plovoucí lišta košíku.
 
 ![Menu s ikonami](docs/screenshots/menu-ikony.png)
+
+**Možnosti produktu.** Vlevo zákazník volí mléko a sirup, cena se hned přepočítá. Vpravo nahoře obsluha vidí zvolené možnosti zvýrazněné, dole admin spravuje skupiny možností s příplatky (sezónní sirupy jde kdykoli přidat a zase smazat).
+
+![Výběr mléka a sirupu, objednávka u obsluhy a správa možností](docs/screenshots/moznosti.png)
 
 **Oblíbené produkty.** Zákazník si srdíčkem označí, co si dává nejčastěji. Hned za „Vše“ se objeví štítek Oblíbené, který ukáže jen tyto produkty. Oblíbené se ukládají k účtu, takže je zákazník uvidí i na jiném zařízení.
 
@@ -164,6 +170,10 @@ Klepnutím na název skupiny se snímky rozbalí.
 **Červená čísla na dlaždicích** ukazují, co čeká na vyřízení: nové objednávky a požadavky zákazníků, nepotvrzené rezervace a u admina možná zapomenuté odchody.
 
 <img src="docs/screenshots/cisla-na-dlazdicich.png" alt="Červená čísla na dlaždicích" width="600">
+
+**Upozornění na rezervaci.** Hodinu předem se obsluze na úvodu (i nad objednávkami) ukáže, ke kterému stolu brzy přijdou hosté s rezervací.
+
+<img src="docs/screenshots/upozorneni-rezervace.png" alt="Upozornění Brzy přijdou hosté s rezervací" width="600">
 
 **Kontrola odměny u obsluhy.** Obsluha u objednávky vidí, který kus je zdarma, a aplikace jí potvrdí, že zákazník měl kartu opravdu plnou. Vpravo stejná objednávka u zákazníka.
 
@@ -374,7 +384,8 @@ flowchart TB
 |---|---|---|
 | `users` | uživatelé, role, avatar, vzhled, oblíbené | – |
 | `categories` | kategorie menu a jejich pořadí | – |
-| `products` | produkty menu | `categories` |
+| `products` | produkty menu | `categories`, `optionGroups` |
+| `optionGroups` | skupiny možností (mléko, sirup…) s příplatky | – |
 | `orders` | objednávky s vnořenými položkami | `users`, `tables` |
 | `orderNumbers/today` | poslední číslo objednávky (náhrada AUTO_INCREMENT) | – |
 | `requests` | Přivolat obsluhu, Chci zaplatit | `users`, `tables` |
@@ -418,13 +429,21 @@ flowchart TB
 | `description` | text | popis |
 | `icon` | text | vybraná ikona nápoje (prázdné = odhad podle názvu) |
 | `available` | ano/ne | `false` = vyprodáno |
+| `optionGroupIds` | seznam | **odkazy na skupiny možností**, které se u produktu nabízejí |
+
+#### `optionGroups`: skupiny možností produktů
+| Pole | Typ | Popis |
+|---|---|---|
+| `id` | text (ID dokumentu) | |
+| `name` | text | např. Mléko, Sirup |
+| `choices` | seznam | volby s příplatkem, např. `{name: "Ovesné", price: 15}`. První volba je výchozí. |
 
 #### `orders`: objednávky
 | Pole | Typ | Popis |
 |---|---|---|
 | `id` | text (ID dokumentu) | jedinečné ID objednávky |
 | `number` | číslo | číslo pro lidi („dvanáctka je hotová“), každý den od 1 |
-| `items` | seznam | položky objednávky (ID produktu, název, cena, kategorie, množství) |
+| `items` | seznam | položky objednávky (ID produktu, název, základní cena, kategorie, množství a **zvolené možnosti** s příplatky, např. „Mléko: Ovesné +15 Kč“) |
 | `totalPrice` | číslo | celková cena |
 | `tableNumber` | číslo | **odkaz na stůl** |
 | `tableCode` | text | tajný kód stolu z QR kódu |
@@ -542,6 +561,7 @@ Počet razítek na odměnu se ukládá do každé objednávky s odměnou. Když 
 - **uživatel 1 : N rezervace** (`reservations.userId` → `users.uid`)
 - **zaměstnanec 1 : N směny** (`shifts.userId` → `users.uid`), **1 : 0..1 právě běžící směna** (`activeShifts/{uid}`)
 - **kategorie 1 : N produkty** (`products.categoryId` → `categories.id`)
+- **produkt M : N skupiny možností** (`products.optionGroupIds` → `optionGroups.id`; seznam ID místo spojovací tabulky)
 - **stůl 1 : N objednávky a požadavky** (`tableNumber` → `tables`)
 - **objednávka 1 : N položky** (položky jsou vnořené přímo v objednávce)
 
@@ -549,6 +569,7 @@ Počet razítek na odměnu se ukládá do každé objednávky s odměnou. Když 
 | Situace | Řešení v Brewly | Proč |
 |---|---|---|
 | **Položky objednávky** | vnořený seznam `items` v objednávce, s **kopií** názvu a ceny produktu | Záměrná **denormalizace**. Objednávka si pamatuje cenu v době nákupu, takže zdražení nebo smazání produktu nezmění historii ani tržby. Celá objednávka se navíc načte jedním čtením. |
+| **Možnosti produktu** | skupiny v kolekci `optionGroups`, produkt má **seznam jejich ID**, objednávka si ukládá **kopii** zvolené možnosti a příplatku | V relační databázi by vztah M:N potřeboval spojovací tabulku, ve Firestore stačí seznam. Kopie v objednávce = když admin sezónní sirup smaže nebo zdraží, staré objednávky se nezmění. |
 | **Kategorie** | samostatná kolekce `categories`, produkt na ni odkazuje přes `categoryId` | **Normalizace**: název kategorie je uložený jen jednou. Přejmenování změní jediný dokument a nehrozí překlepy v názvech. |
 | **Cizí klíče** | Firestore je sám nehlídá | Hlídají je **bezpečnostní pravidla**, např. produkt nejde uložit s neexistující kategorií a objednávka musí mít platný kód stolu. |
 | **Pořadové číslo objednávky** (AUTO_INCREMENT) | dokument `orderNumbers/today` zvyšovaný v **transakci** | Dva zákazníci objednávající ve stejnou chvíli nikdy nedostanou stejné číslo. |
@@ -580,7 +601,7 @@ Bezpečnostní pravidla neumí projít víc dokumentů najednou ani sečíst sez
 
 | Co | Kdo to hlídá | Proč to stačí |
 |---|---|---|
-| **Cena objednávky** | pravidla jen to, že je kladná a rozumně vysoká. Obsluha u každé objednávky vidí **výrazné upozornění**, když součet nesedí nebo cena položky nesouhlasí s menu. | Obsluha objednávku předává osobně a platba probíhá u ní. |
+| **Cena objednávky** | pravidla jen to, že je kladná a rozumně vysoká. Obsluha u každé objednávky vidí **výrazné upozornění**, když součet (i s příplatky za možnosti) nesedí nebo základní cena položky nesouhlasí s menu. | Obsluha objednávku předává osobně a platba probíhá u ní. |
 | **Plná razítková karta** | obsluha u objednávky s odměnou vidí „karta ověřena ✓“, nebo červené upozornění | Pravidla by musela projít všechny objednávky zákazníka. |
 | **Obsazený stůl u rezervace** | aplikace nedovolí vybrat stůl, který má v tu dobu jiná rezervace | Rezervace potvrzuje vždy obsluha. |
 | **Rezervace jen v otevírací době a limit 3 rezervací** | aplikace nabízí jen dny a časy, kdy je otevřeno, a hlídá limit | Každá rezervace stejně čeká na potvrzení obsluhou. |
@@ -636,7 +657,7 @@ firebase deploy --only hosting
 flutter test
 ```
 
-Projekt má **96 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`, `reservation_test`, `language_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze.
+Projekt má **102 automatických testů** rozdělených do souborů podle témat (`menu_test`, `cart_order_test`, `auth_profile_test`, `staff_test`, `admin_test`, `settings_test`, `utils_test`, `attendance_test`, `loyalty_test`, `stats_test`, `reservation_test`, `language_test`, `options_test`). Používají falešnou databázi a falešné přihlášení v paměti (`fake_cloud_firestore`, `firebase_auth_mocks`), takže se při nich nic neukládá do skutečné databáze.
 
 Testují například:
 - objednávku od menu přes košík až po stav u obsluhy,
@@ -725,7 +746,6 @@ Platby by otevřely i **objednávku předem s vyzvednutím** (kafe s sebou bez f
 
 - 📱 **Aplikace pro Android**: stejný kód sestavený jako aplikace do telefonu.
 - 📷 **Skener QR kódů přímo v aplikaci**: tlačítko „Naskenovat stůl“.
-- 🥛 **Varianty produktů**: jiný druh mléka, bezkofeinová káva.
 - 💳 **Online platby** (viz [Návrh zpoplatnění](#-návrh-zpoplatnění)).
 
 ---

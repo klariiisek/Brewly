@@ -319,9 +319,15 @@ class _CartScreenState extends State<CartScreen> {
                       color: context.colors.dark,
                     ),
                   ),
+                  // Zvolené možnosti, např. „Mléko: Ovesné“.
+                  if (item.options.isNotEmpty)
+                    Text(
+                      item.optionsText,
+                      style: TextStyle(fontSize: 13, color: context.colors.muted),
+                    ),
                   const SizedBox(height: 4),
                   Text(
-                    formatPrice(item.product.price * item.quantity),
+                    formatPrice(item.totalPrice),
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       color: context.colors.primary,

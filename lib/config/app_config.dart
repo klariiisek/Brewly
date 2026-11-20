@@ -44,6 +44,13 @@ class AppConfig {
   static const int maxProductNameLength = 60;
   static const int maxProductDescriptionLength = 300;
 
+  // Možnosti produktů (mléko, sirup…): délka názvu skupiny i volby,
+  // nejvíc voleb ve skupině a skupin u jednoho produktu. [pravidla]
+  static const int maxOptionNameLength = 40;
+  static const int maxOptionChoices = 20;
+  static const int maxOptionGroupsPerProduct = 10;
+  static const double maxOptionPrice = 1000;
+
   // Nejvíc položek v jedné objednávce. [pravidla]
   static const int maxOrderItems = 50;
 

@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import '../config/app_config.dart';
 import '../models/menu_category.dart';
 import '../models/product.dart';
+import '../models/product_option.dart';
 import '../services/product_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_message.dart';
 import '../widgets/category_name_dialog.dart';
 import '../widgets/drink_icon.dart';
+import 'option_groups_screen.dart';
 
 // Formulář pro admina: nový produkt, nebo úprava existujícího.
 class ProductFormScreen extends StatefulWidget {
@@ -42,6 +44,10 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
   late final Stream<List<MenuCategory>> categoriesStream;
   List<MenuCategory> categories = [];
 
+  // Zapnuté skupiny možností (ID) a všechny skupiny z databáze.
+  late List<String> optionGroupIds;
+  late final Stream<List<OptionGroup>> groupsStream;
+
   bool get isEditing => widget.product != null;
 
   @override
@@ -59,7 +65,9 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
     final currentCategory = product?.categoryId ?? '';
     categoryId = currentCategory.isEmpty ? null : currentCategory;
     iconKey = product?.icon ?? '';
+    optionGroupIds = List.of(product?.optionGroupIds ?? const []);
     categoriesStream = widget.productService.categories.watchCategories();
+    groupsStream = widget.productService.options.watchGroups();
   }
 
   @override
@@ -130,6 +138,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
       description: descriptionController.text.trim(),
       icon: iconKey,
       isAvailable: isAvailable,
+      optionGroupIds: optionGroupIds,
     );
 
     setState(() => isSaving = true);
@@ -366,6 +375,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             const SizedBox(height: 16),
             buildIconPicker(),
             const SizedBox(height: 16),
+            buildOptionsPicker(),
+            const SizedBox(height: 16),
             TextFormField(
               controller: descriptionController,
               decoration: const InputDecoration(labelText: 'Popis'),
@@ -395,6 +406,69 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  // Které možnosti (mléko, sirup…) si zákazník u produktu vybírá.
+  // Zapnuté skupiny se mu ukážou v detailu produktu.
+  Widget buildOptionsPicker() {
+    final colors = context.colors;
+    return StreamBuilder<List<OptionGroup>>(
+      stream: groupsStream,
+      builder: (context, snapshot) {
+        final groups = snapshot.data ?? [];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Možnosti pro zákazníka',
+              style: TextStyle(fontWeight: FontWeight.bold, color: colors.dark),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              groups.isEmpty
+                  ? 'Zatím žádné – vytvořte třeba skupinu „Mléko“.'
+                  : 'Zákazník si u produktu vybere z každé zapnuté skupiny.',
+              style: TextStyle(color: colors.muted, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final group in groups)
+                  FilterChip(
+                    label: Text(group.name),
+                    tooltip: choicesText(group),
+                    selected: optionGroupIds.contains(group.id),
+                    onSelected: (isOn) => setState(() {
+                      if (isOn) {
+                        if (optionGroupIds.length <
+                            AppConfig.maxOptionGroupsPerProduct) {
+                          optionGroupIds.add(group.id);
+                        }
+                      } else {
+                        optionGroupIds.remove(group.id);
+                      }
+                    }),
+                  ),
+                ActionChip(
+                  avatar: const Icon(Icons.tune, size: 18),
+                  label: const Text('Upravit možnosti'),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => OptionGroupsScreen(
+                        optionService: widget.productService.options,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
     );
   }
 }

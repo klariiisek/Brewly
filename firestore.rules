@@ -76,7 +76,8 @@ service cloud.firestore {
       // a produkt založit v jednom hromadném zápisu.)
       function isValidProduct() {
         let product = request.resource.data;
-        return product.keys().hasOnly(['name', 'price', 'categoryId', 'description', 'icon', 'available'])
+        return product.keys().hasOnly(['name', 'price', 'categoryId', 'description', 'icon', 'available',
+            'optionGroupIds'])
           && product.name is string && product.name.size() > 0
           && product.name.size() <= 60
           && product.price is number && product.price > 0
@@ -87,10 +88,31 @@ service cloud.firestore {
           && product.description.size() <= 300
           && product.get('icon', '') is string
           && product.get('icon', '').size() <= 20
-          && product.get('available', true) is bool;
+          && product.get('available', true) is bool
+          // Zapnuté skupiny možností (mléko, sirup…): seznam ID, nejvýš 10.
+          && product.get('optionGroupIds', []) is list
+          && product.get('optionGroupIds', []).size() <= 10;
       }
 
       allow create, update: if isAdmin() && isValidProduct();
+      allow delete: if isAdmin();
+    }
+
+    // ---------- Možnosti produktů ----------
+    // Skupiny možností, např. „Mléko“: kravské, ovesné +15 Kč…
+    // Vidí je každý (zákazník si z nich vybírá), měnit je smí jen admin.
+    match /optionGroups/{groupId} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['name', 'choices'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 40
+        // 1–20 voleb (názvy a příplatky kontroluje formulář v aplikaci,
+        // pravidla neumí projít každou položku seznamu).
+        && request.resource.data.choices is list
+        && request.resource.data.choices.size() >= 1
+        && request.resource.data.choices.size() <= 20;
       allow delete: if isAdmin();
     }
 

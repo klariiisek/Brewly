@@ -9,6 +9,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/product_card.dart';
 import '../utils/text.dart';
 import 'categories_screen.dart';
+import 'option_groups_screen.dart';
 import 'csv_import_screen.dart';
 import 'product_form_screen.dart';
 
@@ -129,6 +130,18 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
               MaterialPageRoute(
                 builder: (context) =>
                     CategoriesScreen(services: widget.services),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.tune),
+            tooltip: 'Možnosti produktů',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => OptionGroupsScreen(
+                  optionService: widget.services.products.options,
+                ),
               ),
             ),
           ),

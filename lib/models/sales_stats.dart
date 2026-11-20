@@ -175,7 +175,7 @@ SalesStats computeStats(List<Order> orders, StatsPeriod period, DateTime now) {
   var rewardValue = 0.0;
   for (final order in current) {
     for (final item in order.items) {
-      final revenue = item.product.price * item.quantity;
+      final revenue = item.totalPrice;
       add(products, item.product.name, item.quantity, revenue,
           category: item.product.category, productId: item.product.id);
       add(categories, item.product.category, item.quantity, revenue);

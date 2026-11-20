@@ -21,6 +21,10 @@ class Product {
   // false = vyprodáno: zákazník produkt vidí, ale nemůže ho objednat.
   final bool isAvailable;
 
+  // Které skupiny možností (ID z kolekce "optionGroups") se u produktu
+  // nabízejí, např. mléko a sirup u cappuccina. Prázdné = žádné.
+  final List<String> optionGroupIds;
+
   const Product({
     this.id = '',
     required this.name,
@@ -30,6 +34,7 @@ class Product {
     required this.description,
     this.icon = '',
     this.isAvailable = true,
+    this.optionGroupIds = const [],
   });
 
   // Vytvoří produkt z dat načtených z databáze (Firestore).
@@ -50,6 +55,9 @@ class Product {
       description: data['description'] as String? ?? '',
       icon: data['icon'] as String? ?? '',
       isAvailable: data['available'] as bool? ?? true,
+      optionGroupIds: List<String>.from(
+        data['optionGroupIds'] as List? ?? const [],
+      ),
     );
   }
 
@@ -76,6 +84,7 @@ class Product {
       'description': description,
       'icon': icon,
       'available': isAvailable,
+      'optionGroupIds': optionGroupIds,
     };
   }
 }

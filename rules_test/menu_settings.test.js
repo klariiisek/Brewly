@@ -53,6 +53,41 @@ describe('Menu a kategorie', () => {
   });
 });
 
+describe('Možnosti produktů (mléko, sirup…)', () => {
+  let env;
+  before(async () => { env = await createEnv(); });
+  beforeEach(async () => { await env.clearFirestore(); await seed(env); });
+  after(async () => { await env.cleanup(); });
+
+  const milk = (overrides = {}) => ({
+    name: 'Mléko',
+    choices: [{ name: 'Kravské', price: 0 }, { name: 'Ovesné', price: 15 }],
+    ...overrides,
+  });
+
+  it('admin vytvoří skupinu možností, zákazník ji jen vidí', async () => {
+    await assertSucceeds(setDoc(doc(dbAs(env, 'admin'), 'optionGroups', 'mleko'), milk()));
+    await assertSucceeds(getDoc(doc(dbAs(env, null), 'optionGroups', 'mleko')));
+    await assertFails(setDoc(doc(dbAs(env, 'klara'), 'optionGroups', 'mleko2'), milk()));
+    await assertFails(setDoc(doc(dbAs(env, 'obsluha'), 'optionGroups', 'mleko2'), milk()));
+  });
+
+  it('skupina NEprojde bez názvu, bez voleb nebo s 21 volbami', async () => {
+    const db = dbAs(env, 'admin');
+    const many = Array.from({ length: 21 }, (_, i) => ({ name: `V${i}`, price: 0 }));
+    await assertFails(setDoc(doc(db, 'optionGroups', 'x'), milk({ name: '' })));
+    await assertFails(setDoc(doc(db, 'optionGroups', 'x'), milk({ choices: [] })));
+    await assertFails(setDoc(doc(db, 'optionGroups', 'x'), milk({ choices: many })));
+  });
+
+  it('produkt nabízí nejvýš 10 skupin možností', async () => {
+    const db = dbAs(env, 'admin');
+    await assertSucceeds(setDoc(doc(db, 'products', 'p1'), product({ optionGroupIds: ['mleko'] })));
+    const eleven = Array.from({ length: 11 }, (_, i) => `g${i}`);
+    await assertFails(setDoc(doc(db, 'products', 'p2'), product({ optionGroupIds: eleven })));
+  });
+});
+
 describe('Nastavení podniku', () => {
   let env;
   before(async () => { env = await createEnv(); });

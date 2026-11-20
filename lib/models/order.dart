@@ -95,7 +95,7 @@ class Order {
   double get itemsTotal {
     var total = 0.0;
     for (final item in items) {
-      total += item.product.price * item.quantity;
+      total += item.totalPrice;
     }
     return total;
   }

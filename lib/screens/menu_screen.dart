@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/cart.dart';
 import '../models/cart_item.dart';
 import '../models/product.dart';
+import '../models/product_option.dart';
 import '../models/venue_settings.dart';
 import '../services/product_service.dart';
 import '../theme/app_theme.dart';
@@ -53,10 +56,28 @@ class _MenuScreenState extends State<MenuScreen> {
   // aby se aplikace nepřipojovala k databázi znovu při každém překreslení.
   late final Stream<List<Product>> productsStream;
 
+  // Skupiny možností (mléko, sirup…) – načtené živě, aby se v detailu
+  // produktu hned ukázaly změny od admina (např. nový sezónní sirup).
+  StreamSubscription<List<OptionGroup>>? groupsSubscription;
+  List<OptionGroup> optionGroups = [];
+
   @override
   void initState() {
     super.initState();
     productsStream = widget.productService.watchProducts();
+    groupsSubscription = widget.productService.options.watchGroups().listen(
+      (groups) {
+        if (mounted) setState(() => optionGroups = groups);
+      },
+      // Bez možností jde produkty objednat i tak (s výchozími volbami).
+      onError: (Object error) {},
+    );
+  }
+
+  @override
+  void dispose() {
+    groupsSubscription?.cancel();
+    super.dispose();
   }
 
   // Seznam kategorií: "Vše" + každá kategorie z menu jen jednou.
@@ -101,19 +122,32 @@ class _MenuScreenState extends State<MenuScreen> {
     return context.t.goodEvening;
   }
 
-  void addToCart(Product product, {int quantity = 1}) {
-    widget.cart.addItem(CartItem(product: product, quantity: quantity));
+  void addToCart(CartItem item) {
+    widget.cart.addItem(item);
     // Hlášku „Přidáno“ už nepotřebujeme – zákazník změnu vidí
     // na plovoucí liště košíku dole.
     setState(() {});
     widget.onCartChanged();
   }
 
-  // Otevře detail zespodu. Když zákazník vybere množství, přidá ho do košíku.
+  // Otevře detail zespodu. Když zákazník vybere množství (a možnosti),
+  // přidá položku do košíku.
   Future<void> openDetail(Product product) async {
-    final quantity = await showProductSheet(context, product);
-    if (quantity != null && mounted) {
-      addToCart(product, quantity: quantity);
+    final item = await showProductSheet(
+      context,
+      product,
+      allGroups: optionGroups,
+    );
+    if (item != null && mounted) addToCart(item);
+  }
+
+  // Tlačítko + u produktu: bez možností přidá rovnou jeden kus,
+  // s možnostmi (mléko, sirup…) otevře detail, aby si zákazník vybral.
+  void quickAdd(Product product) {
+    if (groupsForProduct(product, optionGroups).isEmpty) {
+      addToCart(CartItem(product: product));
+    } else {
+      openDetail(product);
     }
   }
 
@@ -270,7 +304,7 @@ class _MenuScreenState extends State<MenuScreen> {
               return ProductCard(
                 product: product,
                 onTap: () => openDetail(product),
-                onAdd: () => addToCart(product),
+                onAdd: () => quickAdd(product),
                 isFavorite: widget.favorites.contains(product.id),
                 onFavorite: widget.onToggleFavorite == null
                     ? null

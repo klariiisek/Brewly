@@ -35,7 +35,8 @@ class Cart {
     return null;
   }
 
-  // Kolik se odečte za odměnu (cena jednoho kusu).
+  // Kolik se odečte za odměnu: základní cena jednoho kusu
+  // (příplatky za možnosti, např. ovesné mléko, zákazník platí).
   double get rewardDiscount => rewardItem?.product.price ?? 0;
 
   // Nejdražší objednatelný kus z kategorie razítkové karty
@@ -64,11 +65,12 @@ class Cart {
     clearReward();
   }
 
-  // Přidá položku. Stejný produkt (podle ID) se jen sečte s tím, co už
-  // v košíku je.
+  // Přidá položku. Stejný produkt (podle ID) se stejnými možnostmi se jen
+  // sečte s tím, co už v košíku je.
   void addItem(CartItem item) {
     for (final existingItem in items) {
-      if (isSameProduct(existingItem.product, item.product)) {
+      if (isSameProduct(existingItem.product, item.product) &&
+          existingItem.hasSameOptions(item)) {
         existingItem.quantity += item.quantity;
         return;
       }
@@ -124,7 +126,7 @@ class Cart {
     double total = 0;
 
     for (final item in items) {
-      total += item.product.price * item.quantity;
+      total += item.totalPrice;
     }
 
     return total;
